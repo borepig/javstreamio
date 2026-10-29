@@ -10,7 +10,11 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from javdb import enrich_meta
 
 ROOT = Path(__file__).resolve().parent.parent
 ADDON_DIR = ROOT / "addon"
@@ -49,7 +53,7 @@ def info_hash(magnet_field: str) -> str:
     return ""
 
 
-def main() -> None:
+def main(use_javdb: bool = True) -> None:
     records = load_records()
     for sub in ("catalog/movie", "meta/movie", "stream/movie"):
         (ADDON_DIR / sub).mkdir(parents=True, exist_ok=True)
@@ -102,6 +106,8 @@ def main() -> None:
             "poster": poster,
             "runtime": rec.get("影片容量") or "",
         }
+        if use_javdb:
+            meta = enrich_meta(meta, rec.get("titleno") or "")
         (ADDON_DIR / "meta" / "movie" / f"{meta_id}.json").write_text(
             json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         streams = []
@@ -123,4 +129,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="Build the Stremio addon files")
+    parser.add_argument("--no-javdb", action="store_true", help="Skip JavDB meta enrichment (offline build)")
+    args = parser.parse_args()
+    main(use_javdb=not args.no_javdb)

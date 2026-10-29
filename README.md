@@ -58,3 +58,44 @@ python3 -m streamio --input data/forum-103-pages-1-2.jsonl --plugin magnet \
 ```
 
 Environment variables `QBIT_URL`, `QBIT_USER`, `QBIT_PASS` override the defaults.
+
+## Stremio addon
+
+The addon is a set of static JSON files (manifest, catalog, per-title meta and
+streams) committed to `addon/` and served by GitHub raw. Add this link to
+Stremio's addon field:
+
+```
+https://raw.githubusercontent.com/borepig/javstreamio/main/addon/manifest.json
+```
+
+### Building the addon
+
+```bash
+python3 addon/build_addon.py              # fetch full details from JavDB
+python3 addon/build_addon.py --no-javdb   # offline build (no JavDB fetches)
+```
+
+- `addon/build_addon.py` generates `addon/manifest.json`, the catalog, and
+  per-title `meta`/`stream` files from `data/*.jsonl`.
+- **Meta enrichment:** by default it queries JavDB (`javdb.com`) by title
+  number to add full cast, genres, runtime, release date, maker/series/rating.
+  A local cache (`addon/.javdb_cache.json`) avoids re-fetching; the build is
+  rate-limit aware (honors `Retry-After` on HTTP 429, browser-like headers to
+  avoid 403 bot-blocks). Re-run the build (with the cache) to fill in any
+  numbers that were rate-limited on a previous run.
+- **Debrid streaming:** each `stream` object carries the torrent `infoHash`.
+  A Stremio client paired with an installed Real-Debrid (or any BitTorrent
+  engine) resolves the hash to a playable stream at play time — no API key or
+  server-side resolution needed.
+
+After editing `data/*.jsonl` or the build script, rebuild, then `git add
+addon/ && git commit && git push` to refresh the live addon.
+
+## Installing the wheel
+
+```bash
+pip install dist/javstreamio-0.1.0-py3-none-any.whl
+```
+
+The repo is public; release `v0.1.0` ships the wheel.
