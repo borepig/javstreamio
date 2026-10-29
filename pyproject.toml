@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "javstreamio"
+version = "0.1.0"
+description = "StreamIO: scrape sehuatang.org and stream JAV records through pluggable output plugins."
+requires-python = ">=3.9"
+dependencies = [
+    "beautifulsoup4>=4.12",
+    "playwright>=1.40",
+]
+
+[project.scripts]
+streamio = "streamio.cli:main"
+
+[tool.setuptools]
+packages = ["streamio", "streamio.plugins"]
