@@ -70,8 +70,9 @@ export default function Page() {
     <main className="wrap">
       <h1>JAV StreamIO — Debrid Resolver</h1>
       <p className="sub">
-        Pick a debrid service, paste your API key (stored only in this browser), then resolve a
-        torrent hash to a direct play URL.
+        Pick a debrid service and paste your API key (stored only in this browser). The Stremio
+        addon then resolves each video's magnet through that debrid — you don't need to type a hash.
+        Optionally paste a hash/magnet to resolve a single torrent here.
       </p>
 
       <div className="card">
@@ -95,17 +96,17 @@ export default function Page() {
         </label>
 
         <label>
-          Torrent infoHash or magnet link
+          Torrent infoHash or magnet link <span className="hint">(optional)</span>
           <input
             type="text"
             value={hash}
             onChange={(e) => setHash(e.target.value)}
-            placeholder="e.g. 5F6D... or magnet:?xt=urn:btih:..."
+            placeholder="Optional: e.g. 5F6D... or magnet:?xt=urn:btih:..."
           />
         </label>
 
         <div className="row">
-          <button onClick={resolve} disabled={loading || !key || !hash}>
+          <button onClick={resolve} disabled={loading || !key}>
             {loading ? "Resolving…" : "Resolve to direct URL"}
           </button>
           {result && <button className="secondary" onClick={copyUrl}>Copy URL</button>}
