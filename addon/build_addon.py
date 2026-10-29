@@ -103,7 +103,7 @@ def main() -> None:
             "runtime": rec.get("影片容量") or "",
         }
         (ADDON_DIR / "meta" / "movie" / f"{meta_id}.json").write_text(
-            json.dumps({"meta": [meta]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         streams = []
         hash = info_hash(rec.get("magnet"))
         if hash:
