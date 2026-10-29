@@ -103,7 +103,7 @@ def main() -> None:
             "runtime": rec.get("影片容量") or "",
         }
         (ADDON_DIR / "meta" / "movie" / f"{meta_id}.json").write_text(
-            json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            json.dumps({"meta": [meta]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         streams = []
         hash = info_hash(rec.get("magnet"))
         if hash:
@@ -118,7 +118,7 @@ def main() -> None:
             json.dumps({"streams": streams}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     (ADDON_DIR / "catalog" / "movie" / f"{CATALOG_ID}.json").write_text(
-        json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        json.dumps({"metas": catalog}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"addon: {len(records)} items written under {ADDON_DIR.relative_to(ROOT)}")
 
 
