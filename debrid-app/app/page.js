@@ -13,6 +13,8 @@ const LS_SERVICE = "jsio_debrid_service";
 const LS_KEY = "jsio_debrid_key";
 const LS_HASH = "jsio_debrid_hash";
 
+const ADDON_BASE = "https://javstreamio-debrid.vercel.app";
+
 export default function Page() {
   const [service, setService] = useState("torbox");
   const [key, setKey] = useState("");
@@ -66,6 +68,14 @@ export default function Page() {
     await navigator.clipboard.writeText(result);
   }
 
+  const addonUrl = key
+    ? `${ADDON_BASE}?service=${service}&token=${key}`
+    : ADDON_BASE;
+
+  async function copyAddon() {
+    await navigator.clipboard.writeText(addonUrl);
+  }
+
   return (
     <main className="wrap">
       <h1>JAV StreamIO — Debrid Resolver</h1>
@@ -115,6 +125,18 @@ export default function Page() {
         {error && <div className="err">{error}</div>}
         {result && <div className="ok">Direct URL ready — open it in your debrid app or new window.</div>}
         {result && <code className="url">{result}</code>}
+      </div>
+
+      <div className="card">
+        <h2>Stremio addon link</h2>
+        <p>
+          Add this URL to Stremio (Settings → Add-ons → Custom URL). Opening any title then
+          auto-resolves its magnet through your {service} key — the link Stremio plays:
+        </p>
+        <code className="url">{addonUrl}</code>
+        <div className="row">
+          <button className="secondary" onClick={copyAddon}>Copy link</button>
+        </div>
       </div>
 
       <p className="foot">
