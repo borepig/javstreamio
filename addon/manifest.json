@@ -1,0 +1,44 @@
+{
+  "id": "community.javstreamio",
+  "version": "0.1.0",
+  "name": "JAV StreamIO",
+  "description": "JAV catalog from sehuatang.org — titles, cast, and magnet streams",
+  "logo": "https://www.stremio.com/website/stremio-logo-small.png",
+  "resources": [
+    {
+      "name": "catalog",
+      "types": [
+        "movie"
+      ]
+    },
+    {
+      "name": "meta",
+      "types": [
+        "movie"
+      ]
+    },
+    {
+      "name": "stream",
+      "types": [
+        "movie"
+      ]
+    }
+  ],
+  "types": [
+    "movie"
+  ],
+  "idPrefixes": [
+    "jav:"
+  ],
+  "catalogs": [
+    {
+      "type": "movie",
+      "id": "jav103",
+      "name": "JAV Catalog (forum 103)"
+    }
+  ],
+  "behaviorHints": {
+    "adult": true,
+    "p2p": true
+  }
+}
