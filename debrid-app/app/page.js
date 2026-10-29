@@ -30,9 +30,11 @@ export default function Page() {
     localStorage.setItem(LS_KEY, key);
   }, [service, key]);
 
+  // Stremio requires the custom addon URL to end with /manifest.json (stremio-core
+  // http_transport.rs: resource() rejects URLs that don't end with /manifest.json).
   const addonUrl = key
-    ? `${ADDON_BASE}?service=${service}&token=${encodeURIComponent(key)}`
-    : ADDON_BASE;
+    ? `${ADDON_BASE}/manifest.json?service=${service}&token=${encodeURIComponent(key)}`
+    : `${ADDON_BASE}/manifest.json`;
 
   async function copyAddon() {
     await navigator.clipboard.writeText(addonUrl);
