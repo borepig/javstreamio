@@ -31,7 +31,7 @@ export default function Page() {
   }, [service, key]);
 
   const addonUrl = key
-    ? `${ADDON_BASE}?service=${service}&token=${key}`
+    ? `${ADDON_BASE}?service=${service}&token=${encodeURIComponent(key)}`
     : ADDON_BASE;
 
   async function copyAddon() {
