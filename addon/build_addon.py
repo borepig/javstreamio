@@ -20,8 +20,9 @@ ROOT = Path(__file__).resolve().parent.parent
 ADDON_DIR = ROOT / "addon"
 CATALOG_ID = "jav103"
 ADDON_ID = "community.javstreamio"
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 HASH_RE = re.compile(r"urn:btih:([A-Za-z0-9]+)", re.I)
+THREAD_ID_RE = re.compile(r"thread-(\d+)")
 
 
 def load_records() -> list[dict]:
@@ -53,6 +54,17 @@ def info_hash(magnet_field: str) -> str:
     return ""
 
 
+def make_meta_id(rec: dict) -> str:
+    """Filename-safe id: use titleno if present, else the thread id from the URL."""
+    no = (rec.get("titleno") or "").strip()
+    if no:
+        return "jav:" + no
+    m = THREAD_ID_RE.search(rec.get("url") or "")
+    if m:
+        return "jav:thread-" + m.group(1)
+    return "jav:unknown"
+
+
 def main(use_javdb: bool = True) -> None:
     records = load_records()
     for sub in ("catalog/movie", "meta/movie", "stream/movie"):
@@ -80,7 +92,7 @@ def main(use_javdb: bool = True) -> None:
 
     catalog: list[dict] = []
     for rec in records:
-        meta_id = "jav:" + (rec.get("titleno") or rec.get("url") or "unknown")
+        meta_id = make_meta_id(rec)
         poster = (rec.get("preview_images") or [""])[0]
         description = (
             f"出演女优: {rec.get('出演女优', '')}\n"
