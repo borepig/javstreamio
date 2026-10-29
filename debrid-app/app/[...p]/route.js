@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchAddon, loadMagnetIndex } from "../../lib/addon-data.js";
+import { fetchAddon } from "../../lib/addon-data.js";
 import { resolveDebrid } from "../../lib/debrids.js";
 
 export const dynamic = "force-dynamic";
@@ -22,26 +22,46 @@ export async function GET(req, { params }) {
     }
     if (seg0 === "catalog" || seg0 === "meta") {
       const rel = p.join("/");
-      const body = await fetchAddon(rel);
+      let body;
+      try {
+        body = await fetchAddon(rel);
+      } catch (e) {
+        if (e.status === 404) {
+          // Stremio's default catalog request is /catalog/movie (no file); serve the
+          // only catalog we have. Other missing catalog paths get an empty catalog.
+          if (seg0 === "catalog" && rel === "catalog/movie") {
+            body = await fetchAddon("catalog/movie/jav103.json");
+          } else if (seg0 === "catalog") {
+            return NextResponse.json({ metas: [] });
+          } else {
+            return NextResponse.json({ error: "Not found" }, { status: 404 });
+          }
+        } else {
+          throw e;
+        }
+      }
       return NextResponse.json(body);
     }
     if (seg0 === "stream") {
       const rel = p.join("/");
-      const lastSeg = p[p.length - 1] || "";
-      const metaId = lastSeg.replace(/\.json$/i, "");
-
-      const streamJson = await fetchAddon(rel);
+      let streamJson;
+      try {
+        streamJson = await fetchAddon(rel);
+      } catch (e) {
+        if (e.status === 404) return NextResponse.json({ streams: [] });
+        throw e;
+      }
       const streams = (streamJson && streamJson.streams) || [];
       const first = streams[0] || {};
       const infoHash = first.infoHash || "";
+      const magnet = first.magnet || "";
       const name = first.name || "";
 
-      const idx = await loadMagnetIndex().catch(() => new Map());
-      const magnet = idx.get(metaId) || "";
-
       // If the client passes ?service=&token=, resolve the infoHash through that debrid.
+      // wait:false keeps the request fast (Vercel serverless caps at 10s) — if the torrent
+      // isn't cached, the magnet fallback below is returned instead of polling 30s.
       if (infoHash && service && token) {
-        const res = await resolveDebrid(service, token, infoHash, magnet);
+        const res = await resolveDebrid(service, token, infoHash, magnet, { wait: false });
         const out = [];
         if (res && res.success && res.url) {
           out.push({ name, url: res.url, protocol: "http", source: service });

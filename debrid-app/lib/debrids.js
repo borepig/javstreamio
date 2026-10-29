@@ -57,7 +57,8 @@ function poll(fn, tries = 15, gapMs = 2000) {
   })();
 }
 
-async function torbox(apiKey, infoHash, magnet) {
+async function torbox(apiKey, infoHash, magnet, opts = {}) {
+  const wait = opts.wait !== false;
   const base = "https://api.torbox.app/v1/api/torrents";
   const H = { Authorization: `Bearer ${apiKey}` };
   try {
@@ -73,19 +74,22 @@ async function torbox(apiKey, infoHash, magnet) {
       const cr = await postJSON(`${base}/createtorrent`, { magnet }, { headers: H });
       const id = cr.body && (cr.body.data || cr.body.id);
       if (!id) return { success: false, error: "Torbox: no torrent id returned" };
-      const found = await poll(async (i) => {
-        const ml = await getJSON(`${base}/mylist`, { headers: H, params: { id } });
-        const st = ml.body && ml.body.data;
-        if (st && (st.status === "completed" || st.cached || st.downloaded)) {
-          const fileId = st.fileId || st.file || "";
-          const dl = await getJSON(`${base}/requestdl`, { headers: H, params: { id, fileId } });
-          const url = extractUrl(dl);
-          if (url) return { success: true, url };
-        }
-        return null;
-      });
-      if (found) return found;
-      return { success: false, error: "Torrent still downloading on Torbox (not cached yet)" };
+      if (wait) {
+        const found = await poll(async (i) => {
+          const ml = await getJSON(`${base}/mylist`, { headers: H, params: { id } });
+          const st = ml.body && ml.body.data;
+          if (st && (st.status === "completed" || st.cached || st.downloaded)) {
+            const fileId = st.fileId || st.file || "";
+            const dl = await getJSON(`${base}/requestdl`, { headers: H, params: { id, fileId } });
+            const url = extractUrl(dl);
+            if (url) return { success: true, url };
+          }
+          return null;
+        });
+        if (found) return found;
+        return { success: false, error: "Torrent still downloading on Torbox (not cached yet)" };
+      }
+      return { success: false, error: "Torrent not cached on Torbox — added; a direct link appears once the download finishes" };
     }
     return { success: false, error: "Torbox: not cached and no magnet to add" };
   } catch (e) {
@@ -93,7 +97,8 @@ async function torbox(apiKey, infoHash, magnet) {
   }
 }
 
-async function realdebrid(apiKey, infoHash, magnet) {
+async function realdebrid(apiKey, infoHash, magnet, opts = {}) {
+  const wait = opts.wait !== false;
   const base = "https://api.real-debrid.com";
   const H = { Authorization: `Bearer ${apiKey}` };
   try {
@@ -108,18 +113,21 @@ async function realdebrid(apiKey, infoHash, magnet) {
       const add = await postJSON(`${base}/torrents/addMagnet`, { magnet }, { headers: H });
       const id = add.body && (add.body.data || add.body.id);
       if (!id) return { success: false, error: "Real-Debrid: no torrent id returned" };
-      const found = await poll(async () => {
-        const info = await getJSON(`${base}/torrents/info/${id}`, { headers: H });
-        const d = info.body && info.body.data;
-        if (d && (d.status === "downloaded" || d.completed || d.progress === 1)) {
-          const link = await postJSON(`${base}/unrestrict/link`, { id }, { headers: H });
-          const url = extractUrl(link);
-          if (url) return { success: true, url };
-        }
-        return null;
-      });
-      if (found) return found;
-      return { success: false, error: "Torrent still downloading on Real-Debrid (not cached yet)" };
+      if (wait) {
+        const found = await poll(async () => {
+          const info = await getJSON(`${base}/torrents/info/${id}`, { headers: H });
+          const d = info.body && info.body.data;
+          if (d && (d.status === "downloaded" || d.completed || d.progress === 1)) {
+            const link = await postJSON(`${base}/unrestrict/link`, { id }, { headers: H });
+            const url = extractUrl(link);
+            if (url) return { success: true, url };
+          }
+          return null;
+        });
+        if (found) return found;
+        return { success: false, error: "Torrent still downloading on Real-Debrid (not cached yet)" };
+      }
+      return { success: false, error: "Torrent not cached on Real-Debrid — added; a direct link appears once the download finishes" };
     }
     return { success: false, error: "Real-Debrid: not cached and no magnet to add" };
   } catch (e) {
@@ -127,7 +135,8 @@ async function realdebrid(apiKey, infoHash, magnet) {
   }
 }
 
-async function alldebrid(apiKey, infoHash, magnet) {
+async function alldebrid(apiKey, infoHash, magnet, opts = {}) {
+  const wait = opts.wait !== false;
   const base = "https://api.alldebrid.com";
   const qp = { agent: AGENT, apikey: apiKey };
   try {
@@ -143,18 +152,21 @@ async function alldebrid(apiKey, infoHash, magnet) {
       const d2 = add.body && add.body.data;
       const id = (d2 && (d2.id || d2.torrentId)) || (add.body && add.body.id);
       if (!id) return { success: false, error: "AllDebrid: no torrent id returned" };
-      const found = await poll(async () => {
-        const st = await getJSON(`${base}/v4/status`, { params: { ...qp, id } });
-        const d = st.body && st.body.data;
-        if (d && (d.status === "completed" || d.done || d.progress === 1)) {
-          const link = await getJSON(`${base}/v4/link`, { params: { ...qp, id } });
-          const url = extractUrl(link);
-          if (url) return { success: true, url };
-        }
-        return null;
-      });
-      if (found) return found;
-      return { success: false, error: "Torrent still downloading on AllDebrid (not cached yet)" };
+      if (wait) {
+        const found = await poll(async () => {
+          const st = await getJSON(`${base}/v4/status`, { params: { ...qp, id } });
+          const d = st.body && st.body.data;
+          if (d && (d.status === "completed" || d.done || d.progress === 1)) {
+            const link = await getJSON(`${base}/v4/link`, { params: { ...qp, id } });
+            const url = extractUrl(link);
+            if (url) return { success: true, url };
+          }
+          return null;
+        });
+        if (found) return found;
+        return { success: false, error: "Torrent still downloading on AllDebrid (not cached yet)" };
+      }
+      return { success: false, error: "Torrent not cached on AllDebrid — added; a direct link appears once the download finishes" };
     }
     return { success: false, error: "AllDebrid: not cached and no magnet to add" };
   } catch (e) {
@@ -218,9 +230,9 @@ function normalizeService(s) {
   return null;
 }
 
-export function resolveDebrid(service, apiKey, infoHash, magnet) {
+export function resolveDebrid(service, apiKey, infoHash, magnet, opts = {}) {
   const svc = normalizeService(service);
   const fn = svc ? ADAPTERS[svc] : null;
   if (!fn) return Promise.resolve({ success: false, error: `Unknown debrid service: ${service}` });
-  return fn(apiKey, infoHash, magnet);
+  return fn(apiKey, infoHash, magnet, opts);
 }
