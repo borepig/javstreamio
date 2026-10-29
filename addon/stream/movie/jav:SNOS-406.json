@@ -1,8 +1,9 @@
 {
   "streams": [
     {
-      "name": "5.85G 无码",
-      "infoHash": "B72A2C00096DE1E6DAD7D8C2798A0D71EA055D52",
+      "name": "5.85G 有码",
+      "infoHash": "4966EA20DCC417CD739ECD44CC9A26448C8E7CA4",
+      "magnet": "magnet:?xt=urn:btih:4966EA20DCC417CD739ECD44CC9A26448C8E7CA4",
       "description": "SNOS-406"
     }
   ]

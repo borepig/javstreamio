@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ADDON_DIR = ROOT / "addon"
 CATALOG_ID = "jav103"
 ADDON_ID = "community.javstreamio"
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 HASH_RE = re.compile(r"urn:btih:([A-Za-z0-9]+)", re.I)
 THREAD_ID_RE = re.compile(r"thread-(\d+)")
 
@@ -123,12 +123,14 @@ def main(use_javdb: bool = True) -> None:
         (ADDON_DIR / "meta" / "movie" / f"{meta_id}.json").write_text(
             json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         streams = []
-        hash = info_hash(rec.get("magnet"))
+        magnet = (rec.get("magnet") or "").strip()
+        hash = info_hash(magnet)
         if hash:
             streams.append(
                 {
                     "name": f"{rec.get('影片容量', '')} {rec.get('是否有码', '')}".strip(),
                     "infoHash": hash,
+                    "magnet": magnet,
                     "description": rec.get("titleno") or "",
                 }
             )

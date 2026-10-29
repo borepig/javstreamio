@@ -1,8 +1,9 @@
 {
   "streams": [
     {
-      "name": "5.4G 有码",
-      "infoHash": "C17AB8D3E58918CC56F789B6E053A8F77E671797",
+      "name": "5.4G 无码",
+      "infoHash": "1D12524EE9FD25F4A9A0AE6100F280DC3112C83C",
+      "magnet": "magnet:?xt=urn:btih:1D12524EE9FD25F4A9A0AE6100F280DC3112C83C",
       "description": "CAWB-012"
     }
   ]
