@@ -12,6 +12,31 @@ export function rawUrl(relPath) {
   return `${RAW}/${relPath}?nc=${Date.now()}`;
 }
 
+// Stremio's ResourceResponse.Meta is `{ meta: <object> }`. The static GitHub files were
+// historically written as a bare Meta Object (or `{ meta: [object] }`); either shape
+// makes stremio-core drop the response and the client shows "No metadata was found!".
+export function normalizeMetaBody(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return body;
+  const inner = body.meta;
+  let meta;
+  if (inner && typeof inner === "object" && !Array.isArray(inner)) {
+    meta = inner;
+  } else if (Array.isArray(inner) && inner[0] && typeof inner[0] === "object") {
+    meta = inner[0];
+  } else if (body.id && body.type) {
+    meta = body;
+  } else {
+    return body;
+  }
+  if (meta.id) {
+    const hints = { ...(meta.behaviorHints || {}) };
+    if (!hints.defaultVideoId) hints.defaultVideoId = meta.id;
+    if (hints.hasScheduledVideos == null) hints.hasScheduledVideos = false;
+    meta.behaviorHints = hints;
+  }
+  return { meta };
+}
+
 export async function fetchAddon(relPath) {
   // Stremio requests file paths without an extension (e.g. "meta/movie/jav:WAAA-629"), but the
   // addon files on GitHub raw are stored with a ".json" extension. Append it when missing so the

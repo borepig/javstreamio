@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ADDON_DIR = ROOT / "addon"
 CATALOG_ID = "jav103"
 ADDON_ID = "community.javstreamio"
-VERSION = "0.4.2"
+VERSION = "0.4.3"
 HASH_RE = re.compile(r"urn:btih:([A-Za-z0-9]+)", re.I)
 THREAD_ID_RE = re.compile(r"thread-(\d+)")
 
@@ -63,6 +63,25 @@ def make_meta_id(rec: dict) -> str:
     if m:
         return "jav:thread-" + m.group(1)
     return "jav:unknown"
+
+
+def as_meta_resource(body: dict) -> dict:
+    """Return a Stremio ResourceResponse.Meta payload.
+
+    stremio-core deserializes /meta as `{ "meta": <Meta Object> }`. A bare
+    Meta Object or `{ "meta": [ ... ] }` both fail to parse, which is the
+    client-side "No metadata was found!" screen.
+    """
+    if not isinstance(body, dict):
+        return body
+    inner = body.get("meta")
+    if isinstance(inner, dict) and inner.get("id"):
+        return {"meta": inner}
+    if isinstance(inner, list) and inner and isinstance(inner[0], dict):
+        return {"meta": inner[0]}
+    if body.get("id") and body.get("type"):
+        return {"meta": body}
+    return body
 
 
 def main(use_javdb: bool = True) -> None:
@@ -120,8 +139,12 @@ def main(use_javdb: bool = True) -> None:
         }
         if use_javdb:
             meta = enrich_meta(meta, rec.get("titleno") or "")
+        hints = meta.get("behaviorHints") or {}
+        hints.setdefault("defaultVideoId", meta_id)
+        hints.setdefault("hasScheduledVideos", False)
+        meta["behaviorHints"] = hints
         (ADDON_DIR / "meta" / "movie" / f"{meta_id}.json").write_text(
-            json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            json.dumps(as_meta_resource(meta), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         streams = []
         magnet = (rec.get("magnet") or "").strip()
         hash = info_hash(magnet)

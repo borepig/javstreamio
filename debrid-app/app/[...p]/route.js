@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchAddon } from "../../lib/addon-data.js";
+import { fetchAddon, normalizeMetaBody } from "../../lib/addon-data.js";
 import { resolveDebrid } from "../../lib/debrids.js";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +46,7 @@ export async function GET(req, { params }) {
           throw e;
         }
       }
+      if (seg0 === "meta") body = normalizeMetaBody(body);
       return NextResponse.json(body, { headers: NO_STORE });
     }
     if (seg0 === "stream") {

@@ -1,0 +1,29 @@
+---
+description: Stremio /meta must be {meta: object}; bare objects and arrays cause "No metadata was found!"
+globs: addon/**/*.py,addon/**/*.json,debrid-app/**/*.js,tests/test_meta_protocol.py
+alwaysApply: true
+---
+
+# Stremio `/meta` ResourceResponse
+
+If the catalog lists titles but clicking one shows "No metadata was found!",
+the `/meta` JSON shape is wrong. Do not "fix" this by dropping the wrapper
+or wrapping `meta` in an array.
+
+Required shapes:
+
+- `/catalog/...` → `{ "metas": [ MetaPreview, ... ] }`
+- `/meta/...` → `{ "meta": { ...Meta Object } }`  (object, NEVER an array, NEVER a bare object)
+- `/stream/...` → `{ "streams": [ Stream, ... ] }`
+
+The addon SDK `protocol.md` example that shows `"meta": [ {...} ]` is wrong.
+Cinemeta (`/meta/movie/tt1254207.json`) and `stremio-core`'s `ResourceResponse::Meta`
+are the spec: `{ "meta": { "id", "type", ... } }`.
+
+For movies, set `behaviorHints.defaultVideoId` to the meta id so Stremio Web
+opens streams instead of Season 0 / Episode 1.
+
+Helpers already in the repo: `as_meta_resource()` in `addon/build_addon.py` and
+`normalizeMetaBody()` in `debrid-app/lib/addon-data.js`. Keep both. Prove with
+`python3 tests/test_meta_protocol.py` and a curl of `/meta/movie/<id>.json`
+that top-level keys are `["meta"]` and `meta` is a dict.
