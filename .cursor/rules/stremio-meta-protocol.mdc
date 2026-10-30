@@ -31,3 +31,7 @@ Helpers already in the repo: `as_meta_resource()` in `addon/build_addon.py` and
 `normalizeMetaBody()` in `debrid-app/lib/addon-data.js`. Keep both. Prove with
 `python3 tests/test_meta_protocol.py` and a curl of `/meta/movie/<id>.json`
 that top-level keys are `["meta"]` and `meta` is a dict.
+
+Do not point `poster` at `tu.djhdhs.us` for clients. That host Cloudflare-challenges
+requests without `Referer: https://sehuatang.org/`, so mobile Stremio shows blank
+covers. The Vercel proxy rewrites posters to `/poster/movie/<id>`.

@@ -50,6 +50,69 @@ export function normalizeMetaBody(body) {
   return { meta };
 }
 
+const POSTER_HOSTS = ["tu.djhdhs.us", "jdbstatic.com"];
+const POSTER_REFERER = "https://sehuatang.org/";
+const POSTER_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+
+export function isAllowedPosterUrl(src) {
+  try {
+    const parsed = new URL(src);
+    if (parsed.protocol !== "https:") return false;
+    const host = parsed.hostname.toLowerCase();
+    return POSTER_HOSTS.some((allowed) => host === allowed || host.endsWith("." + allowed));
+  } catch {
+    return false;
+  }
+}
+
+export function posterPathFor(type, id) {
+  return `/poster/${type}/${encodeURIComponent(id)}`;
+}
+
+export function withProxiedPosters(body, origin, kind) {
+  if (!body || typeof body !== "object") return body;
+  if (kind === "catalog" && Array.isArray(body.metas)) {
+    return {
+      ...body,
+      metas: body.metas.map((item) => {
+        if (!item || !item.id || !item.poster) return item;
+        return { ...item, poster: `${origin}${posterPathFor(item.type || "movie", item.id)}` };
+      }),
+    };
+  }
+  if (kind === "meta" && body.meta && body.meta.id && body.meta.poster) {
+    const type = body.meta.type || "movie";
+    return {
+      ...body,
+      meta: { ...body.meta, poster: `${origin}${posterPathFor(type, body.meta.id)}` },
+    };
+  }
+  return body;
+}
+
+export async function fetchRemotePoster(src) {
+  if (!isAllowedPosterUrl(src)) {
+    const err = new Error("Poster host not allowed");
+    err.status = 400;
+    throw err;
+  }
+  const res = await fetch(src, {
+    headers: {
+      "User-Agent": POSTER_UA,
+      Referer: POSTER_REFERER,
+      Accept: "image/jpeg,image/png,image/*;q=0.5",
+    },
+    redirect: "follow",
+  });
+  if (!res.ok) {
+    const err = new Error(`Poster fetch failed: HTTP ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  return res;
+}
+
 export async function fetchAddon(relPath) {
   // Stremio requests file paths without an extension (e.g. "meta/movie/jav:WAAA-629"), but the
   // addon files on GitHub raw are stored with a ".json" extension. Append it when missing so the

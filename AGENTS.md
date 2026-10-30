@@ -36,3 +36,8 @@ catalog click means `/meta/{type}/{id}.json` did not deserialize as
 - Proxy: `debrid-app/lib/addon-data.js` `normalizeMetaBody()`.
 - Regression: `python3 tests/test_meta_protocol.py`.
 - After a protocol change, bump `addon/manifest.json` version so Stremio refetches.
+- Poster URLs from `tu.djhdhs.us` are Cloudflare-hotlink-protected (403 without
+  `Referer: https://sehuatang.org/`). Mobile Stremio does not send that Referer,
+  so posters vanish. Keep original URLs in the GitHub JSON; the Vercel proxy
+  rewrites catalog/meta `poster` to `/poster/movie/<id>` and fetches upstream
+  with the forum Referer. Do not point Stremio at the raw image host.

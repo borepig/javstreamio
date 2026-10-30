@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchAddon, normalizeMetaBody } from "../../lib/addon-data.js";
+import { fetchAddon, fetchRemotePoster, normalizeMetaBody, withProxiedPosters } from "../../lib/addon-data.js";
 import { resolveDebrid } from "../../lib/debrids.js";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +47,32 @@ export async function GET(req, { params }) {
         }
       }
       if (seg0 === "meta") body = normalizeMetaBody(body);
+      body = withProxiedPosters(body, url.origin, seg0);
       return NextResponse.json(body, { headers: NO_STORE });
+    }
+    if (seg0 === "poster") {
+      const type = p[1] || "movie";
+      const id = decodeURIComponent((p[2] || "").replace(/\.(jpe?g|png|webp)$/i, ""));
+      if (!id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      let metaBody;
+      try {
+        metaBody = normalizeMetaBody(await fetchAddon(`meta/${type}/${id}`));
+      } catch (e) {
+        if (e.status === 404) return NextResponse.json({ error: "Not found" }, { status: 404 });
+        throw e;
+      }
+      const src = metaBody && metaBody.meta && metaBody.meta.poster;
+      if (!src) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      const img = await fetchRemotePoster(src);
+      const buf = await img.arrayBuffer();
+      return new NextResponse(buf, {
+        headers: {
+          "Content-Type": img.headers.get("content-type") || "image/jpeg",
+          "Cache-Control": "public, max-age=86400, s-maxage=86400",
+          "Access-Control-Allow-Origin": "*",
+          "Cross-Origin-Resource-Policy": "cross-origin",
+        },
+      });
     }
     if (seg0 === "stream") {
       const rel = p.join("/");
