@@ -6,7 +6,9 @@ export const dynamic = "force-dynamic";
 
 // Addon files change when the JAVSTREAMIO repo is updated (new metas, version bumps),
 // so tell the Vercel edge (and any intermediary) not to cache the proxied responses.
-const NO_STORE = { "Cache-Control": "no-store" };
+// "no-cache, no-store, must-revalidate" defeats both the Vercel edge cache and any
+// intermediary HTTP cache, so a manifest version bump propagates immediately.
+const NO_STORE = { "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0" };
 
 // Catch-all serving the Stremio addon protocol. `app/page.js` still owns "/", so this
 // handles /manifest.json, /catalog/..., /meta/... (proxied from GitHub raw) and a dynamic
