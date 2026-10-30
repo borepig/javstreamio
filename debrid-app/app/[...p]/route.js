@@ -4,6 +4,10 @@ import { resolveDebrid } from "../../lib/debrids.js";
 
 export const dynamic = "force-dynamic";
 
+// Addon files change when the JAVSTREAMIO repo is updated (new metas, version bumps),
+// so tell the Vercel edge (and any intermediary) not to cache the proxied responses.
+const NO_STORE = { "Cache-Control": "no-store" };
+
 // Catch-all serving the Stremio addon protocol. `app/page.js` still owns "/", so this
 // handles /manifest.json, /catalog/..., /meta/... (proxied from GitHub raw) and a dynamic
 // /stream/... that resolves the torrent through the user's debrid service + key.
@@ -18,7 +22,7 @@ export async function GET(req, { params }) {
     // /manifest.json is a single-segment path whose value includes the ".json" suffix.
     if (p.length === 1 && p[0] === "manifest.json") {
       const m = await fetchAddon("manifest.json");
-      return NextResponse.json(m);
+      return NextResponse.json(m, { headers: NO_STORE });
     }
     if (seg0 === "catalog" || seg0 === "meta") {
       const rel = p.join("/");
@@ -40,7 +44,7 @@ export async function GET(req, { params }) {
           throw e;
         }
       }
-      return NextResponse.json(body);
+      return NextResponse.json(body, { headers: NO_STORE });
     }
     if (seg0 === "stream") {
       const rel = p.join("/");
@@ -70,7 +74,7 @@ export async function GET(req, { params }) {
         } else if (infoHash) {
           out.push({ name, infoHash });
         }
-        return NextResponse.json({ streams: out });
+        return NextResponse.json({ streams: out }, { headers: NO_STORE });
       }
 
       // No service/token → return the static stream (infoHash or magnet) so Stremio's
@@ -78,7 +82,7 @@ export async function GET(req, { params }) {
       const out = [];
       if (infoHash) out.push({ name, infoHash });
       if (magnet) out.push({ name: (name || "magnet"), url: magnet, protocol: "magnet" });
-      return NextResponse.json({ streams: out });
+      return NextResponse.json({ streams: out }, { headers: NO_STORE });
     }
 
     return NextResponse.json({ error: "Not found" }, { status: 404 });
