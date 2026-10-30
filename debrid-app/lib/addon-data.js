@@ -15,6 +15,16 @@ export function rawUrl(relPath) {
 // Stremio's ResourceResponse.Meta is `{ meta: <object> }`. The static GitHub files were
 // historically written as a bare Meta Object (or `{ meta: [object] }`); either shape
 // makes stremio-core drop the response and the client shows "No metadata was found!".
+function rfc3339Released(value) {
+  if (!value || typeof value !== "string") return null;
+  const text = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(text)) {
+    return /Z|[+-]\d{2}:\d{2}$/.test(text) ? text : `${text}Z`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return `${text}T00:00:00.000Z`;
+  return null;
+}
+
 export function normalizeMetaBody(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return body;
   const inner = body.meta;
@@ -28,6 +38,9 @@ export function normalizeMetaBody(body) {
   } else {
     return body;
   }
+  const released = rfc3339Released(meta.released);
+  if (released) meta.released = released;
+  else delete meta.released;
   if (meta.id) {
     const hints = { ...(meta.behaviorHints || {}) };
     if (!hints.defaultVideoId) hints.defaultVideoId = meta.id;

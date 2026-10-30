@@ -20,9 +20,13 @@ ROOT = Path(__file__).resolve().parent.parent
 ADDON_DIR = ROOT / "addon"
 CATALOG_ID = "jav103"
 ADDON_ID = "community.javstreamio"
-VERSION = "0.4.3"
+VERSION = "0.4.4"
 HASH_RE = re.compile(r"urn:btih:([A-Za-z0-9]+)", re.I)
 THREAD_ID_RE = re.compile(r"thread-(\d+)")
+RFC3339_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$"
+)
+DATE_ONLY_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})$")
 
 
 def load_records() -> list[dict]:
@@ -65,6 +69,37 @@ def make_meta_id(rec: dict) -> str:
     return "jav:unknown"
 
 
+def rfc3339_released(value) -> str | None:
+    """stremio-core parses `released` as RFC3339 DateTime. A date-only
+    string like `2026-05-06` fails that parse and drops the whole Meta."""
+    if not value:
+        return None
+    text = str(value).strip()
+    if RFC3339_RE.match(text):
+        return text
+    match = DATE_ONLY_RE.match(text)
+    if match:
+        return match.group(1) + "T00:00:00.000Z"
+    return None
+
+
+def sanitize_meta_item(meta: dict) -> dict:
+    meta = dict(meta)
+    released = rfc3339_released(meta.get("released"))
+    if released:
+        meta["released"] = released
+    else:
+        meta.pop("released", None)
+    meta_id = meta.get("id") or ""
+    hints = dict(meta.get("behaviorHints") or {})
+    if meta_id and not hints.get("defaultVideoId"):
+        hints["defaultVideoId"] = meta_id
+    if hints.get("hasScheduledVideos") is None:
+        hints["hasScheduledVideos"] = False
+    meta["behaviorHints"] = hints
+    return meta
+
+
 def as_meta_resource(body: dict) -> dict:
     """Return a Stremio ResourceResponse.Meta payload.
 
@@ -76,11 +111,11 @@ def as_meta_resource(body: dict) -> dict:
         return body
     inner = body.get("meta")
     if isinstance(inner, dict) and inner.get("id"):
-        return {"meta": inner}
+        return {"meta": sanitize_meta_item(inner)}
     if isinstance(inner, list) and inner and isinstance(inner[0], dict):
-        return {"meta": inner[0]}
+        return {"meta": sanitize_meta_item(inner[0])}
     if body.get("id") and body.get("type"):
-        return {"meta": body}
+        return {"meta": sanitize_meta_item(body)}
     return body
 
 
@@ -97,8 +132,8 @@ def main(use_javdb: bool = True) -> None:
         "logo": "https://www.stremio.com/website/stremio-logo-small.png",
         "resources": [
             {"name": "catalog", "types": ["movie"]},
-            {"name": "meta", "types": ["movie"]},
-            {"name": "stream", "types": ["movie"]},
+            {"name": "meta", "types": ["movie"], "idPrefixes": ["jav:"]},
+            {"name": "stream", "types": ["movie"], "idPrefixes": ["jav:"]},
         ],
         "types": ["movie"],
         "idPrefixes": ["jav:"],

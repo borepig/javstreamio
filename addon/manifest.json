@@ -1,6 +1,6 @@
 {
   "id": "community.javstreamio",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "name": "JAV StreamIO",
   "description": "JAV catalog from sehuatang.org — titles, cast, and magnet streams",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
@@ -15,12 +15,18 @@
       "name": "meta",
       "types": [
         "movie"
+      ],
+      "idPrefixes": [
+        "jav:"
       ]
     },
     {
       "name": "stream",
       "types": [
         "movie"
+      ],
+      "idPrefixes": [
+        "jav:"
       ]
     }
   ],

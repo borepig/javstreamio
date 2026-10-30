@@ -39,6 +39,14 @@ class CatalogMetaFiles(unittest.TestCase):
             self.assertNotIsInstance(body["meta"], list)
             self.assertEqual(body["meta"].get("id"), item["id"])
             self.assertEqual(body["meta"].get("type"), "movie")
+            released = body["meta"].get("released")
+            if released:
+                self.assertRegex(
+                    released,
+                    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}",
+                    f"{path.name} released={released!r} is not RFC3339; "
+                    "stremio-core rejects date-only strings and drops the whole meta",
+                )
 
 
 class MetaResourceHelper(unittest.TestCase):
@@ -46,9 +54,16 @@ class MetaResourceHelper(unittest.TestCase):
         build = load_build_addon()
         item = {"id": "jav:WAAA-629", "type": "movie", "name": "WAAA-629"}
         wrapped = build.as_meta_resource(item)
-        self.assertEqual(wrapped, {"meta": item})
-        self.assertEqual(build.as_meta_resource({"meta": item}), {"meta": item})
-        self.assertEqual(build.as_meta_resource({"meta": [item]}), {"meta": item})
+        self.assertEqual(wrapped["meta"]["id"], "jav:WAAA-629")
+        self.assertEqual(build.as_meta_resource({"meta": item})["meta"]["id"], "jav:WAAA-629")
+        self.assertEqual(build.as_meta_resource({"meta": [item]})["meta"]["id"], "jav:WAAA-629")
+
+    def test_date_only_released_becomes_rfc3339(self):
+        build = load_build_addon()
+        wrapped = build.as_meta_resource(
+            {"id": "jav:WAAA-629", "type": "movie", "name": "x", "released": "2026-05-06"}
+        )
+        self.assertEqual(wrapped["meta"]["released"], "2026-05-06T00:00:00.000Z")
 
 
 if __name__ == "__main__":

@@ -23,6 +23,10 @@ are the spec: `{ "meta": { "id", "type", ... } }`.
 For movies, set `behaviorHints.defaultVideoId` to the meta id so Stremio Web
 opens streams instead of Season 0 / Episode 1.
 
+`released` must be RFC3339 (`2026-05-06T00:00:00.000Z`). A date-only string
+makes stremio-core reject the whole Meta object — same empty detail page,
+even with the correct `{ "meta": ... }` wrapper.
+
 Helpers already in the repo: `as_meta_resource()` in `addon/build_addon.py` and
 `normalizeMetaBody()` in `debrid-app/lib/addon-data.js`. Keep both. Prove with
 `python3 tests/test_meta_protocol.py` and a curl of `/meta/movie/<id>.json`

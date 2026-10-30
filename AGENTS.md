@@ -27,6 +27,11 @@ catalog click means `/meta/{type}/{id}.json` did not deserialize as
   `https://v3-cinemeta.strem.io/meta/movie/tt1254207.json`.
 - Movies should set `meta.behaviorHints.defaultVideoId` to the same id so
   Stremio Web does not fall back to Season 0 / Episode 1.
+- `released` MUST be RFC3339 (`2026-05-06T00:00:00.000Z`), not a date-only
+  string. stremio-core parses it as `DateTime`; `2026-05-06` fails and the
+  client still shows "No metadata was found!" even when `{ "meta": ... }`
+  wrapping is correct. Catalog items omit `released`, which is why the
+  board works and the detail page does not.
 - Builder: `addon/build_addon.py` `as_meta_resource()`.
 - Proxy: `debrid-app/lib/addon-data.js` `normalizeMetaBody()`.
 - Regression: `python3 tests/test_meta_protocol.py`.
