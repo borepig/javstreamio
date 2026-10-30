@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ADDON_DIR = ROOT / "addon"
 CATALOG_ID = "jav103"
 ADDON_ID = "community.javstreamio"
-VERSION = "0.3.1"
+VERSION = "0.4.0"
 HASH_RE = re.compile(r"urn:btih:([A-Za-z0-9]+)", re.I)
 THREAD_ID_RE = re.compile(r"thread-(\d+)")
 
