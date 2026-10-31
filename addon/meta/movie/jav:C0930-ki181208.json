@@ -1,9 +1,19 @@
 {
-  "id": "jav:C0930-ki181208",
-  "type": "movie",
-  "name": "C0930-ki181208 趁此机会下载！ゴールドパック",
-  "description": "出演女优: ゴールドパック\n容量: 3.2G\n有码/无码: 无码\n来源: https://sehuatang.org/thread-3823368-1-12.html",
-  "releaseInfo": "",
-  "poster": "https://tu.djhdhs.us/tupian/forum/202610/10/062229jg4yu2ff5ju2ygff.jpg",
-  "runtime": "3.2G"
+  "meta": {
+    "id": "jav:C0930-ki181208",
+    "type": "movie",
+    "name": "C0930-ki181208 趁此机会下载！ゴールドパック",
+    "description": "出演女优: ゴールドパック\n容量: 3.2G\n有码/无码: 无码",
+    "releaseInfo": "",
+    "poster": "",
+    "background": "",
+    "runtime": "3.2G",
+    "cast": [
+      "ゴールドパック"
+    ],
+    "behaviorHints": {
+      "defaultVideoId": "jav:C0930-ki181208",
+      "hasScheduledVideos": false
+    }
+  }
 }

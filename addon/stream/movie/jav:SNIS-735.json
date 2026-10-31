@@ -1,8 +1,9 @@
 {
   "streams": [
     {
-      "name": "5.09G 无码",
-      "infoHash": "1158B6D122E85B840DEC9D3B3A3A22721B7C8A80",
+      "name": "有码",
+      "infoHash": "6AF8F1C956AA4F7D317B6714A0DBC8AC8C01270E",
+      "magnet": "magnet:?xt=urn:btih:6AF8F1C956AA4F7D317B6714A0DBC8AC8C01270E",
       "description": "SNIS-735"
     }
   ]

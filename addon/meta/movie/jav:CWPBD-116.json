@@ -1,9 +1,15 @@
 {
-  "id": "jav:CWPBD-116",
-  "type": "movie",
-  "name": "CWPBD-116 猫步毒药 Ray",
-  "description": "出演女优: Ray\n容量: 5.15G\n有码/无码: 无码\n来源: https://sehuatang.org/thread-3536735-1-80.html",
-  "releaseInfo": "",
-  "poster": "https://tu.djhdhs.us/tupian/forum/202606/01/073923kfaw1reduo7galho.jpg",
-  "runtime": "5.15G"
+  "meta": {
+    "id": "jav:CWPBD-116",
+    "type": "movie",
+    "name": "CWPBD-116 猫步毒药 Ray",
+    "description": "出演女优: Ray\n容量: 5.15G\n有码/无码: 无码\n来源: https://sehuatang.org/thread-3536735-1-80.html",
+    "releaseInfo": "",
+    "poster": "https://pics.dmm.co.jp/digital/video/cwpbd00116/cwpbd00116pl.jpg",
+    "runtime": "5.15G",
+    "behaviorHints": {
+      "defaultVideoId": "jav:CWPBD-116",
+      "hasScheduledVideos": false
+    }
+  }
 }

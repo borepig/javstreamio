@@ -1,9 +1,15 @@
 {
-  "id": "jav:MVSD-072",
-  "type": "movie",
-  "name": "MVSD-072 想喝酒的奥奇和猫 村上里沙",
-  "description": "出演女优: 村上里沙\n容量: 7.97G\n有码/无码: 有码\n来源: https://sehuatang.org/thread-3686958-1-43.html",
-  "releaseInfo": "",
-  "poster": "https://tu.djhdhs.us/tupian/forum/202608/12/055556oh9yb58m3ehl55fw.jpg",
-  "runtime": "7.97G"
+  "meta": {
+    "id": "jav:MVSD-072",
+    "type": "movie",
+    "name": "MVSD-072 想喝酒的奥奇和猫 村上里沙",
+    "description": "出演女优: 村上里沙\n容量: 7.97G\n有码/无码: 有码\n来源: https://sehuatang.org/thread-3686958-1-43.html",
+    "releaseInfo": "",
+    "poster": "https://pics.dmm.co.jp/digital/video/mvsd00072/mvsd00072pl.jpg",
+    "runtime": "7.97G",
+    "behaviorHints": {
+      "defaultVideoId": "jav:MVSD-072",
+      "hasScheduledVideos": false
+    }
+  }
 }

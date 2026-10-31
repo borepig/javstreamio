@@ -1,8 +1,9 @@
 {
   "streams": [
     {
-      "name": "5.4G 有码",
-      "infoHash": "1CF08366CC547BC3410DA6ED250D42FBAF721A2C",
+      "name": "有码",
+      "infoHash": "8BAF7B4ABDC8CCC3AE7A7C704BDED8919B677B3A",
+      "magnet": "magnet:?xt=urn:btih:8BAF7B4ABDC8CCC3AE7A7C704BDED8919B677B3A&dn=rctd-308-C",
       "description": "RCTD-308"
     }
   ]

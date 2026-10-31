@@ -1,9 +1,19 @@
 {
-  "id": "jav:050723-00-Carib",
-  "type": "movie",
-  "name": "050723-00-Carib 女熱大陸 File.091 ~ 上山奈々",
-  "description": "出演女优: 上山奈々\n容量: 2.57G\n有码/无码: 无码\n来源: https://sehuatang.org/thread-3801434-1-17.html",
-  "releaseInfo": "",
-  "poster": "https://tu.djhdhs.us/tupian/forum/202610/01/072339eeijenjseineupse.jpg",
-  "runtime": "2.57G"
+  "meta": {
+    "id": "jav:050723-00-Carib",
+    "type": "movie",
+    "name": "050723-00-Carib 女熱大陸 File.091 ~ 上山奈々",
+    "description": "出演女优: 上山奈々\n容量: 2.57G\n有码/无码: 无码",
+    "releaseInfo": "",
+    "poster": "",
+    "background": "",
+    "runtime": "2.57G",
+    "cast": [
+      "上山奈々"
+    ],
+    "behaviorHints": {
+      "defaultVideoId": "jav:050723-00-Carib",
+      "hasScheduledVideos": false
+    }
+  }
 }

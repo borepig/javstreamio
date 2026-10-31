@@ -1,9 +1,24 @@
 {
-  "id": "jav:ADN-153",
-  "type": "movie",
-  "name": "ADN-153 你、原谅我…-被丈夫的上司拥抱- 2 秋山祥子",
-  "description": "出演女优: 秋山祥子\n容量: 5.09G\n有码/无码: 有码\n来源: https://sehuatang.org/thread-3590627-1-67.html",
-  "releaseInfo": "",
-  "poster": "https://tu.djhdhs.us/tupian/forum/202606/27/085636lnmglukkaabilkot.jpg",
-  "runtime": "5.09G"
+  "meta": {
+    "id": "jav:ADN-153",
+    "type": "movie",
+    "name": "ADN-153 你、原谅我…-被丈夫的上司拥抱- 2 秋山祥子",
+    "description": "出演女优: 秋山祥子\n容量: 5.09G\n有码/无码: 有码\n来源: https://sehuatang.org/thread-3590627-1-67.html\n片商: Attackers\n發行: 大人のドラマ\n系列: あなた、許して…。\nJavDB評分: 4.08",
+    "releaseInfo": "",
+    "poster": "https://pics.dmm.co.jp/digital/video/adn00153/adn00153pl.jpg",
+    "runtime": "120m",
+    "cast": [
+      "秋山祥子",
+      "田淵正浩"
+    ],
+    "genres": [
+      "單體作品",
+      "戲劇"
+    ],
+    "released": "2018-02-25T00:00:00.000Z",
+    "behaviorHints": {
+      "defaultVideoId": "jav:ADN-153",
+      "hasScheduledVideos": false
+    }
+  }
 }

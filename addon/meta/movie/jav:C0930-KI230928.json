@@ -1,9 +1,21 @@
 {
-  "id": "jav:C0930-KI230928",
-  "type": "movie",
-  "name": "C0930-KI230928 家庭主妇很闲 ~ 神藤 和美 50歳",
-  "description": "出演女优: 神藤 和美 50歳\n容量: 2.72G\n有码/无码: 无码\n来源: https://sehuatang.org/thread-3810902-1-14.html",
-  "releaseInfo": "",
-  "poster": "https://tu.djhdhs.us/tupian/forum/202610/05/055148k8dv82or82vtdvdm.jpg",
-  "runtime": "2.72G"
+  "meta": {
+    "id": "jav:C0930-KI230928",
+    "type": "movie",
+    "name": "C0930-KI230928 家庭主妇很闲 ~ 神藤 和美 50歳",
+    "description": "出演女优: 神藤 和美 50歳\n容量: 2.72G\n有码/无码: 无码",
+    "releaseInfo": "",
+    "poster": "",
+    "background": "",
+    "runtime": "2.72G",
+    "cast": [
+      "神藤",
+      "和美",
+      "50歳"
+    ],
+    "behaviorHints": {
+      "defaultVideoId": "jav:C0930-KI230928",
+      "hasScheduledVideos": false
+    }
+  }
 }

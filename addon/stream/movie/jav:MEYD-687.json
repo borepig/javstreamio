@@ -1,8 +1,9 @@
 {
   "streams": [
     {
-      "name": "5.11G 无码",
-      "infoHash": "F7AD7E2E1AEA407DE0054083D0C0A217EC968271",
+      "name": "有码",
+      "infoHash": "F55698DB37D8EA4AFDB94491127D2A9229BDFB4A",
+      "magnet": "magnet:?xt=urn:btih:F55698DB37D8EA4AFDB94491127D2A9229BDFB4A",
       "description": "MEYD-687"
     }
   ]

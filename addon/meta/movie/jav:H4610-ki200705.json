@@ -1,9 +1,19 @@
 {
-  "id": "jav:H4610-ki200705",
-  "type": "movie",
-  "name": "H4610-ki200705 地方出身的步美，充满魅力的口音-正田歩美",
-  "description": "出演女优: 正田歩美\n容量: 2.21G\n有码/无码: 无码\n来源: https://sehuatang.org/thread-3810906-1-14.html",
-  "releaseInfo": "",
-  "poster": "https://tu.djhdhs.us/tupian/forum/202610/05/055443e3sp0o2zzf0t221d.jpg",
-  "runtime": "2.21G"
+  "meta": {
+    "id": "jav:H4610-ki200705",
+    "type": "movie",
+    "name": "H4610-ki200705 地方出身的步美，充满魅力的口音-正田歩美",
+    "description": "出演女优: 正田歩美\n容量: 2.21G\n有码/无码: 无码",
+    "releaseInfo": "",
+    "poster": "",
+    "background": "",
+    "runtime": "2.21G",
+    "cast": [
+      "正田歩美"
+    ],
+    "behaviorHints": {
+      "defaultVideoId": "jav:H4610-ki200705",
+      "hasScheduledVideos": false
+    }
+  }
 }

@@ -1,8 +1,8 @@
 {
-  "id": "community.javstreamio",
-  "version": "0.4.5",
-  "name": "JAV StreamIO",
-  "description": "JAV catalog from sehuatang.org — titles, cast, and magnet streams",
+  "id": "community.javstremio",
+  "version": "0.4.38",
+  "name": "Stremio JAV Database Addon",
+  "description": "Stremio JAV Database Addon 0.4.38. This is only a metadata scraper.",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
   "resources": [
     {
@@ -39,8 +39,63 @@
   "catalogs": [
     {
       "type": "movie",
-      "id": "jav103",
-      "name": "JAV Catalog (forum 103)"
+      "id": "jav-censored",
+      "name": "JAV Censored",
+      "extra": [
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "type": "movie",
+      "id": "jav-uncensored",
+      "name": "JAV Uncensored",
+      "extra": [
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "type": "movie",
+      "id": "western",
+      "name": "Western",
+      "extra": [
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "type": "movie",
+      "id": "others",
+      "name": "Others",
+      "extra": [
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
+      ]
     }
   ],
   "behaviorHints": {

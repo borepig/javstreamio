@@ -1,18 +1,26 @@
 {
-  "id": "jav:WFS-003",
-  "type": "movie",
-  "name": "WFS-003 首演！纯情拉丁美少女哥伦比亚混血 結城ミシェル",
-  "description": "出演女优: 結城ミシェル\n容量: 6.39G\n有码/无码: 有码\n来源: https://sehuatang.org/thread-3796687-1-17.html\n片商: ワンズファクトリー\n發行: WANZ FACTORY\nJavDB評分: 3.09",
-  "releaseInfo": "2026",
-  "poster": "https://tu.djhdhs.us/tupian/forum/202609/29/072314m90zd19521114q05.jpg",
-  "runtime": "150m",
-  "cast": [
-    "結城ミシェル"
-  ],
-  "genres": [
-    "首次亮相",
-    "美少女",
-    "手指插入"
-  ],
-  "released": "2010-08-01"
+  "meta": {
+    "id": "jav:WFS-003",
+    "type": "movie",
+    "name": "WFS-003 首演！纯情拉丁美少女哥伦比亚混血 結城ミシェル",
+    "description": "首演！纯情拉丁美少女哥伦比亚混血 結城ミシェル\n\n片商: ワンズファクトリー\n發行商: WANZ FACTORY\n容量: 6.39G\n有码/无码: 有码",
+    "releaseInfo": "2026",
+    "poster": "https://pics.dmm.co.jp/digital/video/wfs00003/wfs00003ps.jpg",
+    "background": "https://pics.dmm.co.jp/digital/video/wfs00003/wfs00003pl.jpg",
+    "runtime": "150m",
+    "released": "2010-08-01T00:00:00.000Z",
+    "cast": [
+      "結城ミシェル"
+    ],
+    "genres": [
+      "首次亮相",
+      "美少女",
+      "手指插入"
+    ],
+    "imdbRating": "3.09",
+    "behaviorHints": {
+      "defaultVideoId": "jav:WFS-003",
+      "hasScheduledVideos": false
+    }
+  }
 }

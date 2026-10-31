@@ -1,8 +1,9 @@
 {
   "streams": [
     {
-      "name": "6.38G 有码",
-      "infoHash": "0E937C83A8232091BD7B210166947B4E1A9CEC99",
+      "name": "有码",
+      "infoHash": "C0AB68DFDCB2927317AAD572EBC151E0202FC9A8",
+      "magnet": "magnet:?xt=urn:btih:C0AB68DFDCB2927317AAD572EBC151E0202FC9A8&dn=miae-003-C",
       "description": "MIAE-003"
     }
   ]

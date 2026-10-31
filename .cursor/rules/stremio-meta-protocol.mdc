@@ -32,6 +32,18 @@ Helpers already in the repo: `as_meta_resource()` in `addon/build_addon.py` and
 `python3 tests/test_meta_protocol.py` and a curl of `/meta/movie/<id>.json`
 that top-level keys are `["meta"]` and `meta` is a dict.
 
-Do not point `poster` at `tu.djhdhs.us` for clients. That host Cloudflare-challenges
-requests without `Referer: https://sehuatang.org/`, so mobile Stremio shows blank
-covers. The Vercel proxy rewrites posters to `/poster/movie/<id>`.
+Do not point `poster` at `tu.djhdhs.us` or `*.vercel.app` for clients. Forum
+covers Cloudflare-challenge requests without `Referer: https://sehuatang.org/`,
+and Vercel-proxied images force the debrid site to stay online. Use public DMM
+covers: catalog `poster` is `{code}ps.jpg`, detail `background` is `{code}pl.jpg`
+(`dmm_poster()` / `withPublicPosters()`). Never use fanart as the catalog poster.
+
+`/stream` with Torbox must `POST /createtorrent` (multipart magnet), keep the
+`torrent_id` (including `DUPLICATE_ITEM` / `mylist` by hash), and return
+`/play?service=torbox&token=&torrent_id=&file_id=`. `/play` calls `requestdl`
+without redirect/zip and 302s to the CDN file URL. Never give Stremio
+`requestdl?redirect=true` or `zip_link=true`.
+
+Stream rows follow Torrentio layout: `name` is the left badge (`Torbox\n5.19G`),
+`description` is the right detail. Torrent fallback is `{ infoHash }`, never
+`{ url: "magnet:..." }`. Stremio Web cannot play magnets.

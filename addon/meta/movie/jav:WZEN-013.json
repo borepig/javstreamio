@@ -1,9 +1,24 @@
 {
-  "id": "jav:WZEN-013",
-  "type": "movie",
-  "name": "WZEN-013 本片有露脸 椎名紗月",
-  "description": "出演女优: 椎名紗月\n容量: 5.09G\n有码/无码: 有码\n来源: https://sehuatang.org/thread-3748785-1-29.html",
-  "releaseInfo": "",
-  "poster": "https://tu.djhdhs.us/tupian/forum/202609/08/065743qd6dlgztrzcic6zc.jpg",
-  "runtime": "5.09G"
+  "meta": {
+    "id": "jav:WZEN-013",
+    "type": "movie",
+    "name": "WZEN-013 本片有露脸 椎名紗月",
+    "description": "出演女优: 椎名紗月\n容量: 5.09G\n有码/无码: 有码\n来源: https://sehuatang.org/thread-3748785-1-29.html\n片商: ワープエンタテインメント\nJavDB評分: 2.8",
+    "releaseInfo": "",
+    "poster": "https://pics.dmm.co.jp/digital/video/wzen00013/wzen00013pl.jpg",
+    "runtime": "120m",
+    "cast": [
+      "椎名紗月"
+    ],
+    "genres": [
+      "業餘",
+      "獵豔",
+      "女大學生"
+    ],
+    "released": "2018-05-04T00:00:00.000Z",
+    "behaviorHints": {
+      "defaultVideoId": "jav:WZEN-013",
+      "hasScheduledVideos": false
+    }
+  }
 }

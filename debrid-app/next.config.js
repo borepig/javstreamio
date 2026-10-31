@@ -2,6 +2,16 @@
 const nextConfig = {
   reactStrictMode: true,
   images: { unoptimized: true },
+  outputFileTracingIncludes: {
+    "/*": ["./data/titles.sqlite"],
+    "/[...p]": ["./data/titles.sqlite"],
+  },
+  experimental: {
+    outputFileTracingIncludes: {
+      "/*": ["./data/titles.sqlite"],
+      "/[...p]": ["./data/titles.sqlite"],
+    },
+  },
   async headers() {
     return [
       {

@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "JAV StreamIO — Debrid Resolver",
-  description: "Resolve JAV magnet/infoHash to direct debrid URLs (Torbox, Real-Debrid, AllDebrid, Torrentio, Pretorx)",
+  title: "Stremio JAV Database Addon",
+  description: "Stremio JAV Database Addon. Buy me a coffee to support the hosting server.",
 };
 
 export default function RootLayout({ children }) {

@@ -1,8 +1,9 @@
 {
   "streams": [
     {
-      "name": "5.08G 无码",
-      "infoHash": "340DC490E9E65D9F9AD9C073ED604A84688E5F54",
+      "name": "有码",
+      "infoHash": "3903D4809ACB3A19458E17554E30EA36BB0597FE",
+      "magnet": "magnet:?xt=urn:btih:3903D4809ACB3A19458E17554E30EA36BB0597FE",
       "description": "MEYD-698"
     }
   ]

@@ -1,8 +1,9 @@
 {
   "streams": [
     {
-      "name": "6.79G 无码",
-      "infoHash": "157865636C186FCD4F89FFD4C2E6D82EBF98B87A",
+      "name": "有码",
+      "infoHash": "2A1AA0B982F3035CA166523A2072E00C51A4A50D",
+      "magnet": "magnet:?xt=urn:btih:2A1AA0B982F3035CA166523A2072E00C51A4A50D&dn=ssis-009-C",
       "description": "SSIS-009"
     }
   ]

@@ -1,9 +1,15 @@
 {
-  "id": "jav:DVAJ-220",
-  "type": "movie",
-  "name": "DVAJ-220 专属女优到府榨精真是神！ 赤根葵",
-  "description": "出演女优: 赤根葵\n容量: 5.08G\n有码/无码: 有码\n来源: https://sehuatang.org/thread-3732411-1-33.html",
-  "releaseInfo": "",
-  "poster": "https://tu.djhdhs.us/tupian/forum/202609/01/072912zjjhaygyncm3gj7y.jpg",
-  "runtime": "5.08G"
+  "meta": {
+    "id": "jav:DVAJ-220",
+    "type": "movie",
+    "name": "DVAJ-220 专属女优到府榨精真是神！ 赤根葵",
+    "description": "出演女优: 赤根葵\n容量: 5.08G\n有码/无码: 有码\n来源: https://sehuatang.org/thread-3732411-1-33.html",
+    "releaseInfo": "",
+    "poster": "https://pics.dmm.co.jp/digital/video/dvaj00220/dvaj00220pl.jpg",
+    "runtime": "5.08G",
+    "behaviorHints": {
+      "defaultVideoId": "jav:DVAJ-220",
+      "hasScheduledVideos": false
+    }
+  }
 }

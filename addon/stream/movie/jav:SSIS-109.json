@@ -1,8 +1,9 @@
 {
   "streams": [
     {
-      "name": "6.3G 无码",
-      "infoHash": "24EE950C7168A4F357910BAE6CEFC03E2366BFA2",
+      "name": "有码",
+      "infoHash": "119C20A890AABC9E0B2E0A2700421E2B9A7367AD",
+      "magnet": "magnet:?xt=urn:btih:119C20A890AABC9E0B2E0A2700421E2B9A7367AD",
       "description": "SSIS-109"
     }
   ]

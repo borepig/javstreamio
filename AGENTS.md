@@ -37,7 +37,31 @@ catalog click means `/meta/{type}/{id}.json` did not deserialize as
 - Regression: `python3 tests/test_meta_protocol.py`.
 - After a protocol change, bump `addon/manifest.json` version so Stremio refetches.
 - Poster URLs from `tu.djhdhs.us` are Cloudflare-hotlink-protected (403 without
-  `Referer: https://sehuatang.org/`). Mobile Stremio does not send that Referer,
-  so posters vanish. Keep original URLs in the GitHub JSON; the Vercel proxy
-  rewrites catalog/meta `poster` to `/poster/movie/<id>` and fetches upstream
-  with the forum Referer. Do not point Stremio at the raw image host.
+  `Referer: https://sehuatang.org/`). Do not send those to Stremio. Use public
+  DMM covers instead (`dmm_poster()` / `dmmPoster()`): catalog `poster` is
+  `{code}ps.jpg`, detail `background` is `{code}pl.jpg`. JavDB covers on
+  `jdbstatic.com` are the fallback when there is no DMM code. The Vercel
+  proxy rewrites leftover forum posters to those public hosts so Stremio
+  fetches images directly and the Vercel site does not store or host covers.
+  Catalogs are `jav-censored`, `jav-uncensored`, `western`, and `others`.
+  JAV `/meta` descriptions come from JavDB cache (cast, genres, maker, runtime,
+  rating) plus jav321 official titles and the forum blurb. Do not apply JavDB
+  rows whose 番號 does not match the title number.
+- `/stream` with `?service=torbox&token=` must POST the magnet to Torbox
+  `createtorrent` (multipart), keep `torrent_id` on `DUPLICATE_ITEM` / `mylist`,
+  and return a `/play?service=torbox&token=&torrent_id=&file_id=` URL. `/play`
+  GETs `requestdl` **without** `redirect`/`zip_link`, then **302**s to the CDN
+  file URL. Do not give Stremio `requestdl?redirect=true` (307) or a zip — the
+  player will not start the video. `/play` HEAD must not resolve Torbox (200
+  video/mp4 only) or the second title 502s before GET. `bingeGroup` is per
+  infoHash. On `ACTIVE_LIMIT`, pause a seeding/active torrent and retry create.
+- Real-Debrid uses `https://api.real-debrid.com/rest/1.0` with form-urlencoded
+  `addMagnet` → `selectFiles` → `unrestrict/link`, then the `download` field
+  (not `link`). `/play` 302s that URL. Instant-availability is gone; do not call it.
+- AllDebrid: `POST /v4/magnet/upload` (`magnets[]`) → `/v4.1/magnet/status` until
+  Ready → `/v4/magnet/files` → `/v4/link/unlock`. Bearer token, not `/v4/magnet`.
+- Premiumize: `/play` calls `POST /api/transfer/directdl?apikey=&src=magnet`.
+- Debrid-Link: `POST /api/v2/seedbox/add` then `/seedbox/list` `downloadUrl`.
+- Stream rows: `name` is the left badge (`Torbox\n5.19G`), `description` is the
+  right detail. Torrent fallback MUST be `{ infoHash }` — never `{ url: "magnet:..." }`.
+  Stremio Web cannot play magnets; stremio-core drops non-http `url` values.

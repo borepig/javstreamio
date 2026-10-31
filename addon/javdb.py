@@ -22,13 +22,19 @@ import requests
 from bs4 import BeautifulSoup
 
 JAVDB = "https://javdb.com"
+JAV321 = "https://www.jav321.com"
 ROOT = Path(__file__).resolve().parent.parent
 CACHE_FILE = Path(__file__).resolve().parent / ".javdb_cache.json"
+JAV321_CACHE_FILE = Path(__file__).resolve().parent / ".jav321_cache.json"
 DELAY = 0.4          # seconds between JavDB requests (be polite to the site)
 RETRIES = 3          # retry attempts on transient request failures
 RETRY_BACKOFF = 1.0  # base backoff seconds, doubled each retry
+JAV_CODE_RE = re.compile(
+    r"(?i)(?<![A-Za-z0-9])([A-Z]{2,10})[-_](\d{2,6})(?![A-Za-z0-9])"
+)
 
 _SESSION: Optional[requests.Session] = None
+_CACHE: Optional[dict] = None
 
 
 def _session() -> requests.Session:
@@ -69,15 +75,22 @@ def _get(url: str, timeout: int = 20) -> Optional[str]:
 
 
 def _load_cache() -> dict:
+    global _CACHE
+    if _CACHE is not None:
+        return _CACHE
     if CACHE_FILE.exists():
         try:
-            return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+            _CACHE = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
-            return {}
-    return {}
+            _CACHE = {}
+    else:
+        _CACHE = {}
+    return _CACHE
 
 
 def _save_cache(cache: dict) -> None:
+    global _CACHE
+    _CACHE = cache
     CACHE_FILE.write_text(json.dumps(cache, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
@@ -117,10 +130,76 @@ def _parse_detail(html: str) -> dict:
                 fields["rating"] = m.group(1)
         elif label == "番號":
             fields["number"] = value.get_text(strip=True)
+        elif label in ("導演", "監督"):
+            names = [a.get_text(strip=True) for a in value.select("a")] or [value.get_text(" ", strip=True)]
+            fields["director"] = [n for n in names if n]
+    title = _parse_title(soup)
+    if title:
+        fields["title"] = title
+    summary = _parse_summary(soup)
+    if summary:
+        fields["summary"] = summary
+    cover = _parse_cover(soup)
+    if cover:
+        fields["poster"] = cover
+        fields["fanart"] = cover
     return fields
 
 
-def javdb_meta(number: str, use_cache: bool = True) -> Optional[dict]:
+def _parse_title(soup: BeautifulSoup) -> str:
+    heading = soup.select_one("h2.title") or soup.select_one("strong.current-title")
+    if not heading:
+        return ""
+    text = heading.get_text(" ", strip=True)
+    return re.sub(r"\s+", " ", text)
+
+
+def _parse_summary(soup: BeautifulSoup) -> str:
+    for meta in soup.select('meta[property="og:description"], meta[name="description"]'):
+        content = (meta.get("content") or "").strip()
+        if len(content) >= 20:
+            return content
+    for sel in (".panel.hidden-xs .panel-block", "p.movie-description", ".plot", ".description"):
+        node = soup.select_one(sel)
+        if not node:
+            continue
+        text = node.get_text(" ", strip=True)
+        if len(text) >= 20:
+            return text
+    return ""
+
+
+def _norm_code(value: str) -> str:
+    return re.sub(r"[^A-Z0-9]", "", (value or "").upper())
+
+
+def cache_fits(number: str, fields: dict | None) -> bool:
+    """Ignore JavDB cache rows whose 番號 does not match the query (western false hits)."""
+    if not fields:
+        return False
+    cached = _norm_code(fields.get("number") or "")
+    want = _norm_code(number)
+    if not want:
+        return False
+    if not cached:
+        return bool(JAV_CODE_RE.search(number or ""))
+    return cached == want or cached in want or want in cached
+
+
+def _parse_cover(soup: BeautifulSoup) -> str:
+    """JavDB box cover on c0.jdbstatic.com — public, not stored on Vercel."""
+    img = soup.select_one("img.video-cover") or soup.select_one(".movie-list .cover img")
+    if not img:
+        return ""
+    src = (img.get("src") or img.get("data-src") or "").strip()
+    if src.startswith("//"):
+        src = "https:" + src
+    if src.startswith("https://") and "jdbstatic.com" in src:
+        return src
+    return ""
+
+
+def javdb_meta(number: str, use_cache: bool = True, allow_network: bool = True) -> Optional[dict]:
     """Fetch and parse JavDB details for a title number. Returns a field dict, or None if unavailable."""
     number = (number or "").strip()
     if not number:
@@ -128,7 +207,10 @@ def javdb_meta(number: str, use_cache: bool = True) -> Optional[dict]:
 
     cache = _load_cache() if use_cache else {}
     if use_cache and number in cache:
-        return cache[number]
+        fields = cache[number]
+        return fields if cache_fits(number, fields) else None
+    if not allow_network:
+        return None
 
     search_html = _get(f"{JAVDB}/search?q={number}")
     if not search_html:
@@ -142,7 +224,7 @@ def javdb_meta(number: str, use_cache: bool = True) -> Optional[dict]:
         return None
 
     fields = _parse_detail(detail_html)
-    if fields:
+    if fields and cache_fits(number, fields):
         if use_cache:
             cache[number] = fields
             _save_cache(cache)
@@ -150,34 +232,155 @@ def javdb_meta(number: str, use_cache: bool = True) -> Optional[dict]:
     return None
 
 
-def enrich_meta(base_meta: dict, number: str) -> dict:
-    """Merge JavDB fields into a base Stremio Meta Object. Falls back to base meta on failure."""
-    meta = dict(base_meta)
-    fields = javdb_meta(number)
-    if not fields:
-        return meta
+def compose_description(rec: dict | None, fields: dict | None, fallback: str = "") -> str:
+    """Plot / official title first, then JavDB facts. Forum blurbs count as the summary."""
+    rec = rec or {}
+    fields = fields or {}
+    parts: list[str] = []
+    summary = (fields.get("summary") or fields.get("title") or "").strip()
+    forum = (rec.get("title") or "").strip()
+    if summary:
+        parts.append(summary)
+    if forum and forum not in summary:
+        parts.append(forum)
+    facts: list[str] = []
+    # Cast, genres, runtime, rating, and release belong on the Meta object
+    # (`cast` / `links` / `runtime` / `imdbRating`). Do not dump them into
+    # the plot — Stremio already shows those fields on the detail page.
+    if fields.get("maker"):
+        facts.append("片商: " + fields["maker"])
+    if fields.get("distributor"):
+        facts.append("發行商: " + fields["distributor"])
+    if fields.get("series"):
+        facts.append("系列: " + fields["series"])
+    if rec.get("影片容量"):
+        facts.append("容量: " + rec["影片容量"])
+    if rec.get("是否有码"):
+        facts.append("有码/无码: " + rec["是否有码"])
+    if facts:
+        parts.append("\n".join(facts))
+    text = "\n\n".join(part for part in parts if part).strip()
+    return text or fallback
 
-    if fields.get("cast"):
-        meta["cast"] = fields["cast"]
+
+def _dmm_cid(number: str) -> str:
+    raw = (number or "").strip()
+    match = re.match(r"^([A-Za-z]{2,})[-_]?0*(\d+)$", raw)
+    if not match:
+        return re.sub(r"[^A-Za-z0-9]", "", raw).lower()
+    return match.group(1).lower() + match.group(2).zfill(5)
+
+
+def _parse_jav321(html: str) -> dict:
+    soup = BeautifulSoup(html, "html.parser")
+    panel = soup.select_one(".panel")
+    if not panel:
+        return {}
+    fields: dict = {}
+    lines = [ln.strip() for ln in panel.get_text("\n").splitlines() if ln.strip()]
+    if lines:
+        fields["title"] = lines[0]
+        fields["summary"] = lines[0]
+    text = panel.get_text("\n")
+    maker = re.search(r"メーカー\s*[:：]\s*(.+)", text)
+    if maker:
+        fields["maker"] = maker.group(1).strip().split("\n")[0].strip()
+    released = re.search(r"配信開始日\s*[:：]\s*(\d{4}-\d{2}-\d{2})", text)
+    if released:
+        fields["released"] = released.group(1)
+    cast = re.search(r"出演者\s*[:：]\s*(.+)", text)
+    if cast:
+        names = [n.strip() for n in re.split(r"[/、,]", cast.group(1)) if n.strip()]
+        if names:
+            fields["cast"] = names
+    return fields
+
+
+def jav321_meta(number: str, use_cache: bool = True, allow_network: bool = True) -> Optional[dict]:
+    """Official Japanese title from jav321.com — public HTML, used as the plot headline."""
+    number = (number or "").strip()
+    cid = _dmm_cid(number)
+    if not cid:
+        return None
+    cache = {}
+    if use_cache and JAV321_CACHE_FILE.exists():
+        try:
+            cache = json.loads(JAV321_CACHE_FILE.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            cache = {}
+        if number in cache or cid in cache:
+            return cache.get(number) or cache.get(cid)
+    if not allow_network:
+        return None
+    html = _get(f"{JAV321}/video/{cid}")
+    if not html:
+        return None
+    fields = _parse_jav321(html)
+    if not fields:
+        return None
+    if use_cache:
+        cache[number] = fields
+        cache[cid] = fields
+        JAV321_CACHE_FILE.write_text(
+            json.dumps(cache, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+    return fields
+
+
+def apply_fields(meta: dict, fields: dict | None, rec: dict | None = None) -> dict:
+    """Copy JavDB / jav321 fields onto a Stremio Meta Object."""
+    meta = dict(meta)
+    fields = fields or {}
+    cast = [c for c in (fields.get("cast") or []) if c and c != "N/A"]
+    forum_cast = str((rec or {}).get("出演女优") or "").strip()
+    if forum_cast and not any(forum_cast in c or c in forum_cast for c in cast):
+        cast = [forum_cast] + cast
+    if cast:
+        meta["cast"] = cast
     if fields.get("genres"):
         meta["genres"] = fields["genres"]
     if fields.get("runtime"):
         meta["runtime"] = fields["runtime"]
     if fields.get("released"):
         meta["released"] = fields["released"]
-    # fold JavDB context into the description so the detail page reads fully
-    extras = []
-    if fields.get("maker"):
-        extras.append(f"片商: {fields['maker']}")
-    if fields.get("distributor"):
-        extras.append(f"發行: {fields['distributor']}")
-    if fields.get("series"):
-        extras.append(f"系列: {fields['series']}")
+    if fields.get("director"):
+        directors = fields["director"]
+        meta["director"] = directors if isinstance(directors, list) else [directors]
     if fields.get("rating"):
-        extras.append(f"JavDB評分: {fields['rating']}")
-    if extras:
-        meta["description"] = (meta.get("description", "") + "\n" + "\n".join(extras)).strip()
+        meta["imdbRating"] = str(fields["rating"])
+    if fields.get("title") and fields["title"] not in (meta.get("name") or ""):
+        meta["name"] = f"{(rec or {}).get('titleno') or ''} {fields['title']}".strip()
+    if fields.get("poster") and not meta.get("poster"):
+        meta["poster"] = fields["poster"]
+    if fields.get("fanart") and not meta.get("background"):
+        meta["background"] = fields["fanart"]
+    composed = compose_description(rec, fields, meta.get("description") or "")
+    if composed:
+        meta["description"] = composed
     return meta
+
+
+def enrich_meta(
+    base_meta: dict,
+    number: str,
+    rec: dict | None = None,
+    allow_network: bool = True,
+    allow_jav321: bool = False,
+) -> dict:
+    """Merge JavDB (and jav321 title) into a base Stremio Meta Object."""
+    meta = dict(base_meta)
+    fields = javdb_meta(number, allow_network=allow_network) or {}
+    if JAV_CODE_RE.search(number or "") and not fields.get("title") and not fields.get("summary"):
+        extra = jav321_meta(number, allow_network=allow_jav321 or allow_network)
+        if extra:
+            for key, value in extra.items():
+                if value and not fields.get(key):
+                    fields[key] = value
+    if not fields:
+        if rec:
+            meta["description"] = compose_description(rec, {}, meta.get("description") or "")
+        return meta
+    return apply_fields(meta, fields, rec)
 
 
 if __name__ == "__main__":

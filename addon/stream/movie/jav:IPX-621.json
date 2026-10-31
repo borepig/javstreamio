@@ -1,8 +1,9 @@
 {
   "streams": [
     {
-      "name": "5.23G 无码",
-      "infoHash": "F761831C653745933F352392FC7499FCA6D08152",
+      "name": "有码",
+      "infoHash": "18A476F6889DE6535605A751B8AF047814706D90",
+      "magnet": "magnet:?xt=urn:btih:18A476F6889DE6535605A751B8AF047814706D90&dn=ipx-621-C",
       "description": "IPX-621"
     }
   ]

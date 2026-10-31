@@ -1,4 +1,9 @@
 {
   "version": 2,
-  "rewrites": []
+  "rewrites": [],
+  "functions": {
+    "app/[...p]/route.js": {
+      "includeFiles": "data/titles.sqlite"
+    }
+  }
 }

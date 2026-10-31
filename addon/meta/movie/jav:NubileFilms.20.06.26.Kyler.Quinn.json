@@ -1,9 +1,15 @@
 {
-  "id": "jav:NubileFilms.20.06.26.Kyler.Quinn",
-  "type": "movie",
-  "name": "NubileFilms.20.06.26.Kyler.Quinn 爱之夏",
-  "description": "出演女优: .Kyler.Quinn\n容量: 1.3G\n有码/无码: 无码\n来源: https://sehuatang.org/thread-3522024-1-84.html",
-  "releaseInfo": "",
-  "poster": "https://tu.djhdhs.us/tupian/forum/202605/25/073240x4jd15jf5qadgkak.jpg",
-  "runtime": "1.3G"
+  "meta": {
+    "id": "jav:NubileFilms.20.06.26.Kyler.Quinn",
+    "type": "movie",
+    "name": "NubileFilms.20.06.26.Kyler.Quinn 爱之夏",
+    "description": "出演女优: .Kyler.Quinn\n容量: 1.3G\n有码/无码: 无码\n来源: https://sehuatang.org/thread-3522024-1-84.html",
+    "releaseInfo": "",
+    "poster": "https://tu.djhdhs.us/tupian/forum/202605/25/073240x4jd15jf5qadgkak.jpg",
+    "runtime": "1.3G",
+    "behaviorHints": {
+      "defaultVideoId": "jav:NubileFilms.20.06.26.Kyler.Quinn",
+      "hasScheduledVideos": false
+    }
+  }
 }

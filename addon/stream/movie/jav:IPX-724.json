@@ -1,8 +1,9 @@
 {
   "streams": [
     {
-      "name": "6.55G 无码",
-      "infoHash": "AC9466FB43CFC9DF86C16C76AD0657BD6A9F3C70",
+      "name": "有码",
+      "infoHash": "149B9B5CAA648858E8C0264483BFF83A8B64D38C",
+      "magnet": "magnet:?xt=urn:btih:149B9B5CAA648858E8C0264483BFF83A8B64D38C",
       "description": "IPX-724"
     }
   ]

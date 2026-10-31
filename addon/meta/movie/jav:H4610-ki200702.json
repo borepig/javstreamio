@@ -1,9 +1,19 @@
 {
-  "id": "jav:H4610-ki200702",
-  "type": "movie",
-  "name": "H4610-ki200702 我想做更多的事情-木口ゆめ",
-  "description": "出演女优: 木口ゆめ\n容量: 2.17G\n有码/无码: 有码\n来源: https://sehuatang.org/thread-3799040-1-17.html",
-  "releaseInfo": "",
-  "poster": "https://tu.djhdhs.us/tupian/forum/202609/30/070249g31emdwvm4iiiz3k.jpg",
-  "runtime": "2.17G"
+  "meta": {
+    "id": "jav:H4610-ki200702",
+    "type": "movie",
+    "name": "H4610-ki200702 我想做更多的事情-木口ゆめ",
+    "description": "出演女优: 木口ゆめ\n容量: 2.17G\n有码/无码: 有码",
+    "releaseInfo": "",
+    "poster": "",
+    "background": "",
+    "runtime": "2.17G",
+    "cast": [
+      "木口ゆめ"
+    ],
+    "behaviorHints": {
+      "defaultVideoId": "jav:H4610-ki200702",
+      "hasScheduledVideos": false
+    }
+  }
 }
