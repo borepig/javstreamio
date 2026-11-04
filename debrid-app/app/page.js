@@ -16,8 +16,8 @@ const LS_PAID_KEY = "jsio_paid_key";
 const LS_DEVICE = "jsio_device_id";
 
 const ADDON_BASE = "https://javstremio.vercel.app";
-// Buy Me a Coffee payment links (borepig). After payment, the key is
-// emailed to the buyer; a monthly key is valid 30 days unless renewed.
+// Buy Me a Coffee payment links (borepig). After payment, a pool key is
+// issued via scripts/issue-key.mjs and emailed to the buyer.
 const BMAC_MONTHLY_URL = "https://buymeacoffee.com/borepig?preset=5";
 const BMAC_LIFETIME_URL = "https://buymeacoffee.com/borepig?preset=25";
 
@@ -73,19 +73,68 @@ export default function Page() {
 
   return (
     <main className="wrap">
-      <h1>
-        {ADDON_NAME} <span className="version">v{ADDON_VERSION}</span>
-      </h1>
-      <p className="sub">
-        Pick a debrid service and paste your own API key. Keys stay in this browser
-        only. Copy the addon link into Stremio.
-      </p>
-      <p className="disclaimer">
-        This is only a metadata scraper, we do not host, encourage or allow using this to
-        view content that you do not own.
-      </p>
+      <header className="head">
+        <p className="eyebrow">Stremio Addon</p>
+        <h1>
+          {ADDON_NAME} <span className="version">{ADDON_VERSION}</span>
+        </h1>
+        <p className="sub">
+          Pick a debrid service, paste your keys, copy the addon link into Stremio. Keys
+          stay in this browser only.
+        </p>
+      </header>
 
-      <div className="card">
+      <section className="card tiers">
+        <p className="micro">Plans</p>
+        <h2>Choose your access</h2>
+        <div className="tier-grid">
+          <div className="tier">
+            <h3>Free</h3>
+            <p className="price">$0</p>
+            <ul>
+              <li>Newest 15 titles per category (4 categories)</li>
+              <li>Meta refreshed once a fortnight</li>
+              <li>All debrid services + P2P / magnet fallback</li>
+            </ul>
+            <span className="free-note">Included with the addon</span>
+          </div>
+          <div className="tier">
+            <h3>Monthly</h3>
+            <p className="price">$5<span className="per">/ month</span></p>
+            <ul>
+              <li>Full 41k catalog + enriched metadata</li>
+              <li>Meta refreshed daily</li>
+              <li>30-day key — renew to keep access</li>
+            </ul>
+            <a className="buy" href={BMAC_MONTHLY_URL} target="_blank" rel="noreferrer">
+              Buy Me a Coffee
+            </a>
+          </div>
+          <div className="tier best">
+            <span className="badge">Best value</span>
+            <h3>Lifetime</h3>
+            <p className="price">
+              <s>$99</s> $25 <span className="once">once</span>
+            </p>
+            <ul>
+              <li>Everything, forever</li>
+              <li>Meta refreshed daily</li>
+              <li>One payment — no renewal</li>
+            </ul>
+            <a className="buy" href={BMAC_LIFETIME_URL} target="_blank" rel="noreferrer">
+              Buy Me a Coffee for a Week
+            </a>
+          </div>
+        </div>
+        <p className="getkey">
+          After you pay, a key from our pool is issued to you by email. Paste it into the
+          "Paid key" field below to unlock the full catalog.
+        </p>
+      </section>
+
+      <section className="card">
+        <p className="micro">Setup</p>
+        <h2>Debrid service &amp; keys</h2>
         <label>
           Debrid service
           <select value={service} onChange={(e) => setService(e.target.value)}>
@@ -115,14 +164,15 @@ export default function Page() {
             placeholder="Paste your subscription / lifetime key"
           />
         </label>
-      </div>
+      </section>
 
-      <div className="card">
+      <section className="card">
+        <p className="micro">Install</p>
         <h2>Stremio addon link</h2>
         <p>
-          Uninstall any older copy first. Add this URL (Settings → Add-ons → Custom
-          URL). Without a paid key this is the free tier: the newest 15 titles per
-          category, all debrid services + P2P playback.
+          Uninstall any older copy first. Add this URL (Settings → Add-ons → Custom URL).
+          Without a paid key this is the free tier: newest 15 titles per category, all
+          debrid services + P2P playback.
           {key &&
             ` It includes your ${SERVICES.find((item) => item.id === service)?.label || service} key, which powers one-click debrid playback. Without that key, Play is a black screen.`}
           {paidKey &&
@@ -134,47 +184,12 @@ export default function Page() {
           <a className="secondary" href={webInstall}>Install on Stremio Web</a>
           <button className="secondary" onClick={copyAddon}>Copy link</button>
         </div>
-      </div>
+      </section>
 
-      <div className="card tiers">
-        <h2>Plans</h2>
-        <div className="tier-grid">
-          <div className="tier">
-            <h3>Free — $0</h3>
-            <ul>
-              <li>Newest 15 titles per category (4 categories)</li>
-              <li>Meta refreshed once a fortnight</li>
-              <li>All debrid services + P2P / magnet fallback</li>
-            </ul>
-            <span className="free-note">No key needed</span>
-          </div>
-          <div className="tier">
-            <h3>Monthly — $5</h3>
-            <ul>
-              <li>Full 41k catalog + enriched metadata</li>
-              <li>Meta refreshed daily</li>
-              <li>Key is valid for 30 days — renew to keep access</li>
-            </ul>
-            <a className="buy" href={BMAC_MONTHLY_URL} target="_blank" rel="noreferrer">
-              Pay $5
-            </a>
-          </div>
-          <div className="tier">
-            <h3>Lifetime — <s>$29</s> $25</h3>
-            <ul>
-              <li>Everything, forever</li>
-              <li>Meta refreshed daily</li>
-            </ul>
-            <a className="buy" href={BMAC_LIFETIME_URL} target="_blank" rel="noreferrer">
-              Pay $25
-            </a>
-          </div>
-        </div>
-        <p className="getkey">
-          How to get a key: pay via Buy Me a Coffee — borepig will email you your key.
-          Paste it into the "Paid key" field above to unlock the full 41k catalog.
-        </p>
-      </div>
+      <p className="disclaimer">
+        This is only a metadata scraper. We do not host, encourage, or allow viewing content
+        you do not own.
+      </p>
     </main>
   );
 }

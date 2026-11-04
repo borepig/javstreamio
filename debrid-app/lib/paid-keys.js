@@ -4,11 +4,11 @@
 // is set, so `isValidPaidKeyAsync` checks both stores.
 //
 // Plans:
-//   - monthly ($5.99/mo): expires 30 days after issued_at
-//   - lifetime ($29 one-time): never expires
+//   - monthly ($5/mo): expires 30 days after issued_at
+//   - lifetime ($25 promo, was $99): never expires
 //
 // Free tier (no valid key): catalog capped at FREE_CATALOG_SIZE per category,
-// meta gated by isInFreeSet, debrid playback limited to Torbox + Real-Debrid.
+// meta gated by isInFreeSet; all debrid services work on every tier.
 
 import { DatabaseSync } from "node:sqlite";
 import { existsSync } from "node:fs";
