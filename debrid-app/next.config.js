@@ -3,13 +3,13 @@ const nextConfig = {
   reactStrictMode: true,
   images: { unoptimized: true },
   outputFileTracingIncludes: {
-    "/*": ["./data/titles.sqlite"],
-    "/[...p]": ["./data/titles.sqlite"],
+    "/*": ["./data/titles.sqlite", "./data/keys.sqlite"],
+    "/[...p]": ["./data/titles.sqlite", "./data/keys.sqlite"],
   },
   experimental: {
     outputFileTracingIncludes: {
-      "/*": ["./data/titles.sqlite"],
-      "/[...p]": ["./data/titles.sqlite"],
+      "/*": ["./data/titles.sqlite", "./data/keys.sqlite"],
+      "/[...p]": ["./data/titles.sqlite", "./data/keys.sqlite"],
     },
   },
   async headers() {

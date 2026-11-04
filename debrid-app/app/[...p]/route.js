@@ -15,7 +15,7 @@ import {
 import { lookupDebridCache, resolveDebrid, resolvePlay, unlockRdLinks, rdShouldServeCachingClip } from "../../lib/debrids.js";
 import { buildAddonStreams, includeDebridRow, STREAM_CACHE_HINTS } from "../../lib/stream-format.js";
 import { ADDON_ID, ADDON_NAME, ADDON_VERSION } from "../../lib/version.js";
-import { isValidPaidKey } from "../../lib/paid-keys.js";
+import { isValidPaidKeyAsync, registerDevice } from "../../lib/paid-keys.js";
 import { FREE_CATALOG_SIZE, isInFreeSet, openTitlesDb, resolveSqlitePath } from "../../lib/titles-db.js";
 
 export const dynamic = "force-dynamic";
@@ -60,7 +60,17 @@ export async function GET(req, { params }) {
   const service = url.searchParams.get("service") || "";
   const token = url.searchParams.get("token") || "";
   const paidKey = url.searchParams.get("key") || "";
-  const paid = isValidPaidKey(paidKey);
+  const paid = await isValidPaidKeyAsync(paidKey);
+  const device = url.searchParams.get("device") || "";
+  if (paid && device) {
+    const dev = registerDevice(paidKey, device);
+    if (!dev.allowed) {
+      return NextResponse.json(
+        { error: `Device limit reached (${dev.count}/${dev.limit})` },
+        { status: 403 },
+      );
+    }
+  }
 
   try {
     // /manifest.json is a single-segment path whose value includes the ".json" suffix.
@@ -140,6 +150,12 @@ export async function GET(req, { params }) {
       if (!token) {
         return NextResponse.json({ error: "Missing debrid token" }, { status: 400 });
       }
+      // Free tier: debrid playback is limited to Torbox + Real-Debrid.
+      const svcNorm = String(service || "").toLowerCase().replace(/[\s-]+/g, "");
+      const freeServiceOk = svcNorm.includes("torbox") || svcNorm.includes("realdebrid");
+      if (!paid && service && !freeServiceOk) {
+        return NextResponse.json({ error: "This debrid service requires a paid key" }, { status: 403 });
+      }
       const played = await resolvePlay(service, token, {
         torrentId: url.searchParams.get("torrent_id"),
         fileId: url.searchParams.get("file_id"),
@@ -190,6 +206,11 @@ export async function GET(req, { params }) {
       const name = first.name || "";
       const title = first.description || "";
       const titleCode = String(p[2] || "").replace(/\.json$/i, "");
+      // Free tier: debrid rows only for Torbox + Real-Debrid; AllDebrid,
+      // Premiumize and Debrid-Link rows require a paid key.
+      const svcNorm = String(service || "").toLowerCase().replace(/[\s-]+/g, "");
+      const freeServiceOk = svcNorm.includes("torbox") || svcNorm.includes("realdebrid");
+      const debridOk = paid || freeServiceOk;
       let cached = false;
       let torrentId = "";
       let resolvedUrl = "";
@@ -220,7 +241,7 @@ export async function GET(req, { params }) {
             sourceDescription: title,
             cached,
             resolvedUrl,
-            includeDebrid: Boolean(service && token && infoHash && includeDebridRow(service, cached)),
+            includeDebrid: Boolean(debridOk && service && token && infoHash && includeDebridRow(service, cached)),
           }),
         },
         { headers: NO_STORE },

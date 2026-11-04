@@ -35,20 +35,34 @@ button.secondary { background: #2a313c; }
   line-height: 1.5;
   margin: 0 0 20px;
 }
-.card.support { margin-top: 16px; }
+.card.tiers { margin-top: 16px; }
 .card a { color: #9fd0ff; }
-.coffee {
+.tier-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tier {
+  background: #0e1116;
+  border: 1px solid #2a313c;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tier h3 { margin: 0; font-size: 14px; }
+.tier ul { margin: 0; padding-left: 18px; font-size: 12px; color: #9aa4b2; line-height: 1.6; }
+.tier .buy {
   display: inline-block;
-  background: #ffdd00;
-  color: #0e1116 !important;
-  font-weight: 700;
+  background: #4f8cff;
+  color: #fff;
   text-decoration: none;
   border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 14px;
+  padding: 8px 14px;
+  font-size: 13px;
   width: fit-content;
+  margin-top: auto;
 }
-.coffee:hover { filter: brightness(1.08); }
+.tier .buy:hover { filter: brightness(1.1); }
+.tier .free-note { color: #7fe0a0; font-size: 12px; margin-top: auto; }
+.getkey { font-size: 12px; color: #7d8794; line-height: 1.6; margin: 4px 0 0; }
 .warn {
   background: rgba(220, 80, 80, .12);
   border: 1px solid rgba(220, 80, 80, .35);
