@@ -150,12 +150,6 @@ export async function GET(req, { params }) {
       if (!token) {
         return NextResponse.json({ error: "Missing debrid token" }, { status: 400 });
       }
-      // Free tier: debrid playback is limited to Torbox + Real-Debrid.
-      const svcNorm = String(service || "").toLowerCase().replace(/[\s-]+/g, "");
-      const freeServiceOk = svcNorm.includes("torbox") || svcNorm.includes("realdebrid");
-      if (!paid && service && !freeServiceOk) {
-        return NextResponse.json({ error: "This debrid service requires a paid key" }, { status: 403 });
-      }
       const played = await resolvePlay(service, token, {
         torrentId: url.searchParams.get("torrent_id"),
         fileId: url.searchParams.get("file_id"),
@@ -206,11 +200,9 @@ export async function GET(req, { params }) {
       const name = first.name || "";
       const title = first.description || "";
       const titleCode = String(p[2] || "").replace(/\.json$/i, "");
-      // Free tier: debrid rows only for Torbox + Real-Debrid; AllDebrid,
-      // Premiumize and Debrid-Link rows require a paid key.
-      const svcNorm = String(service || "").toLowerCase().replace(/[\s-]+/g, "");
-      const freeServiceOk = svcNorm.includes("torbox") || svcNorm.includes("realdebrid");
-      const debridOk = paid || freeServiceOk;
+      // All debrid services work on every tier; a debrid row still only
+      // shows for Torbox/Real-Debrid when the torrent is not cached.
+      const debridOk = true;
       let cached = false;
       let torrentId = "";
       let resolvedUrl = "";

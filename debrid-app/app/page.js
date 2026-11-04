@@ -18,8 +18,8 @@ const LS_DEVICE = "jsio_device_id";
 const ADDON_BASE = "https://javstremio.vercel.app";
 // Buy Me a Coffee payment links (borepig). After payment, the key is
 // emailed to the buyer; a monthly key is valid 30 days unless renewed.
-const BMAC_MONTHLY_URL = "https://buymeacoffee.com/borepig?preset=6";
-const BMAC_LIFETIME_URL = "https://buymeacoffee.com/borepig?preset=29";
+const BMAC_MONTHLY_URL = "https://buymeacoffee.com/borepig?preset=5";
+const BMAC_LIFETIME_URL = "https://buymeacoffee.com/borepig?preset=25";
 
 export default function Page() {
   const [service, setService] = useState("torbox");
@@ -53,9 +53,9 @@ export default function Page() {
 
   // Stremio requires the custom addon URL to end with /manifest.json (stremio-core
   // http_transport.rs: resource() rejects URLs that don't end with /manifest.json).
-  // Free tier: bare manifest.json — newest 15 per category, Torbox/Real-Debrid
-  // debrid + P2P. Paid tier: ?service=&token=&key=&device= unlocks the full
-  // 41k catalog/meta, all debrid services and one-click playback.
+  // Free tier: bare manifest.json — newest 15 per category, all debrid services
+  // + P2P. Paid tier: ?service=&token=&key=&device= unlocks the full 41k
+  // catalog/meta and one-click playback.
   const params = [];
   if (service) params.push(`service=${service}`);
   if (key) params.push(`token=${encodeURIComponent(key)}`);
@@ -77,8 +77,8 @@ export default function Page() {
         {ADDON_NAME} <span className="version">v{ADDON_VERSION}</span>
       </h1>
       <p className="sub">
-        Pick a debrid service and paste your own API key. Keys stay in this browser only
-        — this site never ships a Torbox or debrid key. Copy the addon link into Stremio.
+        Pick a debrid service and paste your own API key. Keys stay in this browser
+        only. Copy the addon link into Stremio.
       </p>
       <p className="disclaimer">
         This is only a metadata scraper, we do not host, encourage or allow using this to
@@ -93,10 +93,7 @@ export default function Page() {
               <option key={s.id} value={s.id}>{s.label}</option>
             ))}
           </select>
-          <span className="hint">
-            Free tier: Torbox + Real-Debrid only. AllDebrid, Premiumize and Debrid-Link
-            require a paid key.
-          </span>
+          <span className="hint">All 5 debrid services work on every tier.</span>
         </label>
 
         <label>
@@ -124,12 +121,12 @@ export default function Page() {
         <h2>Stremio addon link</h2>
         <p>
           Uninstall any older copy first. Add this URL (Settings → Add-ons → Custom
-          URL). Without a paid key this is the free tier — the newest 15 titles per
-          category, Torbox/Real-Debrid + P2P playback.
+          URL). Without a paid key this is the free tier: the newest 15 titles per
+          category, all debrid services + P2P playback.
           {key &&
             ` It includes your ${SERVICES.find((item) => item.id === service)?.label || service} key, which powers one-click debrid playback. Without that key, Play is a black screen.`}
           {paidKey &&
-            " Your paid key unlocks the full 41k catalog, enriched metadata, and all debrid services."}
+            " Your paid key unlocks the full 41k catalog and enriched metadata."}
         </p>
         <code className="url">{addonUrl}</code>
         <div className="row">
@@ -145,37 +142,37 @@ export default function Page() {
           <div className="tier">
             <h3>Free — $0</h3>
             <ul>
-              <li>Newest 15 titles per category</li>
-              <li>Debrid playback: Torbox + Real-Debrid</li>
-              <li>P2P / magnet fallback</li>
+              <li>Newest 15 titles per category (4 categories)</li>
+              <li>Meta refreshed once a fortnight</li>
+              <li>All debrid services + P2P / magnet fallback</li>
             </ul>
             <span className="free-note">No key needed</span>
           </div>
           <div className="tier">
-            <h3>Monthly — $5.99</h3>
+            <h3>Monthly — $5</h3>
             <ul>
               <li>Full 41k catalog + enriched metadata</li>
-              <li>All 5 debrid services</li>
-              <li>Key is valid for 30 days — pay again to renew</li>
+              <li>Meta refreshed daily</li>
+              <li>Key is valid for 30 days — renew to keep access</li>
             </ul>
             <a className="buy" href={BMAC_MONTHLY_URL} target="_blank" rel="noreferrer">
-              Pay $5.99
+              Pay $5
             </a>
           </div>
           <div className="tier">
-            <h3>Lifetime — $29</h3>
+            <h3>Lifetime — <s>$29</s> $25</h3>
             <ul>
               <li>Everything, forever</li>
+              <li>Meta refreshed daily</li>
             </ul>
             <a className="buy" href={BMAC_LIFETIME_URL} target="_blank" rel="noreferrer">
-              Pay $29
+              Pay $25
             </a>
           </div>
         </div>
         <p className="getkey">
           How to get a key: pay via Buy Me a Coffee — borepig will email you your key.
-          Paste it into the "Paid key" field above to unlock the full catalog and all debrid
-          services.
+          Paste it into the "Paid key" field above to unlock the full 41k catalog.
         </p>
       </div>
     </main>
