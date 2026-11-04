@@ -16,10 +16,10 @@ const LS_PAID_KEY = "jsio_paid_key";
 const LS_DEVICE = "jsio_device_id";
 
 const ADDON_BASE = "https://javstremio.vercel.app";
-// Lemon Squeezy storefront — update the product slugs after creating the
-// "JAV Pro Monthly $5.99" and "JAV Pro Lifetime $29" products.
-const SQUEEZY_MONTHLY_URL = "https://www.lemonsqueezy.com/product/javpro-monthly";
-const SQUEEZY_LIFETIME_URL = "https://www.lemonsqueezy.com/product/javpro-lifetime";
+// Buy Me a Coffee payment links (borepig). After payment, the key is
+// emailed to the buyer; a monthly key is valid 30 days unless renewed.
+const BMAC_MONTHLY_URL = "https://buymeacoffee.com/borepig?preset=6";
+const BMAC_LIFETIME_URL = "https://buymeacoffee.com/borepig?preset=29";
 
 export default function Page() {
   const [service, setService] = useState("torbox");
@@ -152,14 +152,14 @@ export default function Page() {
             <span className="free-note">No key needed</span>
           </div>
           <div className="tier">
-            <h3>Monthly — $5.99/mo</h3>
+            <h3>Monthly — $5.99</h3>
             <ul>
               <li>Full 41k catalog + enriched metadata</li>
               <li>All 5 debrid services</li>
-              <li>Key renews every 30 days</li>
+              <li>Key is valid for 30 days — pay again to renew</li>
             </ul>
-            <a className="buy" href={SQUEEZY_MONTHLY_URL} target="_blank" rel="noreferrer">
-              Buy monthly
+            <a className="buy" href={BMAC_MONTHLY_URL} target="_blank" rel="noreferrer">
+              Pay $5.99
             </a>
           </div>
           <div className="tier">
@@ -167,15 +167,15 @@ export default function Page() {
             <ul>
               <li>Everything, forever</li>
             </ul>
-            <a className="buy" href={SQUEEZY_LIFETIME_URL} target="_blank" rel="noreferrer">
-              Buy lifetime
+            <a className="buy" href={BMAC_LIFETIME_URL} target="_blank" rel="noreferrer">
+              Pay $29
             </a>
           </div>
         </div>
         <p className="getkey">
-          How to get a key: buy a plan on the Squeezy store — when your order is paid, the
-          webhook auto-issues a key. Paste it into the "Paid key" field above to unlock the
-          full catalog and all debrid services.
+          How to get a key: pay via Buy Me a Coffee — borepig will email you your key.
+          Paste it into the "Paid key" field above to unlock the full catalog and all debrid
+          services.
         </p>
       </div>
     </main>

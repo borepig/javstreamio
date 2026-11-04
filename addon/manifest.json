@@ -1,8 +1,8 @@
 {
   "id": "community.javstremio",
-  "version": "0.4.41",
+  "version": "0.4.42",
   "name": "Stremio JAV Database Addon",
-  "description": "Stremio JAV Database Addon 0.4.41. This is only a metadata scraper. Free tier: newest 15 titles per category + Torbox/Real-Debrid; paid key unlocks the full 41k library and all debrid services.",
+  "description": "Stremio JAV Database Addon 0.4.42. This is only a metadata scraper. Free tier: newest 15 titles per category + Torbox/Real-Debrid; paid key unlocks the full 41k library and all debrid services.",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
   "resources": [
     {
