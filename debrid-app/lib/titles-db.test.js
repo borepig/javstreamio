@@ -1,10 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { openTitlesDb, queryCatalog, queryTitle, searchText } from "./titles-db.js";
+import { FREE_CATALOG_SIZE, isInFreeSet, openTitlesDb, queryCatalog, queryTitle, searchText } from "./titles-db.js";
 
-function memoryDb() {
-  const db = new DatabaseSync(":memory:");
+function createTitlesSchema(db) {
   db.exec(`
     CREATE TABLE titles (
       id TEXT PRIMARY KEY,
@@ -29,6 +28,11 @@ function memoryDb() {
       search_text TEXT DEFAULT ''
     );
   `);
+}
+
+function memoryDb() {
+  const db = new DatabaseSync(":memory:");
+  createTitlesSchema(db);
   const insert = db.prepare(`
     INSERT INTO titles (id, category, name, cast_json, info_hash, posted_at, search_text)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -84,4 +88,34 @@ test("queryTitle returns one mapped row", () => {
   assert.deepEqual(item.cast, ["宝生みさと"]);
   assert.equal(item.infoHash, "aaa");
   assert.equal(queryTitle(db, "jav:missing"), null);
+});
+
+function freeSetDb() {
+  const db = new DatabaseSync(":memory:");
+  createTitlesSchema(db);
+  const insert = db.prepare(`INSERT INTO titles (id, category, name, posted_at, search_text) VALUES (?, ?, ?, ?, ?)`);
+  const dates = [
+    "2026-11-03", "2026-11-02", "2026-11-01", "2026-10-31", "2026-10-30",
+    "2026-10-29", "2026-10-28", "2026-10-27", "2026-10-26", "2026-10-25",
+    "2026-10-24", "2026-10-23", "2026-10-22", "2026-10-21", "2026-10-20",
+    "2026-10-19", "2026-10-18", "2026-10-17", "2026-10-16", "2026-10-15",
+  ];
+  for (let i = 0; i < 20; i++) {
+    const n = String(i + 1).padStart(3, "0");
+    insert.run(`jav:TST-${n}`, "jav-censored", `TST-${n}`, dates[i], `tst ${n}`);
+  }
+  return openTitlesDb(db);
+}
+
+test("isInFreeSet: newest FREE_CATALOG_SIZE per category are in the free set", () => {
+  const db = freeSetDb();
+  for (let i = 1; i <= FREE_CATALOG_SIZE; i++) {
+    const n = String(i).padStart(3, "0");
+    assert.equal(isInFreeSet(db, `jav:TST-${n}`), true, `TST-${n} should be in free set`);
+  }
+  for (let i = FREE_CATALOG_SIZE + 1; i <= 20; i++) {
+    const n = String(i).padStart(3, "0");
+    assert.equal(isInFreeSet(db, `jav:TST-${n}`), false, `TST-${n} should be outside free set`);
+  }
+  assert.equal(isInFreeSet(db, "jav:missing"), false);
 });

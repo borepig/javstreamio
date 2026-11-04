@@ -15,6 +15,8 @@ import {
 import { lookupDebridCache, resolveDebrid, resolvePlay, unlockRdLinks, rdShouldServeCachingClip } from "../../lib/debrids.js";
 import { buildAddonStreams, includeDebridRow, STREAM_CACHE_HINTS } from "../../lib/stream-format.js";
 import { ADDON_ID, ADDON_NAME, ADDON_VERSION } from "../../lib/version.js";
+import { isValidPaidKey } from "../../lib/paid-keys.js";
+import { FREE_CATALOG_SIZE, isInFreeSet, openTitlesDb, resolveSqlitePath } from "../../lib/titles-db.js";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -26,6 +28,15 @@ export const maxDuration = 10;
 // "no-cache, no-store, must-revalidate" defeats both the Vercel edge cache and any
 // intermediary HTTP cache, so a manifest version bump propagates immediately.
 const NO_STORE = { "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0" };
+
+// One shared read-only handle for the live titles DB (free-tier meta gate).
+let routeDb;
+function getRouteDb() {
+  if (routeDb !== undefined) return routeDb;
+  const file = resolveSqlitePath();
+  routeDb = file ? openTitlesDb(file) : null;
+  return routeDb;
+}
 
 function clientIp(req) {
   const forwarded = req.headers.get("x-forwarded-for") || "";
@@ -48,6 +59,8 @@ export async function GET(req, { params }) {
   const url = new URL(req.url);
   const service = url.searchParams.get("service") || "";
   const token = url.searchParams.get("token") || "";
+  const paidKey = url.searchParams.get("key") || "";
+  const paid = isValidPaidKey(paidKey);
 
   try {
     // /manifest.json is a single-segment path whose value includes the ".json" suffix.
@@ -64,7 +77,12 @@ export async function GET(req, { params }) {
       const catalogId = resolveCatalogId(p[2] || "jav-censored");
       const extra = String(p[3] || "").replace(/\.json$/, "");
       const { skip, search } = parseCatalogExtra(extra);
-      const body = withPublicPosters(bundledCatalog(catalogId, skip, undefined, search), "catalog", url.origin);
+      // Free tier: newest FREE_CATALOG_SIZE per catalog. Paid tier: full catalog.
+      const body = withPublicPosters(
+        bundledCatalog(catalogId, skip, paid ? undefined : FREE_CATALOG_SIZE, search),
+        "catalog",
+        url.origin,
+      );
       return NextResponse.json(body, { headers: NO_STORE });
     }
     if (seg0 === "meta") {
@@ -77,6 +95,14 @@ export async function GET(req, { params }) {
         } catch (e) {
           if (e.status === 404) return NextResponse.json({ error: "Not found" }, { status: 404 });
           throw e;
+        }
+      }
+      // Free tier gets its own meta view: only the newest FREE_CATALOG_SIZE
+      // titles per category, so free meta can't leak paid titles.
+      if (!paid) {
+        const db = getRouteDb();
+        if (!db || !isInFreeSet(db, id)) {
+          return NextResponse.json({ error: "Not found" }, { status: 404 });
         }
       }
       body = withPublicPosters(normalizeMetaBody(body), "meta", url.origin);

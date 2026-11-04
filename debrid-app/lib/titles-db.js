@@ -97,3 +97,26 @@ export function queryTitle(db, id) {
   const row = db.prepare("SELECT * FROM titles WHERE id = ?").get(want);
   return mapTitleRow(row);
 }
+
+// Free tier size: the newest N titles per category. Paid tier gets the full
+// catalog/meta; free users only ever see this capped set, so the free meta
+// view can't leak paid titles.
+export const FREE_CATALOG_SIZE = 15;
+
+// Is this title inside the free (newest FREE_CATALOG_SIZE per category) set?
+// Rank = number of same-category titles strictly ahead of it in the
+// `posted_at DESC, id DESC` ordering used by queryCatalog.
+export function isInFreeSet(db, id) {
+  const want = decodeURIComponent(String(id || "").replace(/\.json$/, ""));
+  const row = db.prepare("SELECT category, posted_at FROM titles WHERE id = ?").get(want);
+  if (!row) return false;
+  const { n } = db
+    .prepare(
+      `SELECT COUNT(*) AS n FROM titles t
+       WHERE t.category = ?
+         AND (t.posted_at > ?
+              OR (t.posted_at = ? AND t.id > ?))`,
+    )
+    .get(row.category, row.posted_at, row.posted_at, want);
+  return n < FREE_CATALOG_SIZE;
+}

@@ -12,19 +12,23 @@ const SERVICES = [
 
 const LS_SERVICE = "jsio_debrid_service";
 const LS_KEY = "jsio_debrid_key";
+const LS_PAID_KEY = "jsio_paid_key";
 
 const ADDON_BASE = "https://javstremio.vercel.app";
 
 export default function Page() {
   const [service, setService] = useState("torbox");
   const [key, setKey] = useState("");
+  const [paidKey, setPaidKey] = useState("");
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const s = localStorage.getItem(LS_SERVICE);
     const k = localStorage.getItem(LS_KEY);
+    const pk = localStorage.getItem(LS_PAID_KEY);
     if (s && SERVICES.some((item) => item.id === s)) setService(s);
     if (k) setKey(k);
+    if (pk) setPaidKey(pk);
     setReady(true);
   }, []);
 
@@ -32,19 +36,22 @@ export default function Page() {
     if (!ready) return;
     localStorage.setItem(LS_SERVICE, service);
     localStorage.setItem(LS_KEY, key);
-  }, [ready, service, key]);
+    localStorage.setItem(LS_PAID_KEY, paidKey);
+  }, [ready, service, key, paidKey]);
 
   // Stremio requires the custom addon URL to end with /manifest.json (stremio-core
   // http_transport.rs: resource() rejects URLs that don't end with /manifest.json).
-  const addonUrl = key
-    ? `${ADDON_BASE}/manifest.json?service=${service}&token=${encodeURIComponent(key)}`
-    : "";
-  const stremioUrl = key
-    ? `stremio://${ADDON_BASE.replace(/^https:\/\//, "")}/manifest.json?service=${service}&token=${encodeURIComponent(key)}`
-    : "";
-  const webInstall = key
-    ? `https://web.stremio.com/#/addons?addon=${encodeURIComponent(addonUrl)}`
-    : "";
+  // Free tier: bare manifest.json (newest 15 per category, no debrid rows).
+  // Paid tier: ?service=&token=<debrid key>&key=<paid key> unlocks the full 41k
+  // catalog/meta plus one-click debrid playback.
+  const params = [];
+  if (service) params.push(`service=${service}`);
+  if (key) params.push(`token=${encodeURIComponent(key)}`);
+  if (paidKey) params.push(`key=${encodeURIComponent(paidKey)}`);
+  const query = params.length ? `?${params.join("&")}` : "";
+  const addonUrl = `${ADDON_BASE}/manifest.json${query}`;
+  const stremioUrl = `stremio://${ADDON_BASE.replace(/^https:\/\//, "")}/manifest.json${query}`;
+  const webInstall = `https://web.stremio.com/#/addons?addon=${encodeURIComponent(addonUrl)}`;
 
   async function copyAddon() {
     if (!addonUrl) return;
@@ -84,30 +91,35 @@ export default function Page() {
             placeholder="Paste your debrid API key"
           />
         </label>
+
+        <label>
+          Paid key <span className="hint">optional — unlocks the full 41k library</span>
+          <input
+            type="password"
+            value={paidKey}
+            onChange={(e) => setPaidKey(e.target.value)}
+            placeholder="Paste your subscription / lifetime key"
+          />
+        </label>
       </div>
 
       <div className="card">
         <h2>Stremio addon link</h2>
-        {key ? (
-          <>
-            <p>
-              Uninstall any older copy first. Add this URL (Settings → Add-ons → Custom
-              URL). It includes your {SERVICES.find((item) => item.id === service)?.label || service}{" "}
-              key — without that key, Play is a black screen.
-            </p>
-            <code className="url">{addonUrl}</code>
-            <div className="row">
-              <a className="install" href={stremioUrl}>Open in Stremio</a>
-              <a className="secondary" href={webInstall}>Install on Stremio Web</a>
-              <button className="secondary" onClick={copyAddon}>Copy link</button>
-            </div>
-          </>
-        ) : (
-          <p className="warn">
-            Paste your debrid API key above first. The bare site URL only lists titles.
-            Clicking Play without a key opens a black screen.
-          </p>
-        )}
+        <p>
+          Uninstall any older copy first. Add this URL (Settings → Add-ons → Custom
+          URL). Without a paid key this is the free tier — the newest 15 titles per
+          category, magnet/P2P playback only.
+          {key &&
+            ` It includes your ${SERVICES.find((item) => item.id === service)?.label || service} key, which powers one-click debrid playback. Without that key, Play is a black screen.`}
+          {paidKey &&
+            " Your paid key unlocks the full 41k catalog, enriched metadata, and debrid streams."}
+        </p>
+        <code className="url">{addonUrl}</code>
+        <div className="row">
+          <a className="install" href={stremioUrl}>Open in Stremio</a>
+          <a className="secondary" href={webInstall}>Install on Stremio Web</a>
+          <button className="secondary" onClick={copyAddon}>Copy link</button>
+        </div>
       </div>
 
       <div className="card support">
