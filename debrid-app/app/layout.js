@@ -2,7 +2,8 @@ import "./globals.css";
 
 export const metadata = {
   title: "Stremio JAV Database Addon",
-  description: "Stremio JAV Database Addon. Buy me a coffee to support the hosting server.",
+  description:
+    "Stremio JAV Database Addon. Free tier: newest 15 titles per category + Torbox/Real-Debrid. Paid key unlocks the full 41k library and all debrid services.",
 };
 
 export default function RootLayout({ children }) {
