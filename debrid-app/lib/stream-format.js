@@ -149,6 +149,7 @@ export function serviceLabel(service) {
   if (key.includes("alldebrid")) return "AllDebrid";
   if (key.includes("premiumize") || key.includes("pretorx")) return "Premiumize";
   if (key.includes("debridlink")) return "Debrid-Link";
+  if (key.includes("pikpak")) return "PikPak";
   return service || "Debrid";
 }
 
@@ -157,7 +158,7 @@ export function includeDebridRow(service, cached) {
   const key = String(service || "").toLowerCase().replace(/[\s-]+/g, "");
   // Real-Debrid removed instant-availability. Still return /play so addMagnet
   // runs when Stremio opens the stream, same as Torbox.
-  return key.includes("torbox") || key.includes("realdebrid");
+  return key.includes("torbox") || key.includes("realdebrid") || key.includes("pikpak");
 }
 
 export function parseAdInstant(body, hash) {

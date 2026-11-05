@@ -687,6 +687,7 @@ export async function resolveRealDebridPlay(apiKey, { torrentId, infoHash, title
 const AD_BASE = "https://api.alldebrid.com";
 const PM_BASE = "https://www.premiumize.me/api";
 const DL_BASE = "https://debrid-link.com/api/v2";
+const PP_BASE = "https://api-drive.mypikpak.com";
 
 function adHeaders(apiKey) {
   return { Authorization: `Bearer ${apiKey}` };
@@ -863,12 +864,101 @@ export async function resolveDebridLinkPlay(apiKey, { torrentId, infoHash } = {}
   }
 }
 
+async function pikpak(apiKey, infoHash, magnet) {
+  const H = { Authorization: `Bearer ${apiKey}` };
+  const hash = String(infoHash || "").toLowerCase();
+  const magnetLink = magnet || (hash ? `magnet:?xt=urn:btih:${hash}` : "");
+  if (!magnetLink) return { success: false, error: "PikPak: missing magnet" };
+  const added = await postJSON(
+    `${PP_BASE}/drive/v1/files`,
+    {
+      kind: "drive#file",
+      upload_type: "UPLOAD_TYPE_URL",
+      url: { url: magnetLink },
+      folder_type: "DOWNLOAD",
+    },
+    { headers: H },
+  );
+  const task = added.body && added.body.task;
+  const torrentId = task && task.id;
+  const fileId = task && task.file_id;
+  if (!torrentId) return { success: false, error: "PikPak: could not add the magnet" };
+  const complete = String((task && task.phase) || "") === "PHASE_TYPE_COMPLETE";
+  return { success: true, torrentId, fileId, cached: complete };
+}
+
+export async function resolvePikpakPlay(apiKey, { fileId, infoHash } = {}) {
+  const H = { Authorization: `Bearer ${apiKey}` };
+  const hash = String(infoHash || "").toLowerCase();
+  try {
+    // The offline task's file_id points to a FOLDER, not the video. The
+    // actual video lives inside that folder. List the folder, pick the
+    // largest video file, then fetch that file's detail for the stream URL.
+    const videoUrl = async (fid) => {
+      const list = await getJSON(`${PP_BASE}/drive/v1/files`, {
+        headers: H,
+        params: { parent_id: String(fid), limit: "50" },
+      });
+      const files = (list.body && list.body.files) || [];
+      const video = pickVideoFile(files);
+      if (video) {
+        const r = await getJSON(`${PP_BASE}/drive/v1/files/${encodeURIComponent(String(video.id))}`, {
+          headers: H,
+          params: { thumbnail_size: "SIZE_LARGE" },
+        });
+        const d = r.body;
+        if (!r.ok || !d || d.error) return null;
+        if (String(d.phase || "") !== "PHASE_TYPE_COMPLETE") return null;
+        const link = ((d.medias && d.medias[0] && d.medias[0].link) || {}).url || d.web_content_link || "";
+        return link && String(link).startsWith("http") ? { success: true, url: link } : null;
+      }
+      // Fallback: fid may itself be a file rather than a folder.
+      const r = await getJSON(`${PP_BASE}/drive/v1/files/${encodeURIComponent(fid)}`, {
+        headers: H,
+        params: { thumbnail_size: "SIZE_LARGE" },
+      });
+      const d = r.body;
+      if (!r.ok || !d || d.error) return null;
+      if (String(d.phase || "") !== "PHASE_TYPE_COMPLETE") return null;
+      const link = ((d.medias && d.medias[0] && d.medias[0].link) || {}).url || d.web_content_link || "";
+      return link && String(link).startsWith("http") ? { success: true, url: link } : null;
+    };
+
+    let fid = hasFileId(fileId) ? String(fileId) : "";
+    if (!fid && hash) {
+      const tasks = await getJSON(`${PP_BASE}/drive/v1/tasks`, {
+        headers: H,
+        params: { type: "offline", limit: "200" },
+      });
+      const rows = (tasks.body && tasks.body.tasks) || [];
+      const hit =
+        rows.find((t) => String((t.params && t.params.url) || "").toLowerCase().includes(hash)) ||
+        rows.find((t) => String(t.file_id || "") === fid);
+      fid = hit ? String(hit.file_id || "") : "";
+    }
+    if (!fid) {
+      const ensured = await pikpak(apiKey, hash, magnetWithTrackers("", hash));
+      fid = ensured.success ? String(ensured.fileId || "") : "";
+      if (!fid) return { success: false, added: true, cached: false, error: "PikPak: could not find or add the file" };
+    }
+
+    const found = await videoUrl(fid);
+    if (found) return { ...found, added: true, cached: true };
+    const waited = await poll(() => videoUrl(fid), 8, 700);
+    if (waited) return { ...waited, added: true, cached: true };
+    return { success: false, added: true, cached: false, error: "PikPak: file not ready yet — try again in a few seconds" };
+  } catch (e) {
+    return { success: false, error: "PikPak error: " + e.message };
+  }
+}
+
 const ADAPTERS = {
   torbox,
   "real-debrid": realdebrid,
   alldebrid,
   premiumize,
   "debrid-link": debridlink,
+  pikpak,
 };
 
 function normalizeService(s) {
@@ -878,6 +968,7 @@ function normalizeService(s) {
   if (key.includes("alldebrid") || key === "all") return "alldebrid";
   if (key.includes("premiumize") || key.includes("pretorx")) return "premiumize";
   if (key.includes("debridlink")) return "debrid-link";
+  if (key.includes("pikpak")) return "pikpak";
   return null;
 }
 
@@ -928,6 +1019,20 @@ export async function lookupDebridCache(service, apiKey, infoHash, opts = {}) {
       const ready = hit.downloadPercent == null || hit.downloadPercent >= 100;
       return { cached: Boolean(ready) };
     }
+    if (svc === "pikpak") {
+      const H = { Authorization: `Bearer ${apiKey}` };
+      const r = await getJSON(`${PP_BASE}/drive/v1/tasks`, {
+        headers: H,
+        params: { type: "offline", limit: "200" },
+      });
+      const rows = (r.body && r.body.tasks) || [];
+      const hit = rows.find((t) =>
+        String((t.params && t.params.url) || "").toLowerCase().includes(hash),
+      );
+      if (!hit) return { cached: false, fileId: "" };
+      const complete = String(hit.phase || "") === "PHASE_TYPE_COMPLETE";
+      return { cached: complete, fileId: String(hit.file_id || ""), torrentId: String(hit.id || "") };
+    }
   } catch {
     return { cached: false };
   }
@@ -948,5 +1053,6 @@ export function resolvePlay(service, apiKey, opts = {}) {
   if (svc === "alldebrid") return resolveAllDebridPlay(apiKey, opts);
   if (svc === "premiumize") return resolvePremiumizePlay(apiKey, opts);
   if (svc === "debrid-link") return resolveDebridLinkPlay(apiKey, opts);
+  if (svc === "pikpak") return resolvePikpakPlay(apiKey, opts);
   return Promise.resolve({ success: false, error: `No play handler for ${service}` });
 }

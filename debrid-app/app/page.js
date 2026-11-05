@@ -8,6 +8,7 @@ const SERVICES = [
   { id: "alldebrid", label: "AllDebrid" },
   { id: "premiumize", label: "Premiumize" },
   { id: "debrid-link", label: "Debrid-Link" },
+  { id: "pikpak", label: "PikPak" },
 ];
 
 const LS_SERVICE = "jsio_debrid_service";
@@ -18,8 +19,7 @@ const LS_DEVICE = "jsio_device_id";
 const ADDON_BASE = "https://javstremio.vercel.app";
 // Buy Me a Coffee payment links (borepig). After payment, a pool key is
 // issued via scripts/issue-key.mjs and emailed to the buyer.
-const BMAC_MONTHLY_URL = "https://buymeacoffee.com/borepig?preset=5";
-const BMAC_LIFETIME_URL = "https://buymeacoffee.com/borepig?preset=25";
+const BMAC_LIFETIME_URL = "https://buymeacoffee.com/borepig?preset=10";
 
 export default function Page() {
   const [service, setService] = useState("torbox");
@@ -114,26 +114,6 @@ export default function Page() {
             )}
           </div>
           <div
-            className={tier === "monthly" ? "tier active" : "tier dimmed"}
-            role="button"
-            tabIndex={0}
-            onClick={() => setTier("monthly")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") setTier("monthly");
-            }}
-          >
-            <h3>Monthly</h3>
-            <p className="price">$5<span className="per">/ month</span></p>
-            <ul>
-              <li>All 9 categories: JAV Censored, JAV Uncensored, Western, Others, Hong Kong AV, Hentai Censored, Hentai Uncensored, Korean AV, Chinese AV</li>
-              <li>Meta refreshed daily</li>
-              <li>30-day key — renew to keep access</li>
-            </ul>
-            <a className="buy" href={BMAC_MONTHLY_URL} target="_blank" rel="noreferrer">
-              Buy Me a Coffee
-            </a>
-          </div>
-          <div
             className={tier === "lifetime" ? "tier best active" : "tier best dimmed"}
             role="button"
             tabIndex={0}
@@ -145,11 +125,11 @@ export default function Page() {
             <span className="badge">Best value</span>
             <h3>Lifetime</h3>
             <p className="price">
-              <s>$99</s> $25 <span className="once">once</span>
+              <s>$99</s> $10 <span className="once">once</span>
             </p>
             <ul>
               <li>Everything, forever</li>
-              <li>Same 9 categories as Monthly</li>
+              <li>All 9 categories: JAV Censored, JAV Uncensored, Western, Others, Hong Kong AV, Hentai Censored, Hentai Uncensored, Korean AV, Chinese AV</li>
               <li>Meta refreshed daily</li>
               <li>One payment — no renewal</li>
             </ul>
@@ -174,7 +154,7 @@ export default function Page() {
               <option key={s.id} value={s.id}>{s.label}</option>
             ))}
           </select>
-          <span className="hint">All 5 debrid services work on every tier.</span>
+          <span className="hint">All 6 debrid services work on every tier.</span>
         </label>
 
         <label>
