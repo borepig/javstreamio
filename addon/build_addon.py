@@ -31,7 +31,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.4"
+VERSION = "0.5.5"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -849,13 +849,8 @@ def scrape_avgood_hk(max_pages: int = 20, batch: int = 8, delay: float = 1.0) ->
                         detail = _avgood_parse_detail(str(p["html"]))
                         if not detail["magnet"]:
                             continue
-                        blob = f"{it['title']} {detail['torrentName']}".lower()
-                        if not (
-                            any(m in blob for m in AVGOOD_QUALITY_MARKERS)
-                            or any(m in blob for m in AVGOOD_AUDIO_MARKERS)
-                        ):
-                            filtered += 1
-                            continue
+                        # All HK titles are kept (including lower-definition),
+                        # so the full AvGood inventory lands in the metadata library.
                         title_id = f"hk:avgood-{it['id']}"
                         if title_id in existing:
                             skipped += 1
