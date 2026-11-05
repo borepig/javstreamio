@@ -131,7 +131,8 @@ export function isPublicArtUrl(src) {
       host === "jdbstatic.com" ||
       host.endsWith(".jdbstatic.com") ||
       host === "avgood.com" ||
-      host === "images.ijavtorrent.com"
+      host === "images.ijavtorrent.com" ||
+      host === "raw.githubusercontent.com"
     );
   } catch {
     return false;
