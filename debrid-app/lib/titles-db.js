@@ -103,6 +103,16 @@ export function queryTitle(db, id) {
 // view can't leak paid titles.
 export const FREE_CATALOG_SIZE = 15;
 
+// Paid-only categories: never part of the free tier — free users get an
+// empty catalog and 404 meta for these.
+export const PAID_ONLY_CATEGORIES = [
+  "hongkong",
+  "hentai-censored",
+  "hentai-uncensored",
+  "korean",
+  "chinese",
+];
+
 // Is this title inside the free (newest FREE_CATALOG_SIZE per category) set?
 // Rank = number of same-category titles strictly ahead of it in the
 // `posted_at DESC, id DESC` ordering used by queryCatalog.
@@ -110,8 +120,7 @@ export function isInFreeSet(db, id) {
   const want = decodeURIComponent(String(id || "").replace(/\.json$/, ""));
   const row = db.prepare("SELECT category, posted_at FROM titles WHERE id = ?").get(want);
   if (!row) return false;
-  // Hong Kong AV is a paid-only category: not part of the free tier.
-  if (row.category === "hongkong") return false;
+  if (PAID_ONLY_CATEGORIES.includes(row.category)) return false;
   const { n } = db
     .prepare(
       `SELECT COUNT(*) AS n FROM titles t

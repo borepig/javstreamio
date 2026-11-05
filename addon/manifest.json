@@ -18,7 +18,10 @@
       ],
       "idPrefixes": [
         "jav:",
-        "hk:"
+        "hk:",
+        "kr:",
+        "cn:",
+        "hnt:"
       ]
     },
     {
@@ -28,7 +31,10 @@
       ],
       "idPrefixes": [
         "jav:",
-        "hk:"
+        "hk:",
+        "kr:",
+        "cn:",
+        "hnt:"
       ]
     }
   ],
@@ -37,7 +43,10 @@
   ],
   "idPrefixes": [
     "jav:",
-    "hk:"
+    "hk:",
+    "kr:",
+    "cn:",
+    "hnt:"
   ],
   "catalogs": [
     {
@@ -104,6 +113,66 @@
       "type": "movie",
       "id": "hongkong",
       "name": "Hong Kong AV",
+      "extra": [
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "type": "movie",
+      "id": "hentai-censored",
+      "name": "Hentai Censored",
+      "extra": [
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "type": "movie",
+      "id": "hentai-uncensored",
+      "name": "Hentai Uncensored",
+      "extra": [
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "type": "movie",
+      "id": "korean",
+      "name": "Korean AV",
+      "extra": [
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "type": "movie",
+      "id": "chinese",
+      "name": "Chinese AV",
       "extra": [
         {
           "name": "search",

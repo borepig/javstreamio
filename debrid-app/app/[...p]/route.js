@@ -16,7 +16,7 @@ import { lookupDebridCache, resolveDebrid, resolvePlay, unlockRdLinks, rdShouldS
 import { buildAddonStreams, includeDebridRow, STREAM_CACHE_HINTS } from "../../lib/stream-format.js";
 import { ADDON_ID, ADDON_NAME, ADDON_VERSION } from "../../lib/version.js";
 import { isValidPaidKeyAsync, registerDevice } from "../../lib/paid-keys.js";
-import { FREE_CATALOG_SIZE, isInFreeSet, openTitlesDb, resolveSqlitePath } from "../../lib/titles-db.js";
+import { FREE_CATALOG_SIZE, PAID_ONLY_CATEGORIES, isInFreeSet, openTitlesDb, resolveSqlitePath } from "../../lib/titles-db.js";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -88,8 +88,9 @@ export async function GET(req, { params }) {
       const extra = String(p[3] || "").replace(/\.json$/, "");
       const { skip, search } = parseCatalogExtra(extra);
       // Free tier: newest FREE_CATALOG_SIZE per catalog. Paid tier: full catalog.
-      // Hong Kong AV is paid-only: free users get an empty hongkong catalog.
-      if (!paid && catalogId === "hongkong") {
+      // Paid-only categories (HK AV, hentai, Korean, Chinese) return an empty
+      // catalog for free users.
+      if (!paid && PAID_ONLY_CATEGORIES.includes(catalogId)) {
         return NextResponse.json({ metas: [] }, { headers: NO_STORE });
       }
       const body = withPublicPosters(

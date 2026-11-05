@@ -88,30 +88,20 @@ export default function Page() {
       <section className="card tiers">
         <p className="micro">Plans</p>
         <h2>Choose your access</h2>
-        <div className="tier-select" role="radiogroup" aria-label="Plan">
-          {[
-            ["free", "Free"],
-            ["monthly", "Monthly"],
-            ["lifetime", "Lifetime"],
-          ].map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              className={tier === id ? "tier-btn active" : "tier-btn"}
-              aria-pressed={tier === id}
-              onClick={() => setTier(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
         <div className="tier-grid">
-          <div className={tier === "free" ? "tier active" : "tier dimmed"}>
+          <div
+            className={tier === "free" ? "tier active" : "tier dimmed"}
+            role="button"
+            tabIndex={0}
+            onClick={() => setTier("free")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") setTier("free");
+            }}
+          >
             <h3>Free</h3>
             <p className="price">$0</p>
             <ul>
-              <li>Newest 15 titles per JAV category (4 categories)</li>
-              <li>Hong Kong AV is a paid feature</li>
+              <li>4 categories: JAV Censored, JAV Uncensored, Western, Others — newest 15 titles each</li>
               <li>Meta refreshed once a fortnight</li>
               <li>All debrid services + P2P / magnet fallback</li>
             </ul>
@@ -123,11 +113,19 @@ export default function Page() {
               <span className="free-note">Included with the addon</span>
             )}
           </div>
-          <div className={tier === "monthly" ? "tier active" : "tier dimmed"}>
+          <div
+            className={tier === "monthly" ? "tier active" : "tier dimmed"}
+            role="button"
+            tabIndex={0}
+            onClick={() => setTier("monthly")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") setTier("monthly");
+            }}
+          >
             <h3>Monthly</h3>
             <p className="price">$5<span className="per">/ month</span></p>
             <ul>
-              <li>Full catalog + enriched metadata</li>
+              <li>All 9 categories: JAV Censored, JAV Uncensored, Western, Others, Hong Kong AV, Hentai Censored, Hentai Uncensored, Korean AV, Chinese AV</li>
               <li>Meta refreshed daily</li>
               <li>30-day key — renew to keep access</li>
             </ul>
@@ -135,7 +133,15 @@ export default function Page() {
               Buy Me a Coffee
             </a>
           </div>
-          <div className={tier === "lifetime" ? "tier best active" : "tier best dimmed"}>
+          <div
+            className={tier === "lifetime" ? "tier best active" : "tier best dimmed"}
+            role="button"
+            tabIndex={0}
+            onClick={() => setTier("lifetime")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") setTier("lifetime");
+            }}
+          >
             <span className="badge">Best value</span>
             <h3>Lifetime</h3>
             <p className="price">
@@ -143,11 +149,12 @@ export default function Page() {
             </p>
             <ul>
               <li>Everything, forever</li>
+              <li>Same 9 categories as Monthly</li>
               <li>Meta refreshed daily</li>
               <li>One payment — no renewal</li>
             </ul>
             <a className="buy" href={BMAC_LIFETIME_URL} target="_blank" rel="noreferrer">
-              Buy Me a Coffee for a Week
+              Buy Me a Coffee
             </a>
           </div>
         </div>
@@ -196,8 +203,10 @@ export default function Page() {
         <h2>Stremio addon link</h2>
         <p>
           Uninstall any older copy first. Add this URL (Settings → Add-ons → Custom URL).
-          Without a paid key this is the free tier: newest 15 titles per JAV category, all
-          debrid services + P2P playback. Hong Kong AV is paid-only.
+          Without a paid key this is the free tier: 4 categories (JAV Censored, JAV
+          Uncensored, Western, Others) — newest 15 titles each, all debrid services + P2P
+          playback. A paid key unlocks the other 5 categories: Hong Kong AV, Hentai Censored,
+          Hentai Uncensored, Korean AV, Chinese AV.
           {key &&
             ` It includes your ${SERVICES.find((item) => item.id === service)?.label || service} key, which powers one-click debrid playback. Without that key, Play is a black screen.`}
           {paidKey &&

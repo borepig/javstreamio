@@ -130,7 +130,8 @@ export function isPublicArtUrl(src) {
       host === "image.mgstage.com" ||
       host === "jdbstatic.com" ||
       host.endsWith(".jdbstatic.com") ||
-      host === "avgood.com"
+      host === "avgood.com" ||
+      host === "images.ijavtorrent.com"
     );
   } catch {
     return false;
@@ -209,6 +210,10 @@ export const BUNDLED_CATALOGS = [
   { type: "movie", id: "western", name: "Western", extra: CATALOG_EXTRA },
   { type: "movie", id: "others", name: "Others", extra: CATALOG_EXTRA },
   { type: "movie", id: "hongkong", name: "Hong Kong AV", extra: CATALOG_EXTRA },
+  { type: "movie", id: "hentai-censored", name: "Hentai Censored", extra: CATALOG_EXTRA },
+  { type: "movie", id: "hentai-uncensored", name: "Hentai Uncensored", extra: CATALOG_EXTRA },
+  { type: "movie", id: "korean", name: "Korean AV", extra: CATALOG_EXTRA },
+  { type: "movie", id: "chinese", name: "Chinese AV", extra: CATALOG_EXTRA },
 ];
 
 const CATALOG_PAGE = 80;

@@ -13,11 +13,13 @@ Output layout (served by GitHub raw URLs once committed):
 from __future__ import annotations
 
 import hashlib
+import html as html_module
 import json
 import re
 import sqlite3
 import sys
 import time
+import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -78,6 +80,10 @@ CATALOGS = (
     ("western", "Western"),
     ("others", "Others"),
     ("hongkong", "Hong Kong AV"),
+    ("hentai-censored", "Hentai Censored"),
+    ("hentai-uncensored", "Hentai Uncensored"),
+    ("korean", "Korean AV"),
+    ("chinese", "Chinese AV"),
 )
 
 
@@ -899,6 +905,311 @@ def scrape_avgood_hk(max_pages: int = 20, batch: int = 8, delay: float = 1.0) ->
     }
 
 
+# --- iJavTorrent korean/chinese AV scrape ----------------------------------
+# iJavTorrent (ijavtorrent.com) is the best public magnet source for Korean
+# AV (tag /tag/korean-305) and Chinese AV (tag /tag/chinese-1543, 138 pages).
+# Each listing card carries the movie id, name, date, cover
+# (images.ijavtorrent.com) and magnet inline. Rows are stored as category
+# 'korean'/'chinese' with id 'kr:ijav-<movie-id>' / 'cn:ijav-<movie-id>'
+# so Stremio routes them via the 'kr:' / 'cn:' idPrefixes.
+
+IJA_BASE = "https://ijavtorrent.com"
+IJA_TAGS = {"korean": "korean-305", "chinese": "chinese-1543"}
+IJA_ID_PREFIX = {"korean": "kr", "chinese": "cn"}
+IJA_CATEGORY_LABEL = {"korean": "Korean AV", "chinese": "Chinese AV"}
+IJA_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+)
+
+
+def _ija_http_get(url: str) -> str:
+    """GET with a few retries on transient 404/5xx (the CDN occasionally 404s mid-deploy)."""
+    for attempt in range(3):
+        req = urllib.request.Request(url, headers={"User-Agent": IJA_UA})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return resp.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            if e.code in (404, 500, 502, 503) and attempt < 2:
+                time.sleep(3 * (attempt + 1))
+                continue
+            raise
+
+
+def _ija_parse_listing(page_html: str) -> list[dict]:
+    """Parse an iJavTorrent tag listing page into (id, name, date, poster, magnet, runtime).
+
+    Each movie card carries `data-movie-id` twice: once on the card header
+    (cover, name, date) and once on the torrent section (magnet link). Merge
+    both blocks per movie id.
+    """
+    items: dict[str, dict] = {}
+    order: list[str] = []
+    for block in page_html.split('data-movie-id="')[1:]:
+        id_m = re.match(r"(\d+)", block)
+        if not id_m:
+            continue
+        mid = id_m.group(1)
+        item = items.get(mid)
+        if item is None:
+            item = {"id": mid, "name": "", "released": "", "poster": "", "magnet": "", "runtime": ""}
+            items[mid] = item
+            order.append(mid)
+        name_m = re.search(r'<div class="name">\s*<a[^>]*>\s*<span>(.*?)</span>', block, re.S)
+        if name_m and not item["name"]:
+            item["name"] = html_module.unescape(name_m.group(1)).strip()
+        date_m = re.search(r"(\d{2}/\d{2}/\d{4})", block)
+        if date_m and not item["released"]:
+            d, m, y = date_m.group(1).split("/")
+            item["released"] = f"{y}-{m}-{d}T00:00:00.000Z"
+        poster_m = re.search(r'data-src="(https://images\.ijavtorrent\.com/data/covers/[^"?]+)', block)
+        if poster_m and not item["poster"]:
+            item["poster"] = poster_m.group(1)
+        magnet_m = re.search(r'href="(magnet:\?xt=urn:btih:[^"]+)"', block)
+        if magnet_m and not item["magnet"]:
+            item["magnet"] = html_module.unescape(magnet_m.group(1))
+        runtime_m = re.search(r"(?i)时长[:：]?\s*(\d+)\s*min", block)
+        if runtime_m and not item["runtime"]:
+            item["runtime"] = f"{runtime_m.group(1)} min"
+    return [items[mid] for mid in order]
+
+
+def scrape_ijavtorrent(category: str, max_pages: int = 10) -> dict:
+    """Append iJavTorrent korean/chinese titles to the live SQLite.
+
+    `category` must be 'korean' or 'chinese'. The listing is newest-first,
+    so the run stops as soon as a page yields no new titles (caught up), and
+    ids already in the DB are skipped — re-runs are resume-safe.
+    """
+    if category not in IJA_TAGS:
+        raise ValueError(f"unknown iJavTorrent category: {category}")
+    tag = IJA_TAGS[category]
+    prefix = IJA_ID_PREFIX[category]
+    label = IJA_CATEGORY_LABEL[category]
+    conn = sqlite3.connect(TITLES_SQLITE)
+    existing = {row[0] for row in conn.execute(
+        "SELECT id FROM titles WHERE category = ?", (category,))}
+    added = skipped = no_magnet = 0
+    page = 1
+    pages_done = 0
+    caught_up_page = 0
+    consecutive_failures = 0
+    while page <= (max_pages or 99999):
+        url = f"{IJA_BASE}/tag/{tag}" + (f"?page={page}" if page > 1 else "")
+        try:
+            html = _ija_http_get(url)
+            consecutive_failures = 0
+        except Exception as e:
+            consecutive_failures += 1
+            print(f"page {page}: fetch failed ({e}); skipping", file=sys.stderr)
+            if consecutive_failures >= 2:
+                print(f"2 consecutive fetch failures; stopping", file=sys.stderr)
+                break
+            page += 1
+            continue
+        items = _ija_parse_listing(html)
+        new_items = [it for it in items if f"{prefix}:ijav-{it['id']}" not in existing]
+        for it in items:
+            title_id = f"{prefix}:ijav-{it['id']}"
+            if title_id in existing:
+                skipped += 1
+                continue
+            if not it["magnet"]:
+                no_magnet += 1
+                continue
+            title = {
+                "id": title_id,
+                "category": category,
+                "name": it["name"],
+                "description": f"{it['name']}\n\nSource: iJavTorrent ({label})",
+                "releaseInfo": it["released"][:4] if it["released"] else "",
+                "released": it["released"],
+                "runtime": it["runtime"],
+                "poster": it["poster"],
+                "infoHash": info_hash(it["magnet"]),
+                "magnet": it["magnet"],
+                "posted_at": it["released"],
+                "genres": [label],
+            }
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO titles (
+                  id, category, name, description, release_info, released, runtime,
+                  poster, background, forum_poster, dmm_missing, fourhoi_missing,
+                  cast_json, genres_json, director, imdb_rating, info_hash, magnet,
+                  posted_at, search_text
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                title_to_sqlite_row(title),
+            )
+            conn.commit()
+            existing.add(title_id)
+            added += 1
+        pages_done = page
+        page += 1
+        if not new_items:
+            caught_up_page = pages_done
+            print(f"caught up at page {pages_done}: no new titles; stopping")
+            break
+        time.sleep(1.0)
+    total = conn.execute(
+        "SELECT COUNT(*) FROM titles WHERE category = ?", (category,)
+    ).fetchone()[0]
+    conn.close()
+    return {
+        "added": added,
+        "skipped": skipped,
+        "no_magnet": no_magnet,
+        "pages": pages_done,
+        "caught_up_page": caught_up_page,
+        "total_in_db": total,
+    }
+
+
+# --- Nyaa/Sukebei hentai censored/uncensored scrape -----------------------
+# Sukebei (sukebei.nyaa.si) is the canonical public torrent source for
+# hentai. The anime-video search (?f=0&c=0_0&q=hentai / q=uncen) returns
+# plain-HTML listing pages whose rows carry the torrent id (/view/<id>),
+# title, size, date, and magnet. Rows are stored as category
+# 'hentai-censored' / 'hentai-uncensored' with id 'hnt:nyaa-<torrent-id>'.
+
+NYAA_BASE = "https://sukebei.nyaa.si"
+NYAA_HENTAI_QUERIES = (("hentai-censored", "hentai"), ("hentai-uncensored", "uncen"))
+NYAA_HENTAI_GENRES = {
+    "hentai-censored": ["Hentai", "Censored"],
+    "hentai-uncensored": ["Hentai", "Uncensored"],
+}
+NYAA_UA = IJA_UA
+
+
+def _nyaa_http_get(url: str) -> str:
+    for attempt in range(3):
+        req = urllib.request.Request(url, headers={"User-Agent": NYAA_UA})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return resp.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            if e.code in (404, 500, 502, 503) and attempt < 2:
+                time.sleep(3 * (attempt + 1))
+                continue
+            raise
+
+
+def _nyaa_parse_listing(page_html: str) -> list[dict]:
+    """Parse a Sukebei search-results page: (torrent id, title, size, date, magnet)."""
+    items: list[dict] = []
+    for row in re.findall(r"<tr[^>]*>(.*?)</tr>", page_html, re.S):
+        view_m = re.search(r'href="/view/(\d+)"', row)
+        if not view_m:
+            continue
+        id = view_m.group(1)
+        title_m = re.search(r'<td colspan="2">\s*<a[^>]*>(.*?)</a>', row, re.S)
+        title = re.sub(r"<[^>]+>", "", title_m.group(1)).strip() if title_m else ""
+        size_m = re.search(r"([\d.]+)\s*(GiB|MiB|KiB)", row)
+        date_m = re.search(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2})", row)
+        magnet_m = re.search(r'href="(magnet:\?xt=urn:btih:[^"]+)"', row)
+        released = ""
+        if date_m:
+            date, clock = date_m.group(1).split(" ")
+            released = f"{date}T{clock}:00.000Z"
+        magnet = html_module.unescape(magnet_m.group(1)) if magnet_m else ""
+        items.append(
+            {
+                "id": id,
+                "name": title,
+                "size": f"{size_m.group(1)} {size_m.group(2)}" if size_m else "",
+                "released": released,
+                "magnet": magnet,
+            }
+        )
+    return items
+
+
+def scrape_nyaa_hentai(max_pages: int = 5) -> dict:
+    """Append Nyaa/Sukebei hentai titles to the live SQLite.
+
+    Two runs: 'hentai-censored' (q=hentai) and 'hentai-uncensored'
+    (q=uncen), both limited to the anime-video category (f=0&c=0_0).
+    Resume-safe: existing 'hnt:nyaa-<id>' rows are skipped, and each run
+    stops after a page yields no new titles.
+    """
+    conn = sqlite3.connect(TITLES_SQLITE)
+    existing = {row[0] for row in conn.execute(
+        "SELECT id FROM titles WHERE id LIKE 'hnt:nyaa-%'")}
+    stats = {"hentai-censored": {"added": 0, "skipped": 0, "no_magnet": 0, "pages": 0},
+              "hentai-uncensored": {"added": 0, "skipped": 0, "no_magnet": 0, "pages": 0}}
+    for category, query in NYAA_HENTAI_QUERIES:
+        page = 1
+        consecutive_failures = 0
+        while page <= max_pages:
+            url = f"{NYAA_BASE}/?f=0&c=0_0&q={query}" + (f"&page={page}" if page > 1 else "")
+            try:
+                html = _nyaa_http_get(url)
+                consecutive_failures = 0
+            except Exception as e:
+                consecutive_failures += 1
+                print(f"{category} page {page}: fetch failed ({e})", file=sys.stderr)
+                if consecutive_failures >= 2:
+                    print(f"{category}: 2 consecutive fetch failures; stopping", file=sys.stderr)
+                    break
+                page += 1
+                continue
+            items = _nyaa_parse_listing(html)
+            new_items = [it for it in items if f"hnt:nyaa-{it['id']}" not in existing]
+            for it in items:
+                title_id = f"hnt:nyaa-{it['id']}"
+                if title_id in existing:
+                    stats[category]["skipped"] += 1
+                    continue
+                if not it["magnet"]:
+                    stats[category]["no_magnet"] += 1
+                    continue
+                title = {
+                    "id": title_id,
+                    "category": category,
+                    "name": it["name"],
+                    "description": (
+                        f"{it['name']}\n\nSource: Nyaa/Sukebei"
+                        + (f" ({it['size']})" if it["size"] else "")
+                        + f" ({category})"
+                    ),
+                    "releaseInfo": it["released"][:4] if it["released"] else "",
+                    "released": it["released"],
+                    "infoHash": info_hash(it["magnet"]),
+                    "magnet": it["magnet"],
+                    "posted_at": it["released"],
+                    "genres": NYAA_HENTAI_GENRES[category],
+                }
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO titles (
+                      id, category, name, description, release_info, released, runtime,
+                      poster, background, forum_poster, dmm_missing, fourhoi_missing,
+                      cast_json, genres_json, director, imdb_rating, info_hash, magnet,
+                      posted_at, search_text
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    title_to_sqlite_row(title),
+                )
+                conn.commit()
+                existing.add(title_id)
+                stats[category]["added"] += 1
+            stats[category]["pages"] = page
+            page += 1
+            if not new_items:
+                print(f"{category}: caught up at page {page - 1}; stopping")
+                break
+            time.sleep(1.0)
+    for category, _q in NYAA_HENTAI_QUERIES:
+        total = conn.execute(
+            "SELECT COUNT(*) FROM titles WHERE category = ?", (category,)
+        ).fetchone()[0]
+        stats[category]["total_in_db"] = total
+    conn.close()
+    return stats
+
+
 def build_sqlite_titles(use_javdb: bool = False) -> list[dict]:
     bundled = load_bundled_overlay()
     titles = []
@@ -1130,11 +1441,11 @@ def main(use_javdb: bool = True) -> None:
         "logo": "https://www.stremio.com/website/stremio-logo-small.png",
         "resources": [
             {"name": "catalog", "types": ["movie"]},
-            {"name": "meta", "types": ["movie"], "idPrefixes": ["jav:", "hk:"]},
-            {"name": "stream", "types": ["movie"], "idPrefixes": ["jav:", "hk:"]},
+            {"name": "meta", "types": ["movie"], "idPrefixes": ["jav:", "hk:", "kr:", "cn:", "hnt:"]},
+            {"name": "stream", "types": ["movie"], "idPrefixes": ["jav:", "hk:", "kr:", "cn:", "hnt:"]},
         ],
         "types": ["movie"],
-        "idPrefixes": ["jav:", "hk:"],
+        "idPrefixes": ["jav:", "hk:", "kr:", "cn:", "hnt:"],
         "catalogs": manifest_catalogs,
         "behaviorHints": {"adult": True, "p2p": True},
     }
@@ -1211,6 +1522,39 @@ if __name__ == "__main__":
         help="Max AvGood listing pages per section (0 = all pages)",
     )
     parser.add_argument(
+        "--scrape-korean",
+        action="store_true",
+        help="Scrape iJavTorrent Korean tag (korean-305) into live SQLite (category 'korean', id 'kr:ijav-<id>')",
+    )
+    parser.add_argument(
+        "--korean-pages",
+        type=int,
+        default=10,
+        help="Max iJavTorrent korean tag pages (0 = until caught up)",
+    )
+    parser.add_argument(
+        "--scrape-chinese",
+        action="store_true",
+        help="Scrape iJavTorrent Chinese tag (chinese-1543) into live SQLite (category 'chinese', id 'cn:ijav-<id>')",
+    )
+    parser.add_argument(
+        "--chinese-pages",
+        type=int,
+        default=30,
+        help="Max iJavTorrent chinese tag pages (0 = until caught up)",
+    )
+    parser.add_argument(
+        "--scrape-hentai",
+        action="store_true",
+        help="Scrape Nyaa/Sukebei hentai (q=hentai -> 'hentai-censored', q=uncen -> 'hentai-uncensored', id 'hnt:nyaa-<id>')",
+    )
+    parser.add_argument(
+        "--hentai-pages",
+        type=int,
+        default=5,
+        help="Max Sukebei pages per hentai query",
+    )
+    parser.add_argument(
         "--free-set",
         action="store_true",
         help="During --enrich-sqlite, fetch JavDB only for the newest 15 titles per category (the free tier's meta set)",
@@ -1223,6 +1567,29 @@ if __name__ == "__main__":
             f"added={stats['added']} skipped={stats['skipped']} filtered={stats['filtered']} "
             f"blocked={stats['blocked']} hk_in_db={stats['hk_in_db']}"
         )
+    if args.scrape_korean:
+        stats = scrape_ijavtorrent("korean", max_pages=args.korean_pages)
+        print(
+            "ijavtorrent korean: "
+            f"added={stats['added']} skipped={stats['skipped']} no_magnet={stats['no_magnet']} "
+            f"pages={stats['pages']} total_in_db={stats['total_in_db']}"
+        )
+    if args.scrape_chinese:
+        stats = scrape_ijavtorrent("chinese", max_pages=args.chinese_pages)
+        print(
+            "ijavtorrent chinese: "
+            f"added={stats['added']} skipped={stats['skipped']} no_magnet={stats['no_magnet']} "
+            f"pages={stats['pages']} total_in_db={stats['total_in_db']}"
+        )
+    if args.scrape_hentai:
+        stats = scrape_nyaa_hentai(max_pages=args.hentai_pages)
+        for category, _q in NYAA_HENTAI_QUERIES:
+            s = stats[category]
+            print(
+                f"nyaa {category}: "
+                f"added={s['added']} skipped={s['skipped']} no_magnet={s['no_magnet']} "
+                f"pages={s['pages']} total_in_db={s['total_in_db']}"
+            )
     if args.scrape_sqlite:
         stats = scrape_new_to_sqlite(use_javdb=not args.no_javdb, max_pages=args.scrape_pages)
         print(
