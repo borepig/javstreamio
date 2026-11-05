@@ -959,6 +959,16 @@ def _ija_parse_listing(page_html: str) -> list[dict]:
         name_m = re.search(r'<div class="name">\s*<a[^>]*>\s*<span>(.*?)</span>', block, re.S)
         if name_m and not item["name"]:
             item["name"] = html_module.unescape(name_m.group(1)).strip()
+        if not item["name"]:
+            # Some cards omit the name span; the cover img's alt attribute
+            # carries the full movie title.
+            alt_m = re.search(
+                r'<img[^>]*data-src="https://images\.ijavtorrent\.com/data/covers/[^"?]+"[^>]*alt="([^"]+)"',
+                block,
+                re.S,
+            )
+            if alt_m:
+                item["name"] = html_module.unescape(alt_m.group(1)).strip()
         date_m = re.search(r"(\d{2}/\d{2}/\d{4})", block)
         if date_m and not item["released"]:
             d, m, y = date_m.group(1).split("/")
