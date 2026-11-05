@@ -13,6 +13,7 @@ A local cache file (addon/.javdb_cache.json) avoids re-fetching on rebuilds.
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from pathlib import Path
@@ -26,15 +27,50 @@ JAV321 = "https://www.jav321.com"
 ROOT = Path(__file__).resolve().parent.parent
 CACHE_FILE = Path(__file__).resolve().parent / ".javdb_cache.json"
 JAV321_CACHE_FILE = Path(__file__).resolve().parent / ".jav321_cache.json"
-DELAY = 0.4          # seconds between JavDB requests (be polite to the site)
-RETRIES = 3          # retry attempts on transient request failures
-RETRY_BACKOFF = 1.0  # base backoff seconds, doubled each retry
+DELAY = float(os.environ.get("JAVDB_DELAY", "2.0"))
+RETRIES = 6
+RETRY_BACKOFF = 1.0
+BLOCK_WAIT = float(os.environ.get("JAVDB_BLOCK_WAIT", "15"))
+MAX_BLOCK_WAIT = float(os.environ.get("JAVDB_BLOCK_MAX", "300"))
 JAV_CODE_RE = re.compile(
     r"(?i)(?<![A-Za-z0-9])([A-Z]{2,10})[-_](\d{2,6})(?![A-Za-z0-9])"
 )
 
 _SESSION: Optional[requests.Session] = None
 _CACHE: Optional[dict] = None
+_BLOCK_STREAK = 0
+
+
+def reset_block_streak() -> None:
+    global _BLOCK_STREAK
+    _BLOCK_STREAK = 0
+
+
+def block_wait_seconds(streak: int) -> float:
+    """15, 30, 60, 120, 240, then cap. Never abort the enrich job."""
+    if streak <= 0:
+        return 0.0
+    return min(MAX_BLOCK_WAIT, BLOCK_WAIT * (2 ** (streak - 1)))
+
+
+def note_http_status(status: int) -> float:
+    """Track 403/429. Return seconds to sleep. 200 resets the streak."""
+    global _BLOCK_STREAK
+    if status in (403, 429):
+        _BLOCK_STREAK += 1
+        return block_wait_seconds(_BLOCK_STREAK)
+    _BLOCK_STREAK = 0
+    return 0.0
+
+
+def _apply_cookie_header(session: requests.Session, raw: str) -> None:
+    for part in (raw or "").split(";"):
+        if "=" not in part:
+            continue
+        name, value = part.split("=", 1)
+        name, value = name.strip(), value.strip()
+        if name:
+            session.cookies.set(name, value, domain="javdb.com", path="/")
 
 
 def _session() -> requests.Session:
@@ -43,10 +79,14 @@ def _session() -> requests.Session:
         _SESSION = requests.Session()
         _SESSION.headers["User-Agent"] = (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
         )
         _SESSION.headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
         _SESSION.headers["Accept-Language"] = "zh-TW,zh,en;q=0.8"
+        _SESSION.headers["Referer"] = f"{JAVDB}/"
+        _SESSION.cookies.set("over18", "1", domain="javdb.com", path="/")
+        _SESSION.cookies.set("locale", "en", domain="javdb.com", path="/")
+        _apply_cookie_header(_SESSION, os.environ.get("JAVDB_COOKIE", ""))
     return _SESSION
 
 
@@ -56,13 +96,16 @@ def _get(url: str, timeout: int = 20) -> Optional[str]:
         try:
             r = _session().get(url, timeout=timeout, allow_redirects=True)
             if r.status_code == 200:
+                note_http_status(200)
                 time.sleep(DELAY)
                 return r.text
             last_err = f"HTTP {r.status_code}"
-            # rate limited: honor Retry-After, otherwise wait longer
-            if r.status_code == 429:
+            if r.status_code in (403, 429):
+                wait = note_http_status(r.status_code)
                 ra = r.headers.get("Retry-After")
-                wait = float(ra) if ra and ra.isdigit() else 10.0
+                if ra and ra.isdigit():
+                    wait = max(wait, float(ra))
+                print(f"javdb: HTTP {r.status_code}, backoff {wait:.0f}s then retry {url}")
                 time.sleep(wait)
             else:
                 time.sleep(RETRY_BACKOFF * (2 ** attempt))
@@ -327,14 +370,34 @@ def jav321_meta(number: str, use_cache: bool = True, allow_network: bool = True)
     return fields
 
 
+def credit_names(*groups) -> list[str]:
+    """Split forum / JavDB / existing credits and keep the first unique name."""
+    names: list[str] = []
+    seen: set[str] = set()
+    for group in groups:
+        if isinstance(group, str):
+            parts = re.split(r"[/、,，]+", group)
+        elif isinstance(group, list):
+            parts = group
+        else:
+            continue
+        for part in parts:
+            name = str(part or "").strip()
+            if not name or name.upper() == "N/A":
+                continue
+            key = name.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            names.append(name)
+    return names
+
+
 def apply_fields(meta: dict, fields: dict | None, rec: dict | None = None) -> dict:
     """Copy JavDB / jav321 fields onto a Stremio Meta Object."""
     meta = dict(meta)
     fields = fields or {}
-    cast = [c for c in (fields.get("cast") or []) if c and c != "N/A"]
-    forum_cast = str((rec or {}).get("出演女优") or "").strip()
-    if forum_cast and not any(forum_cast in c or c in forum_cast for c in cast):
-        cast = [forum_cast] + cast
+    cast = credit_names((rec or {}).get("出演女优"), meta.get("cast"), fields.get("cast"))
     if cast:
         meta["cast"] = cast
     if fields.get("genres"):

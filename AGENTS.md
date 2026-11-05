@@ -65,3 +65,54 @@ catalog click means `/meta/{type}/{id}.json` did not deserialize as
 - Stream rows: `name` is the left badge (`Torbox\n5.19G`), `description` is the
   right detail. Torrent fallback MUST be `{ infoHash }` — never `{ url: "magnet:..." }`.
   Stremio Web cannot play magnets; stremio-core drops non-http `url` values.
+
+## Live SQLite JavDB enrich (Qwen: do this next)
+
+The live addon is **SQLite**, not the static `addon/meta/*.json` files.
+Stremio reads `debrid-app/data/titles.sqlite` on Vercel
+(`https://javstremio.vercel.app`). Catalog order is `posted_at DESC`
+(newest first). Do **not** rebuild or re-sort so old titles appear first.
+
+### Job (resume-safe)
+
+```bash
+# cache only (no network)
+python3 addon/build_addon.py --enrich-sqlite --no-javdb
+
+# missing JAV titles, newest first, writes each row as it succeeds
+JAVDB_DELAY=2.5 python3 addon/build_addon.py --enrich-sqlite
+```
+
+Optional browser cookie if 403 continues:
+`JAVDB_COOKIE='over18=1; locale=en; <paste cf_clearance from a real javdb.com session>'`.
+
+- `--enrich-sqlite` updates live SQLite in place. Skip rows that already have
+  `genres`. Merge forum actress + JavDB cast (do not replace and drop 宝生みさと).
+- Do **not** run `--sqlite-only` for this job. That rebuilds from scrape and
+  can drop poster-probe flags (`dmm_missing` / `fourhoi_missing`).
+- `--no-javdb` still **applies** `addon/.javdb_cache.json`. It only skips network.
+- On HTTP 403/429 use **exponential backoff** (15s, 30s, 60s, … cap 300s) and
+  keep fetching. Do **not** abort the job. A 200 resets the streak. A title
+  that still fails is skipped; the next title continues. Failed titles are
+  not cached, so a later resume retries them.
+- After a useful batch: bump `0.4.39` → next in `addon/build_addon.py`,
+  `addon/manifest.json`, `debrid-app/lib/version.js`, then
+  `cd debrid-app && npx vercel --prod --yes`. Local fills are invisible until
+  that deploy.
+
+### State as of 2026-10-31 (0.4.39 live)
+
+- SQLite: 41,458 titles (34,054 censored / 2,600 uncensored / 1,943 western /
+  2,861 others).
+- JAV with genres after cache apply: **25,998 / 36,654**. Missing ~**10,656**.
+- Cache apply wrote 26,028 rows; forum-cast merge restored 15,144 actress names.
+- Network pass then wrote **~75** more locally (last success `jav:ssis-181`)
+  and was paused on a JavDB 403 streak (`soe-*`). Those 75 are **not** on
+  Vercel yet — deploy after you have more, or deploy now to ship them.
+- Cache: `addon/.javdb_cache.json` (~28k). jav321 cache is small; do not
+  depend on it.
+- Live catalog first page must stay JUR-093, IPZZ-948, IPZZ-920, …
+- Prove: `python3 tests/test_meta_protocol.py` and
+  `cd debrid-app && node --test lib/addon-data.test.js lib/titles-db.test.js`.
+- Live check: `/manifest.json` version, `/catalog/movie/jav-censored.json`
+  first ids, `/meta/movie/jav:JUR-093.json` still has 宝生みさと + genres.

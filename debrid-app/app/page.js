@@ -26,6 +26,7 @@ export default function Page() {
   const [key, setKey] = useState("");
   const [paidKey, setPaidKey] = useState("");
   const [deviceId, setDeviceId] = useState("");
+  const [tier, setTier] = useState("lifetime");
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -87,22 +88,45 @@ export default function Page() {
       <section className="card tiers">
         <p className="micro">Plans</p>
         <h2>Choose your access</h2>
+        <div className="tier-select" role="radiogroup" aria-label="Plan">
+          {[
+            ["free", "Free"],
+            ["monthly", "Monthly"],
+            ["lifetime", "Lifetime"],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={tier === id ? "tier-btn active" : "tier-btn"}
+              aria-pressed={tier === id}
+              onClick={() => setTier(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="tier-grid">
-          <div className="tier">
+          <div className={tier === "free" ? "tier active" : "tier dimmed"}>
             <h3>Free</h3>
             <p className="price">$0</p>
             <ul>
-              <li>Newest 15 titles per category (4 categories)</li>
+              <li>Newest 15 titles per category (5 categories)</li>
               <li>Meta refreshed once a fortnight</li>
               <li>All debrid services + P2P / magnet fallback</li>
             </ul>
-            <span className="free-note">Included with the addon</span>
+            {tier === "free" ? (
+              <span className="free-note">
+                No payment, no key — copy the addon link above and paste it into Stremio.
+              </span>
+            ) : (
+              <span className="free-note">Included with the addon</span>
+            )}
           </div>
-          <div className="tier">
+          <div className={tier === "monthly" ? "tier active" : "tier dimmed"}>
             <h3>Monthly</h3>
             <p className="price">$5<span className="per">/ month</span></p>
             <ul>
-              <li>Full 41k catalog + enriched metadata</li>
+              <li>Full catalog + enriched metadata</li>
               <li>Meta refreshed daily</li>
               <li>30-day key — renew to keep access</li>
             </ul>
@@ -110,7 +134,7 @@ export default function Page() {
               Buy Me a Coffee
             </a>
           </div>
-          <div className="tier best">
+          <div className={tier === "lifetime" ? "tier best active" : "tier best dimmed"}>
             <span className="badge">Best value</span>
             <h3>Lifetime</h3>
             <p className="price">

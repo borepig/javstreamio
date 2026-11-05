@@ -1,8 +1,8 @@
 {
   "id": "community.javstremio",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "name": "Stremio JAV Database Addon",
-  "description": "Stremio JAV Database Addon 0.5.0. This is only a metadata scraper. Free tier: newest 15 titles per category (4 categories), meta refreshed once a fortnight, all debrid services. Paid key: full 41k library, meta refreshed daily.",
+  "description": "Stremio JAV Database Addon 0.5.1. This is only a metadata scraper.",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
   "resources": [
     {
@@ -17,7 +17,8 @@
         "movie"
       ],
       "idPrefixes": [
-        "jav:"
+        "jav:",
+        "hk:"
       ]
     },
     {
@@ -26,7 +27,8 @@
         "movie"
       ],
       "idPrefixes": [
-        "jav:"
+        "jav:",
+        "hk:"
       ]
     }
   ],
@@ -34,7 +36,8 @@
     "movie"
   ],
   "idPrefixes": [
-    "jav:"
+    "jav:",
+    "hk:"
   ],
   "catalogs": [
     {
@@ -86,6 +89,21 @@
       "type": "movie",
       "id": "others",
       "name": "Others",
+      "extra": [
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "type": "movie",
+      "id": "hongkong",
+      "name": "Hong Kong AV",
       "extra": [
         {
           "name": "search",

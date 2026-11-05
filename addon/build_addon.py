@@ -17,10 +17,13 @@ import json
 import re
 import sqlite3
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from javdb import enrich_meta, javdb_meta
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from javdb import apply_fields, cache_fits, credit_names, enrich_meta, javdb_meta, reset_block_streak
+from scrape import Site, forum_identity, looks_blocked, movie_record, parse_forum
 
 ROOT = Path(__file__).resolve().parent.parent
 ADDON_DIR = ROOT / "addon"
@@ -28,8 +31,11 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.4.38"
+VERSION = "0.5.1"
 CATALOG_LIMIT = 200
+# Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
+# titles per category; the JavDB free-set enrichment fetches exactly those.
+FREE_CATALOG_SIZE = 15
 HASH_RE = re.compile(r"urn:btih:([A-Za-z0-9]+)", re.I)
 THREAD_ID_RE = re.compile(r"thread-(\d+)")
 # Characters that break the per-title file name (Linux path separator) or the
@@ -64,13 +70,14 @@ WESTERN_DATE_RE = re.compile(
     r"(?i)(?:^|[\s\[【])[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)*\.\d{2}\.\d{2}\.\d{2}"
 )
 ENGLISH_DOT_NAME_RE = re.compile(r"(?i)^[A-Za-z]{2,}(?:\.[A-Za-z]{2,})+$")
-PUBLIC_ART_HOSTS = ("pics.dmm.co.jp", "jdbstatic.com", "fourhoi.com", "image.mgstage.com")
+PUBLIC_ART_HOSTS = ("pics.dmm.co.jp", "jdbstatic.com", "fourhoi.com", "image.mgstage.com", "avgood.com")
 BLOCKED_ART_HOSTS = ("vercel.app", "tu.djhdhs.us", "w4kmzkm.com")
 CATALOGS = (
     ("jav-censored", "JAV Censored"),
     ("jav-uncensored", "JAV Uncensored"),
     ("western", "Western"),
     ("others", "Others"),
+    ("hongkong", "Hong Kong AV"),
 )
 
 
@@ -200,16 +207,23 @@ def public_art(rec: dict, javdb_fields: dict | None = None) -> tuple[str, str]:
     return poster, background
 
 
-def classify_record(rec: dict) -> str:
-    """Split scrape rows into jav-censored / jav-uncensored / western / others.
+HK_MARKERS = ("香港", "港片", "Cantonese", "粤语", "广东话", "廣東話", "粵語")
 
-    Order: FC2PPV → others; JAV `XXXXX-NNN` uses 【是否有码】; English
-    studio.date / actress names → western; everything else → others.
+
+def classify_record(rec: dict) -> str:
+    """Split scrape rows into jav-censored / jav-uncensored / western / others / hongkong.
+
+    Order: HK markers (香港/港片/Cantonese/粤语) → hongkong; FC2PPV → others;
+    JAV `XXXXX-NNN` uses 【是否有码】; English studio.date / actress names →
+    western; everything else → others.
     """
     titleno = rec.get("titleno") or ""
     title = rec.get("title") or ""
     film = rec.get("影片名称") or ""
-    blob = f"{titleno} {title} {film}"
+    tag = rec.get("tag") or ""
+    blob = f"{titleno} {title} {film} {tag}"
+    if any(marker in blob for marker in HK_MARKERS):
+        return "hongkong"
     if FC2_RE.search(blob):
         return "others"
     if JAV_CODE_RE.search(titleno) or JAV_CODE_RE.search(blob):
@@ -303,6 +317,32 @@ def overlay_title(title: dict, bundled: dict[str, dict]) -> dict:
     return title
 
 
+def title_to_sqlite_row(title: dict) -> tuple:
+    """Map one title dict onto the `titles` table column order."""
+    return (
+        title.get("id") or "",
+        title.get("category") or "others",
+        title.get("name") or "",
+        title.get("description") or "",
+        title.get("releaseInfo") or "",
+        title.get("released") or "",
+        title.get("runtime") or "",
+        title.get("poster") or "",
+        title.get("background") or "",
+        title.get("forumPoster") or "",
+        1 if title.get("dmmMissing") else 0,
+        1 if title.get("fourhoiMissing") else 0,
+        json.dumps(title.get("cast") or [], ensure_ascii=False),
+        json.dumps(title.get("genres") or [], ensure_ascii=False),
+        title.get("director") or "",
+        title.get("imdbRating") or "",
+        title.get("infoHash") or "",
+        title.get("magnet") or "",
+        title.get("posted_at") or title.get("released") or "",
+        title_search_text(title),
+    )
+
+
 def write_titles_sqlite(titles: list[dict], dest: Path | None = None) -> Path:
     dest = dest or TITLES_SQLITE
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -338,28 +378,7 @@ def write_titles_sqlite(titles: list[dict], dest: Path | None = None) -> Path:
             """
         )
         rows = [
-            (
-                title.get("id") or "",
-                title.get("category") or "others",
-                title.get("name") or "",
-                title.get("description") or "",
-                title.get("releaseInfo") or "",
-                title.get("released") or "",
-                title.get("runtime") or "",
-                title.get("poster") or "",
-                title.get("background") or "",
-                title.get("forumPoster") or "",
-                1 if title.get("dmmMissing") else 0,
-                1 if title.get("fourhoiMissing") else 0,
-                json.dumps(title.get("cast") or [], ensure_ascii=False),
-                json.dumps(title.get("genres") or [], ensure_ascii=False),
-                title.get("director") or "",
-                title.get("imdbRating") or "",
-                title.get("infoHash") or "",
-                title.get("magnet") or "",
-                title.get("posted_at") or title.get("released") or "",
-                title_search_text(title),
-            )
+            title_to_sqlite_row(title)
             for title in titles
             if title.get("id") and title.get("infoHash")
         ]
@@ -380,6 +399,509 @@ def write_titles_sqlite(titles: list[dict], dest: Path | None = None) -> Path:
         conn.close()
     tmp.replace(dest)
     return dest
+
+
+def jav_code_from_id(meta_id: str) -> str:
+    text = str(meta_id or "")
+    return text[4:] if text.lower().startswith("jav:") else text
+
+
+def _parse_json_list(raw) -> list:
+    try:
+        value = json.loads(raw or "[]")
+    except json.JSONDecodeError:
+        return []
+    return value if isinstance(value, list) else []
+
+
+def load_sqlite_titles(dest: Path | None = None) -> list[dict]:
+    dest = dest or TITLES_SQLITE
+    conn = sqlite3.connect(dest)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = []
+        for row in conn.execute("SELECT * FROM titles"):
+            item = {
+                "id": row["id"],
+                "category": row["category"],
+                "name": row["name"],
+                "description": row["description"] or "",
+                "releaseInfo": row["release_info"] or "",
+                "released": row["released"] or "",
+                "runtime": row["runtime"] or "",
+                "poster": row["poster"] or "",
+                "background": row["background"] or "",
+                "forumPoster": row["forum_poster"] or "",
+                "director": row["director"] or "",
+                "imdbRating": row["imdb_rating"] or "",
+                "infoHash": row["info_hash"] or "",
+                "magnet": row["magnet"] or "",
+                "posted_at": row["posted_at"] or "",
+            }
+            if row["dmm_missing"]:
+                item["dmmMissing"] = True
+            if row["fourhoi_missing"]:
+                item["fourhoiMissing"] = True
+            cast = _parse_json_list(row["cast_json"])
+            genres = _parse_json_list(row["genres_json"])
+            if cast:
+                item["cast"] = cast
+            if genres:
+                item["genres"] = genres
+            rows.append(item)
+        return rows
+    finally:
+        conn.close()
+
+
+def _director_text(value) -> str:
+    if isinstance(value, list):
+        return " / ".join(str(part) for part in value if part)
+    return str(value or "")
+
+
+def update_sqlite_title(dest: Path, title: dict) -> None:
+    """Write JavDB fields onto one live row. posted_at / category stay put so
+    the catalog remains newest-first."""
+    released = rfc3339_released(title.get("released")) or ""
+    release_info = title.get("releaseInfo") or (released[:4] if released else "")
+    director = _director_text(title.get("director"))
+    runtime = title.get("runtime") or ""
+    rating = title.get("imdbRating") or ""
+    conn = sqlite3.connect(dest)
+    try:
+        conn.execute(
+            """
+            UPDATE titles SET
+              name = COALESCE(NULLIF(?, ''), name),
+              description = COALESCE(NULLIF(?, ''), description),
+              release_info = COALESCE(NULLIF(?, ''), release_info),
+              released = COALESCE(NULLIF(?, ''), released),
+              runtime = COALESCE(NULLIF(?, ''), runtime),
+              cast_json = ?,
+              genres_json = ?,
+              director = COALESCE(NULLIF(?, ''), director),
+              imdb_rating = COALESCE(NULLIF(?, ''), imdb_rating),
+              search_text = ?
+            WHERE id = ?
+            """,
+            (
+                title.get("name") or "",
+                title.get("description") or "",
+                release_info,
+                released,
+                runtime,
+                json.dumps(title.get("cast") or [], ensure_ascii=False),
+                json.dumps(title.get("genres") or [], ensure_ascii=False),
+                director,
+                rating,
+                title_search_text(title),
+                title.get("id") or "",
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def enrich_sqlite_rows(rows: list[dict], lookup, allow_network: bool = False) -> list[dict]:
+    """Apply JavDB fields to JAV rows. Lookup order is newest first; output
+    order is unchanged so the live catalog does not jump to the oldest title."""
+    by_id = {row["id"]: dict(row) for row in rows if row.get("id")}
+    work = [
+        row
+        for row in rows
+        if row.get("id") and row.get("category") in ("jav-censored", "jav-uncensored")
+    ]
+    work.sort(key=lambda row: (row.get("posted_at") or "", row.get("id") or ""), reverse=True)
+    for row in work:
+        current = by_id[row["id"]]
+        genres = current.get("genres") or []
+        if genres:
+            continue
+        code = jav_code_from_id(row["id"])
+        fields = lookup(code, False)
+        if not cache_fits(code, fields):
+            fields = None
+        if allow_network and not genres and not (fields and fields.get("genres")):
+            fetched = lookup(code, True)
+            if cache_fits(code, fetched):
+                fields = fetched
+        if not fields:
+            continue
+        rec = {
+            "titleno": code,
+            "title": current.get("name") or "",
+            "出演女优": " / ".join(current.get("cast") or []),
+        }
+        meta = {
+            "id": current["id"],
+            "type": "movie",
+            "name": current.get("name") or "",
+            "description": current.get("description") or "",
+        }
+        if current.get("cast"):
+            meta["cast"] = list(current["cast"])
+        if current.get("runtime"):
+            meta["runtime"] = current["runtime"]
+        if current.get("released"):
+            meta["released"] = current["released"]
+        enriched = apply_fields(meta, fields, rec)
+        current = dict(current)
+        for key in ("name", "description", "cast", "genres", "director", "imdbRating", "runtime", "released"):
+            if enriched.get(key):
+                current[key] = enriched[key]
+        released = rfc3339_released(current.get("released"))
+        if released:
+            current["released"] = released
+        by_id[row["id"]] = current
+    return [by_id.get(row["id"], row) for row in rows]
+
+
+def _title_meta_changed(old: dict, new: dict) -> bool:
+    for key in ("genres", "cast", "imdbRating", "description", "runtime", "name"):
+        if (new.get(key) or "") != (old.get(key) or ""):
+            return True
+    return False
+
+
+def records_by_meta_id() -> dict[str, dict]:
+    return {make_meta_id(rec): rec for rec in load_records()}
+
+
+def merge_sqlite_casts(dest: Path, records: dict[str, dict] | None = None) -> int:
+    """Put forum actress names back without changing catalog order or genres."""
+    records = records if records is not None else records_by_meta_id()
+    updated = 0
+    for title in load_sqlite_titles(dest):
+        if title.get("category") not in ("jav-censored", "jav-uncensored"):
+            continue
+        rec = records.get(title["id"]) or {}
+        fields = javdb_meta(jav_code_from_id(title["id"]), allow_network=False) or {}
+        merged = credit_names(rec.get("出演女优"), title.get("cast"), fields.get("cast"))
+        if merged and merged != (title.get("cast") or []):
+            title["cast"] = merged
+            update_sqlite_title(dest, title)
+            updated += 1
+    return updated
+
+
+def enrich_live_sqlite(
+    dest: Path | None = None,
+    *,
+    allow_network: bool = True,
+    limit: int = 0,
+    free_set: bool = False,
+) -> dict:
+    """One-off / resume job: write cached JavDB into live SQLite, then fetch
+    remaining JAV titles newest-first. Catalog sort stays posted_at DESC."""
+    dest = dest or TITLES_SQLITE
+    cast_restored = merge_sqlite_casts(dest)
+    rows = load_sqlite_titles(dest)
+
+    def cache_lookup(code: str, _network: bool):
+        return javdb_meta(code, allow_network=False)
+
+    cached = enrich_sqlite_rows(rows, cache_lookup, allow_network=False)
+    applied = 0
+    before = {row["id"]: row for row in rows}
+    for title in cached:
+        old = before.get(title["id"]) or {}
+        if _title_meta_changed(old, title):
+            update_sqlite_title(dest, title)
+            applied += 1
+
+    fetched = 0
+    filled = 0
+    if allow_network:
+        missing = [
+            row
+            for row in cached
+            if row.get("category") in ("jav-censored", "jav-uncensored")
+            and not (row.get("genres") or [])
+        ]
+        missing.sort(key=lambda row: (row.get("posted_at") or "", row.get("id") or ""), reverse=True)
+        if free_set:
+            # Free tier only serves the newest FREE_CATALOG_SIZE titles per
+            # category (titles-db.js isInFreeSet), so only fetch JavDB meta
+            # for exactly that set; the paid tier keeps fetching everything.
+            by_cat: dict[str, list[dict]] = {}
+            for row in missing:
+                by_cat.setdefault(row.get("category") or "", []).append(row)
+            missing = []
+            for rows_ in by_cat.values():
+                missing.extend(rows_[:FREE_CATALOG_SIZE])
+        reset_block_streak()
+        for row in missing:
+            if limit and fetched >= limit:
+                break
+            code = jav_code_from_id(row["id"])
+            fields = javdb_meta(code, allow_network=True)
+            fetched += 1
+            if not cache_fits(code, fields):
+                continue
+            updated = enrich_sqlite_rows(
+                [row],
+                lambda c, _n, f=fields, want=code: f if c == want else None,
+                allow_network=False,
+            )[0]
+            update_sqlite_title(dest, updated)
+            filled += 1
+            if filled % 25 == 0:
+                print(f"sqlite enrich: fetched={fetched} filled={filled} last={row['id']}")
+    return {
+        "cache_applied": applied,
+        "cast_restored": cast_restored,
+        "fetched": fetched,
+        "filled": filled,
+        "total": len(rows),
+    }
+
+
+def scrape_new_to_sqlite(
+    use_javdb: bool = False,
+    max_pages: int = 0,
+    batch: int = 6,
+) -> dict:
+    """Incremental sehuatang refresh.
+
+    Scrape sehuatang forum 103 newest-first (release-date order), append only
+    titles that are missing from the live SQLite, and stop as soon as a page
+    yields no new titles (caught up with the current database). New records are
+    also appended to data/forum-103-all.jsonl so full rebuilds stay complete.
+    `use_javdb=False` keeps JavDB cache-only (no network) to avoid 403/429.
+    """
+    dest = TITLES_SQLITE
+    jsonl = ROOT / "data" / "forum-103-all.jsonl"
+    jsonl.parent.mkdir(parents=True, exist_ok=True)
+    bundled = load_bundled_overlay()
+
+    conn = sqlite3.connect(dest)
+    existing = {row[0] for row in conn.execute("SELECT id FROM titles")}
+
+    base = "https://sehuatang.org/"
+    site = Site()
+    added = 0
+    pages_done = 0
+    caught_up_page = 0
+    first_url = base + "forum-103-1.html"
+    try:
+        first_html = site.open(first_url)
+        fid, _current, last = forum_identity(first_url, first_html)
+        end_page = last if max_pages <= 0 else min(last, max_pages)
+        for page_no in range(1, end_page + 1):
+            page_url = f"{base}forum-{fid}-{page_no}.html"
+            listing_html = first_html if page_no == 1 else str(site.fetch_many([page_url])[0]["html"])
+            if looks_blocked(listing_html):
+                print(f"page {page_no}: blocked; stopping", file=sys.stderr)
+                break
+            listing = parse_forum(listing_html, page_url)
+            threads = listing["threads"]
+            payloads = site.fetch_many([t["url"] for t in threads]) if threads else []
+            by_url = {str(p["url"]): p for p in payloads}
+            new_in_page = 0
+            for thread in threads:
+                payload = by_url.get(thread["url"])
+                if not payload:
+                    continue
+                html = str(payload["html"])
+                if int(payload["status"]) != 200 or looks_blocked(html):
+                    continue
+                rec = movie_record(html, thread)
+                if not rec or not (rec.get("magnet") or "").strip():
+                    continue
+                meta_id = make_meta_id(rec)
+                if meta_id in existing:
+                    continue
+                title = overlay_title(build_title(rec, use_javdb=use_javdb), bundled)
+                title["posted_at"] = rec.get("posted_at") or title.get("released") or ""
+                with jsonl.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO titles (
+                      id, category, name, description, release_info, released, runtime,
+                      poster, background, forum_poster, dmm_missing, fourhoi_missing,
+                      cast_json, genres_json, director, imdb_rating, info_hash, magnet,
+                      posted_at, search_text
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    title_to_sqlite_row(title),
+                )
+                conn.commit()
+                existing.add(meta_id)
+                added += 1
+                new_in_page += 1
+            pages_done = page_no
+            if new_in_page == 0:
+                caught_up_page = page_no
+                print(f"caught up at page {page_no}: no new titles; stopping")
+                break
+        conn.close()
+    finally:
+        site.close()
+    return {
+        "added": added,
+        "pages": pages_done,
+        "caught_up_page": caught_up_page,
+        "total_in_db": len(existing),
+    }
+
+
+# --- AvGood HK AV scrape -----------------------------------------------------
+# AvGood (avgood.com) hosts magnet/torrent indexes for Hong Kong AV in two
+# sections: c/612 (香港三级) and c/595 (香港四级). Listing cards live on
+# /c/<section>/<page>/; each card links to /c/<id>.html, whose detail page
+# carries the magnet link, seed name and release date.
+AVGOOD_BASE = "https://avgood.com"
+AVGOOD_HK_SECTIONS = (("c/612", "香港三级"), ("c/595", "香港四级"))
+AVGOOD_QUALITY_MARKERS = ("720p", "1080p", "4k", "hd", "bluray", "高清")
+AVGOOD_AUDIO_MARKERS = ("cantonese", "粤语", "粤語", "mandarin", "国語", "国语")
+AVGOOD_MAGNET_RE = re.compile(r'href="(magnet:\?xt=urn:btih:[^"]+)"')
+AVGOOD_TORRENT_RE = re.compile(r"【种子名称】:(.+?)\.torrent")
+AVGOOD_DATE_RE = re.compile(r"发行日期:(\d{4}-\d{2}-\d{2})")
+
+
+def _avgood_parse_listing(html: str) -> list[dict]:
+    """Cards on /c/<section>/<page>/: id, title, poster, category tag."""
+    items: list[dict] = []
+    for block in html.split('<div class="grid-item">')[1:]:
+        id_m = re.search(r'<a class="card" href="/c/(\d+)\.html"', block)
+        title_m = re.search(r'<h3 class="card-title"><b>(.*?)</b></h3>', block, re.S)
+        poster_m = re.search(r'data-original="(/remote/[^"]+)"', block)
+        tag_m = re.search(r'<span class="tag tag-category"[^>]*>(.*?)</span>', block, re.S)
+        if not id_m or not title_m:
+            continue
+        items.append(
+            {
+                "id": id_m.group(1),
+                "title": title_m.group(1).strip(),
+                "poster": ("https://avgood.com" + poster_m.group(1)) if poster_m else "",
+                "tag": tag_m.group(1).strip() if tag_m else "",
+            }
+        )
+    return items
+
+
+def _avgood_parse_detail(html: str) -> dict:
+    magnet_m = AVGOOD_MAGNET_RE.search(html)
+    torrent_m = AVGOOD_TORRENT_RE.search(html)
+    date_m = AVGOOD_DATE_RE.search(html)
+    return {
+        "magnet": magnet_m.group(1) if magnet_m else "",
+        "torrentName": torrent_m.group(1) if torrent_m else "",
+        "released": date_m.group(1) if date_m else "",
+    }
+
+
+def _avgood_total_pages(html: str) -> int:
+    m = re.search(r'class="page-total">(\d+)<', html)
+    return int(m.group(1)) if m else 1
+
+
+def scrape_avgood_hk(max_pages: int = 20, batch: int = 8, delay: float = 1.0) -> dict:
+    """Scrape AvGood's HK sections and append HK AV titles to the live SQLite.
+
+    Only high-quality entries are kept: the seed name or title must declare an
+    HD quality marker (720p/1080p/4K/bluray/高清) or a Cantonese/Mandarin audio
+    marker. Rows are stored as category 'hongkong' with id 'hk:avgood-<id>'
+    so Stremio routes them to this addon via the 'hk:' idPrefixes.
+    Resume-safe: ids already in the DB are skipped.
+    """
+    dest = TITLES_SQLITE
+    conn = sqlite3.connect(dest)
+    existing = {row[0] for row in conn.execute("SELECT id FROM titles WHERE id LIKE 'hk:%'")}
+    site = Site()
+    added = skipped = filtered = blocked = 0
+    try:
+        for section, _label in AVGOOD_HK_SECTIONS:
+            # Land on the section page first: fetch_many() runs in-page
+            # fetch(), which only works same-origin — site.open() waits for
+            # sehuatang selectors, so navigate directly instead.
+            site.page.goto(f"{AVGOOD_BASE}/{section}/", wait_until="domcontentloaded", timeout=45000)
+            first_html = site.page.content()
+            if looks_blocked(first_html):
+                # Cloudflare "Just a moment" challenge: wait and reload once.
+                site.page.wait_for_timeout(8000)
+                site.page.goto(f"{AVGOOD_BASE}/{section}/", wait_until="domcontentloaded", timeout=45000)
+                first_html = site.page.content()
+                if looks_blocked(first_html):
+                    blocked += 1
+                    continue
+            total = _avgood_total_pages(first_html)
+            end_page = total if max_pages <= 0 else min(total, max_pages)
+            for page_no in range(1, end_page + 1):
+                html = first_html if page_no == 1 else str(site.fetch_many([f"{AVGOOD_BASE}/{section}/{page_no}/"])[0]["html"])
+                if looks_blocked(html):
+                    blocked += 1
+                    continue
+                items = _avgood_parse_listing(html)
+                pending = [it for it in items if f"hk:avgood-{it['id']}" not in existing]
+                for start in range(0, len(pending), batch):
+                    chunk = pending[start : start + batch]
+                    payloads = site.fetch_many([f"{AVGOOD_BASE}/c/{it['id']}.html" for it in chunk])
+                    by_url = {str(p["url"]): p for p in payloads}
+                    for it in chunk:
+                        p = by_url.get(f"{AVGOOD_BASE}/c/{it['id']}.html")
+                        if not p or int(p["status"]) != 200 or looks_blocked(str(p["html"])):
+                            blocked += 1
+                            continue
+                        detail = _avgood_parse_detail(str(p["html"]))
+                        if not detail["magnet"]:
+                            continue
+                        blob = f"{it['title']} {detail['torrentName']}".lower()
+                        if not (
+                            any(m in blob for m in AVGOOD_QUALITY_MARKERS)
+                            or any(m in blob for m in AVGOOD_AUDIO_MARKERS)
+                        ):
+                            filtered += 1
+                            continue
+                        title_id = f"hk:avgood-{it['id']}"
+                        if title_id in existing:
+                            skipped += 1
+                            continue
+                        title = {
+                            "id": title_id,
+                            "category": "hongkong",
+                            "name": it["title"],
+                            "description": (
+                                f"{it['title']}\n\nSource: AvGood ({it['tag'] or 'HK'})"
+                                + (f" | {detail['torrentName']}" if detail["torrentName"] else "")
+                            ),
+                            "releaseInfo": detail["released"][:4] if detail["released"] else "",
+                            "released": detail["released"],
+                            "poster": it["poster"],
+                            "infoHash": info_hash(detail["magnet"]),
+                            "magnet": detail["magnet"],
+                            "posted_at": detail["released"],
+                        }
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO titles (
+                              id, category, name, description, release_info, released, runtime,
+                              poster, background, forum_poster, dmm_missing, fourhoi_missing,
+                              cast_json, genres_json, director, imdb_rating, info_hash, magnet,
+                              posted_at, search_text
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            title_to_sqlite_row(title),
+                        )
+                        conn.commit()
+                        existing.add(title_id)
+                        added += 1
+                    if delay:
+                        time.sleep(delay)
+        hk_total = conn.execute("SELECT COUNT(*) FROM titles WHERE category='hongkong'").fetchone()[0]
+        conn.close()
+    finally:
+        site.close()
+    return {
+        "added": added,
+        "skipped": skipped,
+        "filtered": filtered,
+        "blocked": blocked,
+        "hk_in_db": hk_total,
+    }
 
 
 def build_sqlite_titles(use_javdb: bool = False) -> list[dict]:
@@ -613,11 +1135,11 @@ def main(use_javdb: bool = True) -> None:
         "logo": "https://www.stremio.com/website/stremio-logo-small.png",
         "resources": [
             {"name": "catalog", "types": ["movie"]},
-            {"name": "meta", "types": ["movie"], "idPrefixes": ["jav:"]},
-            {"name": "stream", "types": ["movie"], "idPrefixes": ["jav:"]},
+            {"name": "meta", "types": ["movie"], "idPrefixes": ["jav:", "hk:"]},
+            {"name": "stream", "types": ["movie"], "idPrefixes": ["jav:", "hk:"]},
         ],
         "types": ["movie"],
-        "idPrefixes": ["jav:"],
+        "idPrefixes": ["jav:", "hk:"],
         "catalogs": manifest_catalogs,
         "behaviorHints": {"adult": True, "p2p": True},
     }
@@ -660,8 +1182,71 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build the Stremio addon files")
     parser.add_argument("--no-javdb", action="store_true", help="Skip JavDB meta enrichment (offline build)")
     parser.add_argument("--sqlite-only", action="store_true", help="Write debrid-app/data/titles.sqlite from the scrape, no per-title files")
+    parser.add_argument(
+        "--enrich-sqlite",
+        action="store_true",
+        help="Apply JavDB cache to live SQLite, then fetch missing JAV newest-first",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Max JavDB network fetches during --enrich-sqlite (0 = all missing)",
+    )
+    parser.add_argument(
+        "--scrape-sqlite",
+        action="store_true",
+        help="Scrape sehuatang forum 103 newest-first, append missing titles to live SQLite, stop when caught up",
+    )
+    parser.add_argument(
+        "--scrape-pages",
+        type=int,
+        default=0,
+        help="Max sehuatang pages to read during --scrape-sqlite (0 = read until caught up)",
+    )
+    parser.add_argument(
+        "--scrape-avgood",
+        action="store_true",
+        help="Scrape AvGood HK sections (c/612 三级 + c/595 四级), keep HD/Cantonese titles only",
+    )
+    parser.add_argument(
+        "--avgood-pages",
+        type=int,
+        default=20,
+        help="Max AvGood listing pages per section (0 = all pages)",
+    )
+    parser.add_argument(
+        "--free-set",
+        action="store_true",
+        help="During --enrich-sqlite, fetch JavDB only for the newest 15 titles per category (the free tier's meta set)",
+    )
     args = parser.parse_args()
-    if args.sqlite_only:
+    if args.scrape_avgood:
+        stats = scrape_avgood_hk(max_pages=args.avgood_pages)
+        print(
+            "avgood hk: "
+            f"added={stats['added']} skipped={stats['skipped']} filtered={stats['filtered']} "
+            f"blocked={stats['blocked']} hk_in_db={stats['hk_in_db']}"
+        )
+    if args.scrape_sqlite:
+        stats = scrape_new_to_sqlite(use_javdb=not args.no_javdb, max_pages=args.scrape_pages)
+        print(
+            "scrape sqlite: "
+            f"added={stats['added']} pages={stats['pages']} "
+            f"caught_up_page={stats['caught_up_page']} total_in_db={stats['total_in_db']}"
+        )
+    elif args.enrich_sqlite:
+        stats = enrich_live_sqlite(
+            allow_network=not args.no_javdb,
+            limit=args.limit,
+            free_set=args.free_set,
+        )
+        print(
+            "sqlite enrich: "
+            f"cast_restored={stats['cast_restored']} cache_applied={stats['cache_applied']} "
+            f"fetched={stats['fetched']} filled={stats['filled']} total={stats['total']}"
+        )
+    elif args.sqlite_only:
         titles = build_sqlite_titles(use_javdb=not args.no_javdb)
         dest = write_titles_sqlite(titles)
         print(f"sqlite: {len(titles)} titles -> {dest.relative_to(ROOT)}")

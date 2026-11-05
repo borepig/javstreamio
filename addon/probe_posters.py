@@ -59,13 +59,17 @@ def main() -> None:
     parser.add_argument("--db", default=str(SQLITE))
     parser.add_argument("--workers", type=int, default=20)
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--ids", default="", help="Comma-separated title IDs to probe (overrides the dmm_missing=0 select)")
     args = parser.parse_args()
     conn = sqlite3.connect(args.db)
-    sql = "SELECT id FROM titles WHERE dmm_missing=0"
-    ids = [row[0] for row in conn.execute(sql)]
-    if args.limit:
+    if args.ids:
+        ids = [x.strip() for x in args.ids.split(",") if x.strip()]
+    else:
+        sql = "SELECT id FROM titles WHERE dmm_missing=0"
+        ids = [row[0] for row in conn.execute(sql)]
+    if args.limit and not args.ids:
         ids = ids[: args.limit]
-    print(f"probe: {len(ids)} unmarked titles", flush=True)
+    print(f"probe: {len(ids)} titles to check", flush=True)
     stubs = probe_ids(ids, args.workers)
     conn.executemany("UPDATE titles SET dmm_missing=1 WHERE id=?", [(title_id,) for title_id in stubs])
     conn.commit()
