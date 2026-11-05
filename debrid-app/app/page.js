@@ -110,7 +110,8 @@ export default function Page() {
             <h3>Free</h3>
             <p className="price">$0</p>
             <ul>
-              <li>Newest 15 titles per category (5 categories)</li>
+              <li>Newest 15 titles per JAV category (4 categories)</li>
+              <li>Hong Kong AV is a paid feature</li>
               <li>Meta refreshed once a fortnight</li>
               <li>All debrid services + P2P / magnet fallback</li>
             </ul>
@@ -195,8 +196,8 @@ export default function Page() {
         <h2>Stremio addon link</h2>
         <p>
           Uninstall any older copy first. Add this URL (Settings → Add-ons → Custom URL).
-          Without a paid key this is the free tier: newest 15 titles per category, all
-          debrid services + P2P playback.
+          Without a paid key this is the free tier: newest 15 titles per JAV category, all
+          debrid services + P2P playback. Hong Kong AV is paid-only.
           {key &&
             ` It includes your ${SERVICES.find((item) => item.id === service)?.label || service} key, which powers one-click debrid playback. Without that key, Play is a black screen.`}
           {paidKey &&

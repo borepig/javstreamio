@@ -110,6 +110,8 @@ export function isInFreeSet(db, id) {
   const want = decodeURIComponent(String(id || "").replace(/\.json$/, ""));
   const row = db.prepare("SELECT category, posted_at FROM titles WHERE id = ?").get(want);
   if (!row) return false;
+  // Hong Kong AV is a paid-only category: not part of the free tier.
+  if (row.category === "hongkong") return false;
   const { n } = db
     .prepare(
       `SELECT COUNT(*) AS n FROM titles t

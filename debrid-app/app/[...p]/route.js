@@ -88,6 +88,10 @@ export async function GET(req, { params }) {
       const extra = String(p[3] || "").replace(/\.json$/, "");
       const { skip, search } = parseCatalogExtra(extra);
       // Free tier: newest FREE_CATALOG_SIZE per catalog. Paid tier: full catalog.
+      // Hong Kong AV is paid-only: free users get an empty hongkong catalog.
+      if (!paid && catalogId === "hongkong") {
+        return NextResponse.json({ metas: [] }, { headers: NO_STORE });
+      }
       const body = withPublicPosters(
         bundledCatalog(catalogId, skip, paid ? undefined : FREE_CATALOG_SIZE, search),
         "catalog",
