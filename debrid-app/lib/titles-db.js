@@ -63,6 +63,7 @@ export function mapTitleRow(row) {
     magnet: row.magnet || "",
     category: row.category || "",
   };
+  if (row.stream_url) item.streamUrl = row.stream_url;
   if (row.released) item.released = row.released;
   if (row.poster) item.poster = row.poster;
   if (row.background) item.background = row.background;

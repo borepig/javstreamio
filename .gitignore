@@ -4,3 +4,10 @@ dist/
 build/
 *.egg-info/
 .venv/
+addon/.enrich_hentai_run.log
+addon/.enrich_hentai_run2.log
+addon/.enrich_hentai_run3.log
+addon/.enrich_hentai_run4.log
+.playwright-mcp/
+.qwen/
+.cursor/

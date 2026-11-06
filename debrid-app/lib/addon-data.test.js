@@ -9,8 +9,11 @@ import {
   withBundledCatalogs,
   BUNDLED_CATALOGS,
   isPublicArtUrl,
+  isAllowedPosterUrl,
   parseCatalogExtra,
+  bundledStream,
 } from "./addon-data.js";
+import { openTitlesDb, resolveSqlitePath } from "./titles-db.js";
 import { ADDON_VERSION } from "./version.js";
 
 test("dmmPoster splits catalog poster from fanart", () => {
@@ -287,4 +290,32 @@ test("parseCatalogExtra reads search and skip from the Stremio extra path", () =
   assert.deepEqual(parseCatalogExtra("search=WAAA"), { search: "WAAA", skip: 0 });
   assert.deepEqual(parseCatalogExtra("search=WAAA-629&skip=80"), { search: "WAAA-629", skip: 80 });
   assert.deepEqual(parseCatalogExtra("search=宝生みさと.json"), { search: "宝生みさと", skip: 0 });
+});
+
+test("hanime-cdn posters are public art and allowed for the poster proxy", () => {
+  assert.equal(isPublicArtUrl("https://hanime-cdn.com/covers/series-cover.jpg"), true);
+  assert.equal(isAllowedPosterUrl("https://hanime-cdn.com/covers/series-cover.jpg"), true);
+});
+
+test("bundledStream adds a direct Online row when stream_url exists", (t) => {
+  const file = resolveSqlitePath();
+  if (!file) {
+    t.skip("titles.sqlite not present");
+    return;
+  }
+  const db = openTitlesDb(file);
+  const row = db
+    .prepare("SELECT id FROM titles WHERE id LIKE 'hnt:%' AND stream_url != '' LIMIT 1")
+    .get();
+  if (!row) {
+    t.skip("no hnt rows have stream_url yet (enrichment still running)");
+    return;
+  }
+  const body = bundledStream(row.id);
+  const streams = (body && body.streams) || [];
+  const online = streams.find((s) => s.url);
+  assert.ok(online, "expected an Online row with a url");
+  assert.equal(online.name, "Online");
+  const p2p = streams.find((s) => s.infoHash);
+  assert.ok(p2p, "expected the P2P infoHash row to remain");
 });

@@ -54,7 +54,7 @@ export function normalizeMetaBody(body) {
   return { meta: withStremioCredits(meta) };
 }
 
-const POSTER_HOSTS = ["tu.djhdhs.us", "jdbstatic.com"];
+const POSTER_HOSTS = ["tu.djhdhs.us", "jdbstatic.com", "hanime-cdn.com"];
 const POSTER_REFERER = "https://sehuatang.org/";
 const POSTER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
@@ -125,6 +125,7 @@ export function isPublicArtUrl(src) {
     }
     return (
       host === "pics.dmm.co.jp" ||
+      host === "hanime-cdn.com" ||
       host === "fourhoi.com" ||
       host.endsWith(".fourhoi.com") ||
       host === "image.mgstage.com" ||
@@ -433,17 +434,28 @@ export function bundledMeta(id) {
 
 export function bundledStream(id) {
   const item = bundledTitle(id);
-  if (!item || !item.infoHash) return null;
-  return {
-    streams: [
-      {
-        name: item.runtime || "",
-        infoHash: item.infoHash,
-        magnet: item.magnet || "",
-        description: item.name || "",
-      },
-    ],
-  };
+  if (!item) return null;
+  const streams = [];
+  if (item.infoHash) {
+    streams.push({
+      name: item.runtime || "",
+      infoHash: item.infoHash,
+      magnet: item.magnet || "",
+      description: item.name || "",
+    });
+  }
+  if (item.streamUrl) {
+    // Direct online playback: a plain http(s) mp4 the player can stream
+    // without a debrid key.
+    streams.push({
+      name: "Online",
+      url: item.streamUrl,
+      description: item.name || "",
+      behaviorHints: { bingeGroup: `javstreamio-online-${item.name || "x"}` },
+    });
+  }
+  if (!streams.length) return null;
+  return { streams };
 }
 
 export function withBundledCatalogs(manifest) {

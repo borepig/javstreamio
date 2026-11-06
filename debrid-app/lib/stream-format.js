@@ -216,6 +216,7 @@ export function buildAddonStreams({
   cached = false,
   includeDebrid = true,
   resolvedUrl = "",
+  directUrl = "",
 }) {
   const debridUrl =
     resolvedUrl ||
@@ -231,6 +232,7 @@ export function buildAddonStreams({
     cached,
     token,
     setupUrl: origin,
+    directUrl,
   });
 }
 
@@ -260,6 +262,17 @@ export function formatTorrentStream({ infoHash, size, title, flags }) {
   };
 }
 
+// Direct online playback: the stream row carries a plain http(s) mp4 URL
+// (e.g. cdn2.streamhentai.org) so Stremio plays it without a debrid key.
+export function formatOnlineStream({ url, title, flags }) {
+  return {
+    name: "Online",
+    url,
+    description: [title, flags].filter(Boolean).join("\n"),
+    behaviorHints: { bingeGroup: `javstreamio-online-${title || "x"}` },
+  };
+}
+
 export function formatSetupStream(origin) {
   return {
     name: "Setup",
@@ -278,6 +291,7 @@ export function buildStreamList({
   cached,
   token,
   setupUrl,
+  directUrl = "",
 }) {
   const { size, flags } = splitSizeFlags(sourceName);
   const title = sourceDescription || "";
@@ -287,6 +301,9 @@ export function buildStreamList({
   }
   if (debridUrl) {
     out.push(formatDebridStream({ service, url: debridUrl, size, title, flags, infoHash, cached }));
+  }
+  if (directUrl) {
+    out.push(formatOnlineStream({ url: directUrl, title, flags }));
   }
   if (infoHash) {
     out.push(formatTorrentStream({ infoHash, size, title, flags }));

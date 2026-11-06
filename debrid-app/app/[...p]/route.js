@@ -204,6 +204,9 @@ export async function GET(req, { params }) {
       const infoHash = first.infoHash || "";
       const name = first.name || "";
       const title = first.description || "";
+      // Direct online playback (e.g. Hentaistream mp4 links) needs no debrid key.
+      const directStream = streams.find((s) => s && s.url) || {};
+      const directUrl = directStream.url || "";
       const titleCode = String(p[2] || "").replace(/\.json$/i, "");
       // All debrid services work on every tier; a debrid row still only
       // shows for Torbox/Real-Debrid when the torrent is not cached.
@@ -239,6 +242,7 @@ export async function GET(req, { params }) {
             cached,
             resolvedUrl,
             includeDebrid: Boolean(debridOk && service && token && infoHash && includeDebridRow(service, cached)),
+            directUrl,
           }),
         },
         { headers: NO_STORE },

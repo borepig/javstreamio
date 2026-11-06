@@ -21,6 +21,7 @@ import {
   serviceLabel,
   includeDebridRow,
   parseAdInstant,
+  formatOnlineStream,
   STREAM_CACHE_HINTS,
 } from "./stream-format.js";
 
@@ -324,4 +325,32 @@ test("serviceLabel covers every debrid in the picker", () => {
   assert.equal(serviceLabel("alldebrid"), "AllDebrid");
   assert.equal(serviceLabel("premiumize"), "Premiumize");
   assert.equal(serviceLabel("debrid-link"), "Debrid-Link");
+});
+
+test("direct online stream row carries a plain mp4 url for debrid-free playback", () => {
+  const row = formatOnlineStream({
+    url: "https://cdn2.streamhentai.org/Some%20Title_Episode_01.mp4",
+    title: "Some Title [Hentai]",
+    flags: "16 min",
+  });
+  assert.equal(row.name, "Online");
+  assert.equal(row.url, "https://cdn2.streamhentai.org/Some%20Title_Episode_01.mp4");
+  assert.match(row.description, /Some Title/);
+  assert.match(row.behaviorHints.bingeGroup, /^javstreamio-online-/);
+
+  const streams = buildAddonStreams({
+    origin: "https://javstremio.vercel.app",
+    service: "torbox",
+    token: "",
+    infoHash: "51FCBDDD72B3CF01CFB8652E111CB6494C366422",
+    sourceName: "16 min",
+    sourceDescription: "Some Title [Hentai]",
+    directUrl: "https://cdn2.streamhentai.org/Some%20Title_Episode_01.mp4",
+  });
+  const online = streams.find((s) => s.url);
+  assert.ok(online, "expected an online row when directUrl is set");
+  assert.equal(online.name, "Online");
+  const p2p = streams.find((s) => s.infoHash);
+  assert.ok(p2p, "expected the P2P infoHash row to remain");
+  assert.notEqual(p2p, online);
 });
