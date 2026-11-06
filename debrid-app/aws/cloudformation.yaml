@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: JAVSTREAMIO debrid-app on a free-tier EC2 (us-east-1). t2.micro is free 12 months; t3.small uses the new-account $ credit if the micro is too slow.
+Parameters:
+  Domain:
+    Type: String
+    Default: ""
+    Description: "Optional custom domain for Let's Encrypt TLS; if empty, serve on the Elastic IP."
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues: [t2.micro, t3.micro, t3.small]
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: "A default-VPC subnet (pick one that your account already has)."
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: "The VPC the subnet belongs to (your account's default VPC)."
+  KeyName:
+    Type: String
+    Default: ""
+    Description: "Optional EC2 key pair name for SSH."
+  AmzId:
+    Type: AWS::EC2::Image::Id
+    Default: "ami-0c03d16f24160d2a6"
+    Description: "Ubuntu 24.04 LTS AMI (us-east-1). VERIFY it is current for your account before creating."
+Resources:
+  WebSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "JAVSTREAMIO debrid-app: allow inbound HTTP/HTTPS (80/443)"
+      GroupName: javstremio-sg
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: javstremio-sg
+  WebInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref AmzId
+      SubnetId: !Ref SubnetId
+      KeyName: !Ref KeyName
+      SecurityGroupIds: [!Ref WebSG]
+      Tags:
+        - Key: Name
+          Value: javstremio-debrid
+      UserData:
+        Fn::Base64: !Sub
+          - |
+            #!/usr/bin/env bash
+            set -euo pipefail
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y nginx git curl ca-certificates
+            curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+            apt-get install -y nodejs
+            npm install -g pm2
+            if [ ! -d /opt/javstreamio ]; then git clone --depth 1 https://github.com/borepig/javstreamio.git /opt/javstreamio; fi
+            cd /opt/javstreamio/debrid-app
+            npm ci
+            npm run build
+            cat > /opt/pm2.javstreamio.json <<'PM2'
+            { "apps": [{ "name": "javstreamio-debrid", "script": "node_modules/.bin/next", "args": "start -p 3000", "cwd": "/opt/javstreamio/debrid-app", "instances": 1, "exec_mode": "fork_mode", "autorestart": true }] }
+            PM2
+            pm2 start /opt/pm2.javstreamio.json
+            pm2 save
+            cat > /etc/nginx/sites-available/javstremio.conf <<'NGINX'
+            server { listen 80; listen [::]:80; server_name ${Domain}; location / { proxy_pass http://127.0.0.1:3000; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Forwarded-For $remote_addr; proxy_set_header X-Forwarded-Proto $scheme; client_max_body_size 20m; } }
+            NGINX
+            ln -sf /etc/nginx/sites-available/javstremio.conf /etc/nginx/sites-enabled/javstremio.conf
+            systemctl enable nginx
+            systemctl restart nginx
+            if [ -n "${Domain}" ]; then apt-get install -y certbot python3-certbot-nginx; certbot --nginx -d "${Domain}" --non-interactive --agree-tos -m admin@javstremio --redirect; fi
+          - Domain: !Ref Domain
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref WebInstance
+Conditions:
+  DomainProvided:
+    !Not [!Equals [!Ref Domain, ""]]
+Outputs:
+  PublicIp:
+    Description: EC2 Elastic IP (stable address for Stremio)
+    Value: !GetAtt ElasticIP.PublicIp
+  AddonUrl:
+    Description: Stremio addon URL (must end with /manifest.json)
+    Value: !If
+      - DomainProvided
+      - !Sub
+        - "https://${Domain}/manifest.json"
+        - Domain: !Ref Domain
+      - !Sub
+        - "http://${EipIp}/manifest.json"
+        - EipIp: !GetAtt ElasticIP.PublicIp
