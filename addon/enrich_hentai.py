@@ -32,6 +32,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(ROOT, "debrid-app", "data", "titles.sqlite")
 HVS_CACHE = os.path.join(ROOT, "addon", ".hanime_hvs.json")
 STREAM_CACHE = os.path.join(ROOT, "addon", ".hentai_stream_cache.json")
+HS_CATALOG = os.path.join(ROOT, "addon", ".hentaistream_catalog.json")
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 HVS_URL = "https://guest.freeanimehentai.net/api/v11/search_hvs"
@@ -148,6 +149,40 @@ def build_match_index(items):
     return index
 
 
+def load_hs_catalog():
+    if os.path.exists(HS_CATALOG):
+        try:
+            with open(HS_CATALOG, encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return []
+    return []
+
+
+def build_hs_index(catalog):
+    """Precompute per-entry token sets + compact title, plus an
+    episode->entry-index map and a token->entry-index posting list, so a
+    lookup scans only the entries for the target episode instead of the
+    whole catalog (avoids a full 3782-entry scan per row).
+
+    Returns a 3-tuple: (entries, ep_map, postings).
+    """
+    entries = []
+    ep_map = {}
+    postings = {}
+    for c in catalog:
+        title = str(c.get("title") or c.get("slug") or "").lower()
+        tokens = set(t for t in re.sub(r"[^a-z0-9]+", " ", title).split() if t)
+        compact = re.sub(r"[^a-z0-9]+", "", title)
+        i = len(entries)
+        entries.append((c, tokens, compact))
+        for t in tokens:
+            postings.setdefault(t, []).append(i)
+        if c.get("mp4") and c.get("episode") is not None:
+            ep_map.setdefault(c["episode"], []).append(i)
+    return (entries, ep_map, postings)
+
+
 def match_series(series, match_index):
     s = str(series or "").strip()
     if not s:
@@ -238,12 +273,48 @@ def parse_runtime(html_text):
     return f"{int(m.group(1).split(':')[0])} min"
 
 
-def hentaistream_lookup(series, episode, item, stream_cache, title_id):
-    """Find the direct mp4 + runtime for one episode in a single page fetch."""
+def hentaistream_lookup(series, episode, item, stream_cache, title_id, hs_index=None):
+    """Find the direct mp4 + runtime for one episode.
+
+    Prefers the Hentaistream catalog (matched by series title + episode#);
+    falls back to slug-guessing when the catalog is absent or unmatched.
+    """
     if episode is None:
         return "", ""
     if title_id in stream_cache:
         return stream_cache[title_id], ""
+    # 1) Catalog lookup: match series title, pick the entry for this episode
+    #    that carries a direct mp4.
+    if hs_index:
+        entries, ep_map, postings = hs_index
+        s = str(series or "").strip()
+        want_tokens = [t for t in re.sub(r"[^a-z0-9]+", " ", s.lower()).split() if t and t not in STOP_TOKENS]
+        want_set = set(want_tokens)
+        want_compact = norm(s)
+        best, best_score = None, 0.0
+        if episode is not None and episode in ep_map:
+            # Candidate set: the smallest token posting (or the episode's
+            # mp4 entries if the series name has no content tokens).
+            cand = None
+            if want_set:
+                cand = min((postings.get(t, []) for t in want_set), key=len, default=[])
+            if cand is None:
+                cand = ep_map[episode]
+            for i in cand:
+                c, cand_tokens, cand_compact = entries[i]
+                if not c.get("mp4"):
+                    continue
+                found = len(want_set & cand_tokens)
+                score = found / len(want_set) if want_set else 0.0
+                if len(want_compact) >= 4 and want_compact in cand_compact:
+                    score = max(score, 0.9)
+                if score > best_score:
+                    best_score, best = score, c
+        if best is not None and best_score >= 0.6:
+            stream_cache[title_id] = best["mp4"]
+            save_stream_cache(stream_cache)
+            return best["mp4"], best.get("runtime", "")
+    # 2) Fallback: slug-guess the episode page and dig out the player frame.
     bases = []
     if item and item.get("slug"):
         bases.append(str(item["slug"]))
@@ -302,6 +373,10 @@ def main():
     source = "refetched" if args.refresh else ("cache" if os.path.exists(HVS_CACHE) else "fetched")
     print(f"hanime series loaded: {len(items)} (source: {source})")
     match_index = build_match_index(items)
+
+    hs_catalog = load_hs_catalog()
+    hs_index = build_hs_index(hs_catalog)
+    print(f"hentaistream catalog entries: {len(hs_catalog)}")
 
     stream_cache = load_stream_cache()
 
@@ -395,7 +470,7 @@ def main():
         play_url = stream_url or ""
         runtime = ""
         if not args.no_play and not play_url:
-            play_url, runtime = hentaistream_lookup(series, episode, item, stream_cache, rid)
+            play_url, runtime = hentaistream_lookup(series, episode, item, stream_cache, rid, hs_index)
             if play_url:
                 played += 1
 

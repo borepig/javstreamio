@@ -20,6 +20,7 @@ import re
 import sqlite3
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -38,21 +39,46 @@ FETCH_TOP = False
 LIMIT = 0
 CURRENT_YEAR = int(time.strftime("%Y"))
 
-def sxng_search(query, engines=None):
-    """Query the SearXNG instance; return a list of {title, content, url, engine}."""
+# Exponential backoff for transient 403/429/5xx: 15s, 30s, 60s, 120s, 240s, capped at 300s.
+BACKOFF_BASE = 15
+BACKOFF_CAP = 300
+
+def backoff_sleep(attempt):
+    """Sleep with exponential backoff (capped). `attempt` is the zero-based retry index."""
+    time.sleep(min(BACKOFF_BASE * (2 ** attempt), BACKOFF_CAP))
+
+def sxng_search(query, engines=None, max_retries=4):
+    """Query the SearXNG instance; return a list of {title, content, url, engine}.
+    Transient 429/5xx and socket errors back off and retry (a success resets the
+    streak on the next call); non-retryable HTTP errors fail fast."""
     params = {"q": query, "format": "json"}
     if engines:
         params["engines"] = engines
     url = f"{SXNG}/search?{urllib.parse.urlencode(params)}"
     req = urllib.request.Request(url, headers={"User-Agent": "javstreamio/1.0"})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            data = json.load(r)
-    except Exception as e:
-        print(f"  sxng query '{query}' failed: {e}", file=sys.stderr)
-        return []
+    data = None
+    for attempt in range(max_retries + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = json.load(r)
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 429 or 500 <= e.code < 600:
+                if attempt == max_retries:
+                    print(f"  sxng query '{query}' still HTTP {e.code} after backoff", file=sys.stderr)
+                    return []
+                backoff_sleep(attempt)
+                continue
+            print(f"  sxng query '{query}' HTTP {e.code} (non-retryable)", file=sys.stderr)
+            return []
+        except Exception as e:
+            if attempt == max_retries:
+                print(f"  sxng query '{query}' failed: {e}", file=sys.stderr)
+                return []
+            backoff_sleep(attempt)
+            continue
     out = []
-    for res in data.get("results", []):
+    for res in (data or {}).get("results", []):
         out.append({
             "title": res.get("title") or "",
             "content": res.get("content") or "",
@@ -62,10 +88,25 @@ def sxng_search(query, engines=None):
     return out
 
 
-def http_get(url):
+def http_get(url, max_retries=3):
+    """GET with exponential backoff on transient 403/429/5xx and socket errors;
+    other HTTP errors (e.g. 404) raise immediately so the caller can skip that row."""
     req = urllib.request.Request(url, headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return r.read().decode("utf-8", "replace")
+    for attempt in range(max_retries + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            if e.code in (403, 429) or 500 <= e.code < 600:
+                if attempt == max_retries:
+                    raise
+                backoff_sleep(attempt)
+                continue
+            raise
+        except Exception:
+            if attempt == max_retries:
+                raise
+            backoff_sleep(attempt)
 
 
 def clean_title(raw, code):

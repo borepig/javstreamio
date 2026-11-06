@@ -8,6 +8,14 @@ addon/.enrich_hentai_run.log
 addon/.enrich_hentai_run2.log
 addon/.enrich_hentai_run3.log
 addon/.enrich_hentai_run4.log
+addon/.enrich_hentai_run5.log
+addon/.enrich_hentai_run6.log
+addon/.enrich_hentai_run7.log
+addon/.enrich_hentai_run8.log
+addon/.websearch_cn_run.log
+addon/.websearch_cn_watcher.log
+addon/.hs_catalog_build.log
+addon/.hs_cn_monitor.log
 .playwright-mcp/
 .qwen/
 .cursor/
