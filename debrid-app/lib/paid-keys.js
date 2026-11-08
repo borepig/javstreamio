@@ -5,7 +5,8 @@
 //
 // Plans:
 //   - monthly ($5/mo): expires 30 days after issued_at
-//   - lifetime ($25 promo, was $99): never expires
+//   - annual ($10/yr): expires 365 days after issued_at
+//   - lifetime ($10 once, launch special): 30-day countdown after issued_at
 //
 // Free tier (no valid key): catalog capped at FREE_CATALOG_SIZE per category,
 // meta gated by isInFreeSet; all debrid services work on every tier.
@@ -47,7 +48,9 @@ export function isValidPaidKey(key, dbArg) {
     .prepare("SELECT plan, expires_at FROM paid_keys WHERE key = ?")
     .get(k);
   if (!row) return false;
-  if (row.plan === "monthly" && row.expires_at && Date.now() > Date.parse(row.expires_at)) {
+  // Every plan carries an expires_at (monthly 30d, annual 365d, lifetime 30d
+  // launch special). Any key past its expiry is invalid.
+  if (row.expires_at && Date.now() > Date.parse(row.expires_at)) {
     return false;
   }
   return true;
@@ -73,7 +76,7 @@ export async function isValidPaidKeyAsync(key) {
     if (!res.ok) return false;
     const { value } = await res.json();
     const row = JSON.parse(value);
-    if (row.plan === "monthly" && row.expiresAt && Date.now() > Date.parse(row.expiresAt)) {
+    if (row.expiresAt && Date.now() > Date.parse(row.expiresAt)) {
       return false;
     }
     return true;

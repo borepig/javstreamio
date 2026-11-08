@@ -24,9 +24,33 @@ test("unknown or empty key is not paid", () => {
   assert.equal(isValidPaidKey(undefined, db), false);
 });
 
-test("lifetime key is valid", () => {
-  const db = makeDb([{ key: "test-lifetime", plan: "lifetime", issuedAt: "2026-11-04", expiresAt: null }]);
+test("lifetime key is valid (30-day launch special)", () => {
+  // Lifetime is now a 30-day countdown: issued 2026-11-04, expires 2026-12-04.
+  const db = makeDb([
+    { key: "test-lifetime", plan: "lifetime", issuedAt: "2026-11-04", expiresAt: "2026-12-04" },
+  ]);
   assert.equal(isValidPaidKey("test-lifetime", db), true);
+});
+
+test("expired lifetime key is not valid", () => {
+  const db = makeDb(
+    [{ key: "test-lifetime-expired", plan: "lifetime", issuedAt: "2026-10-01", expiresAt: "2026-10-31" }]
+  );
+  assert.equal(isValidPaidKey("test-lifetime-expired", db), false);
+});
+
+test("unexpired annual key is valid", () => {
+  const db = makeDb([
+    { key: "test-annual", plan: "annual", issuedAt: "2026-11-04", expiresAt: "2027-11-04" },
+  ]);
+  assert.equal(isValidPaidKey("test-annual", db), true);
+});
+
+test("expired annual key is not valid", () => {
+  const db = makeDb(
+    [{ key: "test-annual-expired", plan: "annual", issuedAt: "2025-01-01", expiresAt: "2026-01-01" }]
+  );
+  assert.equal(isValidPaidKey("test-annual-expired", db), false);
 });
 
 test("unexpired monthly key is valid", () => {

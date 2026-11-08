@@ -6,10 +6,10 @@
 // out twice.
 //
 // Usage:
-//   node scripts/issue-key.mjs <monthly|lifetime> [buyer-email]  -> prints the key to email
-//   node scripts/issue-key.mjs renew <key>                          -> monthly renewal (expires_at = now + 30d)
-//   node scripts/issue-key.mjs add <monthly|lifetime> <count>       -> top up the pool
-//   node scripts/issue-key.mjs pool                                   -> pool status
+//   node scripts/issue-key.mjs <monthly|annual|lifetime> [buyer-email] -> prints the key to email
+//   node scripts/issue-key.mjs renew <key>                            -> monthly renewal (expires_at = now + 30d)
+//   node scripts/issue-key.mjs add <monthly|annual|lifetime> <count>  -> top up the pool
+//   node scripts/issue-key.mjs pool                                    -> pool status
 //
 // After inserting/updating rows, commit data/keys.sqlite and redeploy
 // (`npx vercel --prod --yes`) so the live app validates the new keys.
@@ -23,10 +23,10 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DB = path.join(HERE, "../data/keys.sqlite");
 
 const today = () => new Date().toISOString().slice(0, 10);
-const plus30d = () => {
-  const d = new Date(Date.now() + 30 * 86400 * 1000);
-  return d.toISOString().slice(0, 10);
-};
+const plusDays = (days) => new Date(Date.now() + days * 86400 * 1000).toISOString().slice(0, 10);
+const plus30d = () => plusDays(30);
+// Expiry per plan: monthly 30d, annual 365d, lifetime 30d (launch special).
+const PLAN_DAYS = { monthly: 30, annual: 365, lifetime: 30 };
 const randKey = () =>
   "javpro-" + createHash("sha256").update(String(Math.random())).digest("hex").slice(0, 8);
 
@@ -38,14 +38,14 @@ const [, , cmd, a, b] = process.argv;
 if (cmd === "add") {
   const plan = a;
   const count = parseInt(b, 10);
-  if ((plan !== "monthly" && plan !== "lifetime") || !count || count < 1) {
-    console.error("Usage: node scripts/issue-key.mjs add <monthly|lifetime> <count>");
+  if (!PLAN_DAYS[plan] || !count || count < 1) {
+    console.error("Usage: node scripts/issue-key.mjs add <monthly|annual|lifetime> <count>");
     process.exit(1);
   }
   const insert = db.prepare(
     "INSERT INTO paid_keys (key, plan, issued_at, expires_at, max_devices) VALUES (?, ?, ?, ?, 3)"
   );
-  const expires = plan === "monthly" ? plus30d() : null;
+  const expires = plusDays(PLAN_DAYS[plan]);
   const tx = (keys) => {
     for (const key of keys) insert.run(key, plan, today(), expires);
   };
@@ -73,7 +73,7 @@ if (cmd === "add") {
   }
   console.log(`${key} renewed -> expires ${plus30d()}`);
 } else if (cmd === "pool") {
-  for (const plan of ["monthly", "lifetime"]) {
+  for (const plan of ["monthly", "annual", "lifetime"]) {
     const total = db.prepare("SELECT COUNT(*) c FROM paid_keys WHERE plan = ?").get(plan).c;
     const issued = db.prepare(
       "SELECT COUNT(*) c FROM paid_keys k WHERE k.plan = ? AND EXISTS (SELECT 1 FROM key_issuances i WHERE i.key = k.key)"
@@ -84,8 +84,8 @@ if (cmd === "add") {
   // Default: issue the next available pool key for the plan.
   const plan = cmd;
   const buyer = a || "";
-  if (plan !== "monthly" && plan !== "lifetime") {
-    console.error("Usage: node scripts/issue-key.mjs <monthly|lifetime> [buyer-email]");
+  if (!PLAN_DAYS[plan]) {
+    console.error("Usage: node scripts/issue-key.mjs <monthly|annual|lifetime> [buyer-email]");
     process.exit(1);
   }
   const row = db.prepare(

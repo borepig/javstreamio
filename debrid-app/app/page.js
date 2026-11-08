@@ -22,13 +22,17 @@ const ADDON_BASE = "https://javstremio.ddns.net";
 // Buy Me a Coffee payment links (borepig). After payment, a pool key is
 // issued via scripts/issue-key.mjs and emailed to the buyer.
 const BMAC_LIFETIME_URL = "https://buymeacoffee.com/borepig?preset=10";
+// Annual and lifetime both use the $10 preset (annual = $10/yr, lifetime
+// = $10 once / 30-day launch special). If a separate BMAC preset is created
+// for annual, point this at its preset id.
+const BMAC_ANNUAL_URL = "https://buymeacoffee.com/borepig?preset=10";
 
 export default function Page() {
   const [service, setService] = useState("torbox");
   const [key, setKey] = useState("");
   const [paidKey, setPaidKey] = useState("");
   const [deviceId, setDeviceId] = useState("");
-  const [tier, setTier] = useState("lifetime");
+  const [tier, setTier] = useState("annual");
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -116,6 +120,28 @@ export default function Page() {
             )}
           </div>
           <div
+            className={tier === "annual" ? "tier best active" : "tier best dimmed"}
+            role="button"
+            tabIndex={0}
+            onClick={() => setTier("annual")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") setTier("annual");
+            }}
+          >
+            <span className="badge">Best value</span>
+            <h3>Annual</h3>
+            <p className="price">$10 <span className="once">per year</span></p>
+            <ul>
+              <li>12 months of access</li>
+              <li>All 9 categories: JAV Censored, JAV Uncensored, Western, Others, Hong Kong AV, Hentai Censored, Hentai Uncensored, Korean AV, Chinese AV</li>
+              <li>Meta refreshed daily</li>
+              <li>One yearly payment</li>
+            </ul>
+            <a className="buy" href={BMAC_ANNUAL_URL} target="_blank" rel="noreferrer">
+              Buy Me a Coffee
+            </a>
+          </div>
+          <div
             className={tier === "lifetime" ? "tier best active" : "tier best dimmed"}
             role="button"
             tabIndex={0}
@@ -124,16 +150,16 @@ export default function Page() {
               if (e.key === "Enter" || e.key === " ") setTier("lifetime");
             }}
           >
-            <span className="badge">Best value</span>
+            <span className="badge">Launch special</span>
             <h3>Lifetime</h3>
             <p className="price">
-              <s>$99</s> $10 <span className="once">once</span>
+              $10 <span className="once">once</span>
             </p>
             <ul>
-              <li>Everything, forever</li>
+              <li>30-day access — launch special (was: lifetime)</li>
               <li>All 9 categories: JAV Censored, JAV Uncensored, Western, Others, Hong Kong AV, Hentai Censored, Hentai Uncensored, Korean AV, Chinese AV</li>
               <li>Meta refreshed daily</li>
-              <li>One payment — no renewal</li>
+              <li>Limited-time offer</li>
             </ul>
             <a className="buy" href={BMAC_LIFETIME_URL} target="_blank" rel="noreferrer">
               Buy Me a Coffee
@@ -175,7 +201,7 @@ export default function Page() {
             type="password"
             value={paidKey}
             onChange={(e) => setPaidKey(e.target.value)}
-            placeholder="Paste your subscription / lifetime key"
+            placeholder="Paste your monthly / annual / lifetime key"
           />
         </label>
       </section>
