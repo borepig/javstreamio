@@ -80,6 +80,10 @@ export function mapTitleRow(row) {
   return item;
 }
 
+// Rows with metadata (non-empty genres or description) rank 0 (front);
+// bare rows rank 1 (back). Within a rank, newest first.
+const META_RANK = `CASE WHEN (genres_json IS NULL OR genres_json IN ('', '[]')) AND (description IS NULL OR description = '') THEN 1 ELSE 0 END`;
+
 export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "" } = {}) {
   const category = String(catalogId || "").replace(/\.json$/, "");
   const tokens = searchTokens(search);
@@ -89,7 +93,7 @@ export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "" }
     sql += " AND search_text LIKE ?";
     params.push(`%${token}%`);
   }
-  sql += " ORDER BY posted_at DESC, id DESC LIMIT ? OFFSET ?";
+  sql += ` ORDER BY ${META_RANK}, posted_at DESC, id DESC LIMIT ? OFFSET ?`;
   params.push(Number(page) || 80, Number(skip) || 0);
   return db.prepare(sql).all(...params).map(mapTitleRow);
 }
@@ -117,19 +121,19 @@ export const PAID_ONLY_CATEGORIES = [
 
 // Is this title inside the free (newest FREE_CATALOG_SIZE per category) set?
 // Rank = number of same-category titles strictly ahead of it in the
-// `posted_at DESC, id DESC` ordering used by queryCatalog.
+// meta-first ordering used by queryCatalog (META_RANK, posted_at DESC, id DESC).
 export function isInFreeSet(db, id) {
   const want = decodeURIComponent(String(id || "").replace(/\.json$/, ""));
-  const row = db.prepare("SELECT category, posted_at FROM titles WHERE id = ?").get(want);
+  const row = db.prepare(`SELECT category, posted_at, id, ${META_RANK} AS rank FROM titles WHERE id = ?`).get(want);
   if (!row) return false;
   if (PAID_ONLY_CATEGORIES.includes(row.category)) return false;
   const { n } = db
     .prepare(
       `SELECT COUNT(*) AS n FROM titles t
        WHERE t.category = ?
-         AND (t.posted_at > ?
-              OR (t.posted_at = ? AND t.id > ?))`,
+         AND (${META_RANK} < ?
+              OR (${META_RANK} = ? AND (t.posted_at > ? OR (t.posted_at = ? AND t.id > ?))))`,
     )
-    .get(row.category, row.posted_at, row.posted_at, want);
+    .get(row.category, row.rank, row.rank, row.posted_at, row.posted_at, want);
   return n < FREE_CATALOG_SIZE;
 }

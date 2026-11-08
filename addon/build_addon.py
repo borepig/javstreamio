@@ -33,7 +33,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.7"
+VERSION = "0.5.8"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -1232,12 +1232,22 @@ def build_sqlite_titles(use_javdb: bool = False) -> list[dict]:
     return titles
 
 
+def _meta_rank(item: dict) -> int:
+    # Rows with metadata (non-empty genres or description) rank 0 (front);
+    # bare rows rank 1 (back). Mirrors META_RANK in debrid-app/lib/titles-db.js.
+    genres = item.get("genres") or []
+    description = (item.get("description") or "").strip()
+    return 0 if (genres or description) else 1
+
+
 def newest_by_category(records: list[dict], limit: int = CATALOG_LIMIT) -> dict[str, list[dict]]:
     grouped: dict[str, list[dict]] = {key: [] for key, _ in CATALOGS}
     for rec in records:
         grouped.setdefault(classify_record(rec), []).append(rec)
     for key, rows in grouped.items():
+        # Within each rank, newest first; meta-rich rows come before bare rows.
         rows.sort(key=lambda item: item.get("posted_at") or "", reverse=True)
+        rows.sort(key=_meta_rank)  # stable: keeps the newest-first order inside each rank
         grouped[key] = rows[:limit]
     return {key: grouped.get(key, []) for key, _ in CATALOGS}
 
