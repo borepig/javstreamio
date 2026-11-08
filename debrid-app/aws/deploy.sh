@@ -5,6 +5,10 @@ set -euo pipefail
 DOMAIN="${DOMAIN:-}"
 
 cd /opt/javstreamio
+# The root user-data bootstrap (and any root `sudo git` runs) can leave
+# root-owned .git/objects, which makes the ubuntu user's `git pull` fail with
+# "insufficient permission for adding an object". Re-chown .git to ubuntu.
+sudo chown -R ubuntu:ubuntu .git 2>/dev/null || true
 git pull --ff-only origin main
 cd debrid-app
 
