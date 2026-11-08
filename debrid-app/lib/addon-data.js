@@ -4,7 +4,18 @@
 
 import bundledTitlesJson from "../data/titles.json" with { type: "json" };
 import { ADDON_ID, ADDON_NAME, ADDON_VERSION } from "./version.js";
-import { openTitlesDb, queryCatalog, queryTitle, resolveSqlitePath, searchText, searchTokens } from "./titles-db.js";
+import {
+  mapTitleRow,
+  openTitlesDb,
+  queryCatalog,
+  queryTitle,
+  resolveSqlitePath,
+  searchText,
+  searchTokens,
+  querySeriesList,
+  querySeriesMeta,
+  queryEpisodeByRef,
+} from "./titles-db.js";
 
 const RAW = "https://raw.githubusercontent.com/borepig/javstreamio/main/addon";
 const cache = new Map(); // url -> { body, ts }
@@ -196,7 +207,12 @@ export function withPublicPosters(body, kind, origin = "") {
     return { ...body, metas: body.metas.map((item) => applyPublicArt(item, "catalog", origin)) };
   }
   if (kind === "meta" && body.meta) {
-    return { ...body, meta: applyPublicArt(body.meta, "meta", origin) };
+    const meta = applyPublicArt(body.meta, "meta", origin);
+    if (Array.isArray(meta.episodes)) {
+      // Series meta: rewrite each episode's poster the same way.
+      meta.episodes = meta.episodes.map((ep) => applyPublicArt(ep, "meta", origin));
+    }
+    return { ...body, meta };
   }
   return body;
 }
@@ -212,8 +228,9 @@ export const BUNDLED_CATALOGS = [
   { type: "movie", id: "western", name: "Western", extra: CATALOG_EXTRA },
   { type: "movie", id: "others", name: "Others", extra: CATALOG_EXTRA },
   { type: "movie", id: "hongkong", name: "Hong Kong AV", extra: CATALOG_EXTRA },
-  { type: "movie", id: "hentai-censored", name: "Hentai Censored", extra: CATALOG_EXTRA },
-  { type: "movie", id: "hentai-uncensored", name: "Hentai Uncensored", extra: CATALOG_EXTRA },
+  // Hentai is TV-show style: one series per episode collection.
+  { type: "series", id: "hentai-censored", name: "Hentai Censored", extra: CATALOG_EXTRA },
+  { type: "series", id: "hentai-uncensored", name: "Hentai Uncensored", extra: CATALOG_EXTRA },
   { type: "movie", id: "korean", name: "Korean AV", extra: CATALOG_EXTRA },
   { type: "movie", id: "chinese", name: "Chinese AV", extra: CATALOG_EXTRA },
 ];
@@ -388,6 +405,20 @@ export function bundledTitle(id) {
 export function bundledCatalog(catalogId, skip = 0, page = CATALOG_PAGE, search = "") {
   const key = resolveCatalogId(catalogId);
   const db = getTitlesDb();
+  // hnt categories are series: one catalog entry per episode collection.
+  if (db && key.startsWith("hentai")) {
+    const series = querySeriesList(db, { category: key, limit: page, search }).slice(skip, skip + page);
+    return {
+      metas: series.map((s) => ({
+        id: `hnt:${s.seriesKey}`,
+        type: "series",
+        name: s.name,
+        description: s.description || "",
+        ...(s.poster ? { poster: s.poster } : {}),
+        ...(s.epCount ? { episodes: s.epCount } : {}),
+      })),
+    };
+  }
   const list = db
     ? queryCatalog(db, { catalogId: key, skip, page, search })
     : (loadBundledTitles()[key] || []).filter((item) => titleMatchesSearch(item, search)).slice(skip, skip + page);
@@ -408,7 +439,52 @@ export function bundledCatalog(catalogId, skip = 0, page = CATALOG_PAGE, search 
   };
 }
 
+// hnt refs: "hnt:<key>:<n>" = episode, "hnt:<key>" = series (a slug,
+// distinct from the row id "hnt:nyaa-<id>").
+function parseHntEpisodeRef(id) {
+  const m = String(id || "").replace(/\.json$/, "").match(/^hnt:([^:]+):(\d+)$/);
+  return m ? { key: m[1], episode: Number(m[2]) } : null;
+}
+
 export function bundledMeta(id) {
+  const db = getTitlesDb();
+  const epRef = parseHntEpisodeRef(id);
+  if (db && epRef) {
+    const row = queryEpisodeByRef(db, String(id).replace(/\.json$/, ""));
+    if (!row) return null;
+    const meta = {
+      id: `hnt:${epRef.key}:${epRef.episode}`,
+      type: "episode",
+      name: `Episode ${epRef.episode}`,
+      description: row.description || "",
+      poster: row.poster || "",
+      runtime: row.runtime || "",
+    };
+    if (row.stream_url) {
+      meta.behaviorHints = { bingeGroup: `javstreamio-online-${row.name || "x"}` };
+    }
+    return { meta: withStremioCredits(meta) };
+  }
+  const rawId = String(id || "").replace(/\.json$/, "");
+  const seriesKey = rawId.startsWith("hnt:") && !/^hnt:nyaa-\d+$/.test(rawId)
+    ? rawId.slice("hnt:".length)
+    : "";
+  if (db && seriesKey) {
+    const series = querySeriesMeta(db, seriesKey);
+    if (series) {
+      const meta = {
+        id: series.id,
+        type: "series",
+        name: series.name,
+        description: series.description || "",
+        poster: series.poster || "",
+        episodes: (series.episodes || []).map((e) => ({ ...e })),
+      };
+      // Series-level behavior hints: bingeGroup per infoHash keeps episodes
+      // grouped in the Stremio player's "up next" (AGENTS.md convention).
+      return { meta: withStremioCredits(meta) };
+    }
+  }
   const item = bundledTitle(id);
   if (!item) return null;
   const meta = {
@@ -433,7 +509,14 @@ export function bundledMeta(id) {
 }
 
 export function bundledStream(id) {
-  const item = bundledTitle(id);
+  const epRef = parseHntEpisodeRef(id);
+  const db = getTitlesDb();
+  let item = null;
+  if (db && epRef) {
+    const row = queryEpisodeByRef(db, String(id).replace(/\.json$/, ""));
+    if (row) item = mapTitleRow(row);
+  }
+  if (!item) item = bundledTitle(id);
   if (!item) return null;
   const streams = [];
   if (item.infoHash) {

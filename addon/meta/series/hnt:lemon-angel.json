@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "id": "hnt:lemon-angel",
+    "type": "series",
+    "name": "[Doomdos] - Lemon Angel - S01E01 [Uncensored] [720p OV WEB-DL]",
+    "description": "[Doomdos] - Lemon Angel - S01E01 [Uncensored] [720p OV WEB-DL]\n\nSource: Nyaa/Sukebei (125.9 MiB) (hentai-uncensored)",
+    "poster": "https://image.oceanveil.net/public/anime_titles/000/000000/000000557/000000557_vertical_with_logo.jpg.webp",
+    "behaviorHints": {
+      "defaultVideoId": "hnt:lemon-angel:1",
+      "hasScheduledVideos": false
+    },
+    "episodes": [
+      {
+        "id": "hnt:lemon-angel:1",
+        "type": "episode",
+        "name": "Episode 1",
+        "description": "[Doomdos] - Lemon Angel - S01E01 [Uncensored] [720p OV WEB-DL]\n\nSource: Nyaa/Sukebei (125.9 MiB) (hentai-uncensored)",
+        "poster": "https://image.oceanveil.net/public/anime_titles/000/000000/000000557/000000557_vertical_with_logo.jpg.webp",
+        "runtime": "",
+        "released": "2026-11-04T01:00:00.000Z"
+      },
+      {
+        "id": "hnt:lemon-angel:2",
+        "type": "episode",
+        "name": "Episode 2",
+        "description": "[Doomdos] - Lemon Angel - S01E02 [Uncensored] [720p OV WEB-DL]\n\nSource: Nyaa/Sukebei (109.5 MiB) (hentai-uncensored)",
+        "poster": "https://image.oceanveil.net/public/anime_titles/000/000000/000000557/000000557_vertical_with_logo.jpg.webp",
+        "runtime": "",
+        "released": "2026-11-04T01:00:00.000Z"
+      }
+    ]
+  }
+}

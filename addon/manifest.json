@@ -1,20 +1,22 @@
 {
   "id": "community.javstremio",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "name": "Stremio JAV Database Addon",
-  "description": "Stremio JAV Database Addon 0.5.8. This is only a metadata scraper.",
+  "description": "Stremio JAV Database Addon 0.5.9. This is only a metadata scraper.",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
   "resources": [
     {
       "name": "catalog",
       "types": [
-        "movie"
+        "movie",
+        "series"
       ]
     },
     {
       "name": "meta",
       "types": [
-        "movie"
+        "movie",
+        "series"
       ],
       "idPrefixes": [
         "jav:",
@@ -27,7 +29,8 @@
     {
       "name": "stream",
       "types": [
-        "movie"
+        "movie",
+        "series"
       ],
       "idPrefixes": [
         "jav:",
@@ -39,7 +42,8 @@
     }
   ],
   "types": [
-    "movie"
+    "movie",
+    "series"
   ],
   "idPrefixes": [
     "jav:",
@@ -125,7 +129,7 @@
       ]
     },
     {
-      "type": "movie",
+      "type": "series",
       "id": "hentai-censored",
       "name": "Hentai Censored",
       "extra": [
@@ -140,7 +144,7 @@
       ]
     },
     {
-      "type": "movie",
+      "type": "series",
       "id": "hentai-uncensored",
       "name": "Hentai Uncensored",
       "extra": [

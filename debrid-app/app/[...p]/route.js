@@ -17,7 +17,16 @@ import { buildAddonStreams, includeDebridRow, STREAM_CACHE_HINTS } from "../../l
 import { proxyM3u8, proxySegment, rewritePlaylist } from "../../lib/lulustream.js";
 import { ADDON_ID, ADDON_NAME, ADDON_VERSION } from "../../lib/version.js";
 import { isValidPaidKeyAsync, registerDevice } from "../../lib/paid-keys.js";
-import { FREE_CATALOG_SIZE, PAID_ONLY_CATEGORIES, isInFreeSet, openTitlesDb, resolveSqlitePath } from "../../lib/titles-db.js";
+import {
+  FREE_CATALOG_SIZE,
+  PAID_ONLY_CATEGORIES,
+  isInFreeSet,
+  mapTitleRow,
+  openTitlesDb,
+  queryEpisodeByRef,
+  querySeriesMeta,
+  resolveSqlitePath,
+} from "../../lib/titles-db.js";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -138,7 +147,18 @@ export async function GET(req, { params }) {
       const type = p[1] || "movie";
       const id = decodeURIComponent((p[2] || "").replace(/\.(jpe?g|png|webp)$/i, ""));
       if (!id) return NextResponse.json({ error: "Not found" }, { status: 404 });
-      const item = bundledTitle(id);
+      // hnt refs are series/episode ids, not row ids — resolve them through
+      // the titles DB before falling back to the bundled/static lookup.
+      let item = null;
+      const db = getRouteDb();
+      if (db && /^hnt:[^:]+:\d+$/.test(id)) {
+        const row = queryEpisodeByRef(db, id);
+        if (row) item = mapTitleRow(row);
+      } else if (db && /^hnt:[^:]+$/.test(id)) {
+        const series = querySeriesMeta(db, id);
+        if (series && series.poster) item = { id, poster: series.poster };
+      }
+      if (!item) item = bundledTitle(id);
       let src = (item && (item.forumPoster || item.poster)) || "";
       if (!src) {
         try {
@@ -219,10 +239,18 @@ export async function GET(req, { params }) {
       const directStream = streams.find((s) => s && s.url) || {};
       let directUrl = directStream.url || "";
       const titleCode = String(p[2] || "").replace(/\.json$/i, "");
+      // An hnt episode ref (hnt:<series_key>:<n>) must be resolved to the
+      // underlying row id (hnt:nyaa-<id>) so the lulu/debrid lookups find the row.
+      let rowCode = titleCode;
+      if (/^hnt:[^:]+:\d+$/.test(titleCode)) {
+        const db = getRouteDb();
+        const row = db ? queryEpisodeByRef(db, titleCode) : null;
+        if (row) rowCode = row.id;
+      }
       // Fallback for hnt rows that lack a Hentaistream mp4: play via the
       // Lulustream m3u8 proxied through this app (session-bound, resolved live).
       if (!directUrl) {
-        const item = bundledTitle(titleCode);
+        const item = bundledTitle(rowCode);
         if (item && item.luluToken) {
           directUrl = `${publicOrigin(req, url)}/lulu/${item.luluToken}/master.m3u8`;
         }
@@ -235,7 +263,7 @@ export async function GET(req, { params }) {
       let resolvedUrl = "";
       if (service && token && infoHash) {
         const look = await withTimeout(
-          lookupDebridCache(service, token, infoHash, { titleCode }),
+          lookupDebridCache(service, token, infoHash, { titleCode: rowCode }),
           5000,
           { cached: false },
         );
@@ -255,7 +283,7 @@ export async function GET(req, { params }) {
             token,
             infoHash,
             torrentId,
-            titleCode,
+            titleCode: rowCode,
             sourceName: name,
             sourceDescription: title,
             cached,

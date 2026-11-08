@@ -25,6 +25,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from javdb import apply_fields, cache_fits, credit_names, enrich_meta, javdb_meta, reset_block_streak
+from enrich_hentai import parse_sukebei_name, slugify
 from scrape import Site, forum_identity, looks_blocked, movie_record, parse_forum
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.8"
+VERSION = "0.5.9"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -85,6 +86,9 @@ CATALOGS = (
     ("korean", "Korean AV"),
     ("chinese", "Chinese AV"),
 )
+# Hnt (Sukebei/Nyaa) catalogs are served as Stremio series (TV-show model),
+# every other catalog stays a movie.
+HNT_CATALOG_IDS = {"hentai-censored", "hentai-uncensored"}
 
 
 def load_records() -> list[dict]:
@@ -1450,7 +1454,12 @@ def main(use_javdb: bool = True) -> None:
     TITLES_JSON.parent.mkdir(parents=True, exist_ok=True)
 
     manifest_catalogs = [
-        {"type": "movie", "id": catalog_id, "name": name, "extra": catalog_extra()}
+        {
+            "type": "series" if catalog_id in HNT_CATALOG_IDS else "movie",
+            "id": catalog_id,
+            "name": name,
+            "extra": catalog_extra(),
+        }
         for catalog_id, name in CATALOGS
     ]
     manifest = {
@@ -1460,11 +1469,11 @@ def main(use_javdb: bool = True) -> None:
         "description": f"Stremio JAV Database Addon {VERSION}. This is only a metadata scraper.",
         "logo": "https://www.stremio.com/website/stremio-logo-small.png",
         "resources": [
-            {"name": "catalog", "types": ["movie"]},
-            {"name": "meta", "types": ["movie"], "idPrefixes": ["jav:", "hk:", "kr:", "cn:", "hnt:"]},
-            {"name": "stream", "types": ["movie"], "idPrefixes": ["jav:", "hk:", "kr:", "cn:", "hnt:"]},
+            {"name": "catalog", "types": ["movie", "series"]},
+            {"name": "meta", "types": ["movie", "series"], "idPrefixes": ["jav:", "hk:", "kr:", "cn:", "hnt:"]},
+            {"name": "stream", "types": ["movie", "series"], "idPrefixes": ["jav:", "hk:", "kr:", "cn:", "hnt:"]},
         ],
-        "types": ["movie"],
+        "types": ["movie", "series"],
         "idPrefixes": ["jav:", "hk:", "kr:", "cn:", "hnt:"],
         "catalogs": manifest_catalogs,
         "behaviorHints": {"adult": True, "p2p": True},
@@ -1477,6 +1486,10 @@ def main(use_javdb: bool = True) -> None:
     titles_out: dict[str, list[dict]] = {key: [] for key, _ in CATALOGS}
     written = 0
     for catalog_id, _name in CATALOGS:
+        # hnt catalogs are series — their static files are written by the
+        # series pass below, not the movie pass.
+        if catalog_id in HNT_CATALOG_IDS:
+            continue
         previews = []
         for rec in grouped.get(catalog_id, []):
             title = build_title(rec, use_javdb=use_javdb)
@@ -1495,6 +1508,131 @@ def main(use_javdb: bool = True) -> None:
     if censored.exists():
         (ADDON_DIR / "catalog" / "movie" / f"{CATALOG_ID}.json").write_text(
             censored.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+
+    # --- hnt series (TV-show model) ---------------------------------------
+    # hnt rows (Sukebei/Nyaa) are grouped into series collections:
+    #   catalog/series/<catalog>.json  -> series metas
+    #   meta/series/hnt:<key>.json    -> series meta with episodes
+    #   stream/series/hnt:<key>:<n>.json -> per-episode streams
+    for sub in ("catalog/series", "meta/series", "stream/series"):
+        (ADDON_DIR / sub).mkdir(parents=True, exist_ok=True)
+    series_map: dict[str, dict] = {}
+    conn = sqlite3.connect(TITLES_SQLITE)
+    try:
+        for category in sorted(HNT_CATALOG_IDS):
+            rows = conn.execute(
+                """
+                SELECT id, name, info_hash, magnet, poster, description, released, runtime, posted_at
+                FROM titles WHERE category = ?
+                """,
+                (category,),
+            ).fetchall()
+            for row in rows:
+                rid, name, info_hash_val, magnet, poster, description, released, runtime, posted_at = row
+                nyaa_m = re.match(r"hnt:nyaa-(\d+)", rid or "")
+                series_name, episode = parse_sukebei_name(name or "")
+                series_name = str(series_name or "").strip()
+                if series_name and not re.fullmatch(r"\d+", series_name):
+                    key = slugify(series_name)
+                    ep = episode if episode is not None else 1
+                else:
+                    key = f"solo-{nyaa_m.group(1) if nyaa_m else rid}"
+                    ep = 1
+                entry = series_map.setdefault(
+                    key, {"category": category, "episodes": []}
+                )
+                entry["episodes"].append(
+                    {
+                        "id": f"hnt:{key}:{ep}",
+                        "type": "episode",
+                        "name": f"Episode {ep}",
+                        "row_name": name or "",
+                        "poster": poster or "",
+                        "description": description or "",
+                        "runtime": runtime or "",
+                        "infoHash": info_hash_val or "",
+                        "magnet": magnet or "",
+                        "released": released or "",
+                        "posted_at": posted_at or "",
+                        "episode_num": ep,
+                    }
+                )
+    finally:
+        conn.close()
+
+    catalog_metas: dict[str, list[dict]] = {}
+    for key, entry in series_map.items():
+        episodes = sorted(entry["episodes"], key=lambda e: e["episode_num"])
+        # Series name: longest non-empty row name (mirrors querySeriesMeta).
+        name = max(
+            (e["row_name"] for e in episodes if e["row_name"]), key=len, default=f"hnt:{key}"
+        )
+        description = max((e["description"] for e in episodes), key=len, default="")
+        poster = next((e["poster"] for e in episodes if e["poster"]), "")
+        posted_at = max((e["posted_at"] for e in episodes if e["posted_at"]), default="")
+        catalog_meta = {
+            "id": f"hnt:{key}",
+            "type": "series",
+            "name": name,
+            "description": description,
+            "poster": poster,
+            "episodes": len(episodes),
+            "_category": entry["category"],
+            "_posted_at": posted_at,
+        }
+        series_catalog = (
+            "hentai-censored" if entry["category"] == "hentai-censored" else "hentai-uncensored"
+        )
+        catalog_metas.setdefault(series_catalog, []).append(catalog_meta)
+        series_meta = {
+            "id": f"hnt:{key}",
+            "type": "series",
+            "name": name,
+            "description": description,
+            "poster": poster,
+            "behaviorHints": {"defaultVideoId": f"hnt:{key}:1", "hasScheduledVideos": False},
+            "episodes": [
+                {
+                    "id": e["id"],
+                    "type": "episode",
+                    "name": e["name"],
+                    "description": e["description"],
+                    "poster": e["poster"],
+                    "runtime": e["runtime"],
+                    **({"released": e["released"]} if e["released"] else {}),
+                }
+                for e in episodes
+            ],
+        }
+        (ADDON_DIR / "meta" / "series" / f"hnt:{key}.json").write_text(
+            json.dumps(as_meta_resource(series_meta), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        for e in episodes:
+            streams = []
+            if e["infoHash"]:
+                streams.append(
+                    {
+                        "name": e["runtime"] or "",
+                        "infoHash": e["infoHash"],
+                        "magnet": e["magnet"] or "",
+                        "description": name,
+                    }
+                )
+            (ADDON_DIR / "stream" / "series" / f"hnt:{key}:{e['episode_num']}.json").write_text(
+                json.dumps({"streams": streams}, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+    for catalog_id, metas in catalog_metas.items():
+        metas.sort(key=lambda m: (m.get("_posted_at") or "", m["id"]), reverse=True)
+        metas = [
+            {k: v for k, v in m.items() if not k.startswith("_")}
+            for m in metas
+        ]
+        (ADDON_DIR / "catalog" / "series" / f"{catalog_id}.json").write_text(
+            json.dumps({"metas": metas}, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
         )
     TITLES_JSON.write_text(
         json.dumps(titles_out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

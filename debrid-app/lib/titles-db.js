@@ -50,11 +50,18 @@ function parseJsonArray(raw) {
   }
 }
 
+// hnt rows are Sukebei/Nyaa hentai collections: served as Stremio *series*
+// (TV-show style, one series per collection with an episode list), while
+// every other category stays "movie".
+export function titleType(category) {
+  return String(category || "").startsWith("hentai") ? "series" : "movie";
+}
+
 export function mapTitleRow(row) {
   if (!row) return null;
   const item = {
     id: row.id,
-    type: "movie",
+    type: titleType(row.category),
     name: row.name,
     description: row.description || "",
     releaseInfo: row.release_info || "",
@@ -136,4 +143,87 @@ export function isInFreeSet(db, id) {
     )
     .get(row.category, row.rank, row.rank, row.posted_at, row.posted_at, want);
   return n < FREE_CATALOG_SIZE;
+}
+
+// --- hnt series queries ----------------------------------------------------
+// series_key / episode_num are filled by addon/group_hentai_series.py.
+// Series id: "hnt:<series_key>"; episode id: "hnt:<series_key>:<episode_num>".
+
+export function querySeriesList(db, { category, limit = 80, search = "" } = {}) {
+  const cat = String(category || "").replace(/\.json$/, "");
+  const rows = db
+    .prepare(
+      `SELECT t.series_key AS series_key,
+               COUNT(*) AS ep_count,
+               (SELECT t2.name FROM titles t2
+                 WHERE t2.series_key = t.series_key AND t2.name != ''
+                 ORDER BY LENGTH(t2.name) DESC LIMIT 1) AS name,
+               (SELECT t3.poster FROM titles t3
+                 WHERE t3.series_key = t.series_key AND t3.poster != ''
+                 ORDER BY t3.episode_num ASC LIMIT 1) AS poster,
+               (SELECT t4.description FROM titles t4
+                 WHERE t4.series_key = t.series_key AND t4.description != ''
+                 ORDER BY t4.episode_num ASC LIMIT 1) AS description,
+               MAX(t.posted_at) AS posted_at
+        FROM titles t
+        WHERE t.category = ? AND t.series_key != ''
+        GROUP BY t.series_key
+        ORDER BY posted_at DESC, t.series_key ASC
+        LIMIT ?`,
+    )
+    .all(cat, limit);
+  const out = rows.filter((r) => {
+    if (!search) return true;
+    const hay = searchText({ id: `hnt:${r.series_key}`, name: r.name }).toLowerCase();
+    const tokens = searchTokens(search);
+    return tokens.length ? tokens.every((t) => hay.includes(t)) : true;
+  });
+  return out.map((r) => ({
+    seriesKey: r.series_key,
+    name: r.name || `hnt:${r.series_key}`,
+    poster: r.poster || "",
+    description: r.description || "",
+    epCount: Number(r.ep_count) || 0,
+  }));
+}
+
+export function querySeriesMeta(db, seriesKey) {
+  const key = String(seriesKey || "").replace(/\.json$/, "");
+  if (!key) return null;
+  const rows = db
+    .prepare(
+      `SELECT id, name, description, poster, runtime, info_hash, stream_url, episode_num
+       FROM titles WHERE series_key = ? AND category LIKE 'hentai%'
+       ORDER BY episode_num ASC`
+    )
+    .all(key);
+  if (!rows.length) return null;
+  // Series name: the longest non-empty name among its rows (the informative one).
+  const name = rows.map((r) => r.name || "").sort((a, b) => b.length - a.length)[0] || `hnt:${key}`;
+  const description = rows.map((r) => r.description || "").sort((a, b) => b.length - a.length)[0];
+  const poster = rows.find((r) => r.poster)?.poster || "";
+  const episodes = rows.map((r) => ({
+    id: `hnt:${key}:${r.episode_num}`,
+    type: "episode",
+    name: `Episode ${r.episode_num}`,
+    poster: r.poster || "",
+    description: r.description || "",
+    runtime: r.runtime || "",
+  }));
+  return {
+    id: `hnt:${key}`,
+    type: "series",
+    name,
+    description: description || "",
+    poster,
+    episodes,
+  };
+}
+
+export function queryEpisodeByRef(db, refId) {
+  const m = String(refId || "").replace(/\.json$/, "").match(/^hnt:([^:]+):(\d+)$/);
+  if (!m) return null;
+  return db
+    .prepare("SELECT * FROM titles WHERE series_key = ? AND episode_num = ?")
+    .get(m[1], Number(m[2]));
 }
