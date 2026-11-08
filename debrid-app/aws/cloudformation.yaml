@@ -7,8 +7,8 @@ Parameters:
     Description: "Optional custom domain for Let's Encrypt TLS; if empty, serve on the Elastic IP."
   InstanceType:
     Type: String
-    Default: t2.micro
-    AllowedValues: [t2.micro, t3.micro, t3.small]
+    Default: t3.micro
+    AllowedValues: [t3.micro, t3.small, t8i.micro]
   SubnetId:
     Type: AWS::EC2::Subnet::Id
     Description: "A default-VPC subnet (pick one that your account already has)."
@@ -21,7 +21,7 @@ Parameters:
     Description: "Optional EC2 key pair name for SSH."
   AmzId:
     Type: AWS::EC2::Image::Id
-    Default: "ami-0c03d16f24160d2a6"
+    Default: "ami-015ad16faba80e364"
     Description: "Ubuntu 24.04 LTS AMI (us-east-1). VERIFY it is current for your account before creating."
 Resources:
   WebSG:
@@ -31,6 +31,10 @@ Resources:
       GroupName: javstremio-sg
       VpcId: !Ref VpcId
       SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
@@ -48,13 +52,14 @@ Resources:
       InstanceType: !Ref InstanceType
       ImageId: !Ref AmzId
       SubnetId: !Ref SubnetId
-      KeyName: !Ref KeyName
+      KeyName: !If [KeyProvided, !Ref KeyName, !Ref AWS::NoValue]
       SecurityGroupIds: [!Ref WebSG]
       Tags:
         - Key: Name
           Value: javstremio-debrid
       UserData:
-        Fn::Base64: !Sub
+        Fn::Base64:
+          Fn::Sub:
           - |
             #!/usr/bin/env bash
             set -euo pipefail
@@ -72,13 +77,20 @@ Resources:
             pm2 start /opt/javstreamio/debrid-app/aws/pm2.ecosystem.json
             pm2 save
             cat > /etc/nginx/sites-available/javstremio.conf <<'NGINX'
-            server { listen 80; listen [::]:80; server_name ${Domain}; location / { proxy_pass http://127.0.0.1:3000; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Forwarded-For $remote_addr; proxy_set_header X-Forwarded-Proto $scheme; client_max_body_size 20m; } }
+            server { listen 80; listen [::]:80; server_name ${ServerName}; location / { proxy_pass http://127.0.0.1:3000; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Forwarded-For $remote_addr; proxy_set_header X-Forwarded-Proto $scheme; client_max_body_size 20m; } }
             NGINX
             ln -sf /etc/nginx/sites-available/javstremio.conf /etc/nginx/sites-enabled/javstremio.conf
+            # The distro default site owns port 80 as default_server and would
+            # shadow the catch-all; drop it.
+            rm -f /etc/nginx/sites-enabled/default
             systemctl enable nginx
             systemctl restart nginx
             if [ -n "${Domain}" ]; then apt-get install -y certbot python3-certbot-nginx; certbot --nginx -d "${Domain}" --non-interactive --agree-tos -m admin@javstremio --redirect; fi
-          - Domain: !Ref Domain
+          - ServerName: !If
+              - DomainProvided
+              - !Ref Domain
+              - "_"
+            Domain: !Ref Domain
   ElasticIP:
     Type: AWS::EC2::EIP
     Properties:
@@ -87,6 +99,8 @@ Resources:
 Conditions:
   DomainProvided:
     !Not [!Equals [!Ref Domain, ""]]
+  KeyProvided:
+    !Not [!Equals [!Ref KeyName, ""]]
 Outputs:
   PublicIp:
     Description: EC2 Elastic IP (stable address for Stremio)
