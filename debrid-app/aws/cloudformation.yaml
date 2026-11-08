@@ -85,7 +85,7 @@ Resources:
             rm -f /etc/nginx/sites-enabled/default
             systemctl enable nginx
             systemctl restart nginx
-            if [ -n "${Domain}" ]; then apt-get install -y certbot python3-certbot-nginx; certbot --nginx -d "${Domain}" --non-interactive --agree-tos -m admin@javstremio --redirect; fi
+            if [ -n "${Domain}" ]; then apt-get install -y certbot python3-certbot-nginx; certbot --nginx -d "${Domain}" --non-interactive --agree-tos -m youtube@jokuda.com.au --redirect; fi
           - ServerName: !If
               - DomainProvided
               - !Ref Domain
