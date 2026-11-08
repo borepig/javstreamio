@@ -7,11 +7,41 @@ DOMAIN="${DOMAIN:-}"
 cd /opt/javstreamio
 git pull --ff-only origin main
 cd debrid-app
-npm ci
-npm run build
-# The debrid-app is registered under the root pm2 daemon, not the ubuntu one.
-sudo pm2 restart javstreamio-debrid
-sudo pm2 save
-systemctl reload nginx
 
-echo "redeployed: http://${DOMAIN:-<public-ip>}/manifest.json (version 0.5.8)"
+# The t3.micro (1GB RAM) OOMs during `npm ci`. Ensure a 2G swapfile exists so
+# installs and builds have headroom (persisted in /etc/fstab).
+if ! swapon --show | grep -q /swapfile; then
+  sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+  sudo chmod 600 /swapfile
+  sudo mkswap /swapfile
+  sudo swapon /swapfile
+  grep -q swapfile /etc/fstab || echo "/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab
+fi
+
+# Stop the running app first: it holds node_modules/.bin open, so wiping +
+# reinstalling while it runs trips EACCES. `pm2 stop` kills the `next start`
+# parent, but the `next-server` child can linger and keep .bin open, so settle
+# briefly and kill any surviving child before the wipe. Restart it after build.
+sudo pm2 stop javstremio-debrid
+sleep 2
+sudo pkill -f "next-server" 2>/dev/null || true
+
+# node_modules is root-owned (created by the root user-data bootstrap), so the
+# install + build run as root. Wipe first so an interrupted/OOM-killed install
+# (mixed ownership) can't trip `npm ci`. (Plain `sudo npm` is what worked; the
+# app is already stopped above, so the .bin lock is released.)
+sudo rm -rf node_modules
+sudo npm ci
+sudo npm run build
+
+# The debrid-app is registered under the root pm2 daemon, not the ubuntu one.
+# It was stopped before the install; start it fresh after the build.
+sudo pm2 start javstreamio-debrid
+sudo pm2 save
+sudo systemctl reload nginx
+
+if [ -n "$DOMAIN" ]; then
+  echo "redeployed: https://${DOMAIN}/manifest.json (version 0.5.8)"
+else
+  echo "redeployed: http://<public-ip>/manifest.json (version 0.5.8)"
+fi
