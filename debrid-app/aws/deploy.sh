@@ -9,7 +9,9 @@ git pull --ff-only origin main
 cd debrid-app
 npm ci
 npm run build
-pm2 restart javstreamio-debrid
+# The debrid-app is registered under the root pm2 daemon, not the ubuntu one.
+sudo pm2 restart javstreamio-debrid
+sudo pm2 save
 systemctl reload nginx
 
 echo "redeployed: http://${DOMAIN:-<public-ip>}/manifest.json (version 0.5.8)"
