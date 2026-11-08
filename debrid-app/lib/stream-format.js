@@ -277,8 +277,8 @@ export function formatSetupStream(origin) {
   return {
     name: "Setup",
     description:
-      "Paste your debrid API key at javstremio.vercel.app and reinstall that addon URL. Play stays black without it.",
-    externalUrl: origin || "https://javstremio.vercel.app",
+      "Paste your debrid API key at javstremio.ddns.net and reinstall that addon URL. Play stays black without it.",
+    externalUrl: origin || "https://javstremio.ddns.net",
   };
 }
 

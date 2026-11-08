@@ -16,7 +16,9 @@ const LS_KEY = "jsio_debrid_key";
 const LS_PAID_KEY = "jsio_paid_key";
 const LS_DEVICE = "jsio_device_id";
 
-const ADDON_BASE = "https://javstremio.vercel.app";
+// Live home moved off Vercel (402 team fair-use block) to the user's EC2 +
+// DynDNS domain. Keep this in sync with debrid-app/aws/cloudformation.yaml.
+const ADDON_BASE = "https://javstremio.ddns.net";
 // Buy Me a Coffee payment links (borepig). After payment, a pool key is
 // issued via scripts/issue-key.mjs and emailed to the buyer.
 const BMAC_LIFETIME_URL = "https://buymeacoffee.com/borepig?preset=10";
