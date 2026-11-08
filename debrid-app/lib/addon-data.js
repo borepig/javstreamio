@@ -65,7 +65,7 @@ export function normalizeMetaBody(body) {
   return { meta: withStremioCredits(meta) };
 }
 
-const POSTER_HOSTS = ["tu.djhdhs.us", "jdbstatic.com", "hanime-cdn.com"];
+const POSTER_HOSTS = ["tu.djhdhs.us", "jdbstatic.com", "hanime-cdn.com", "raw.githubusercontent.com"];
 const POSTER_REFERER = "https://sehuatang.org/";
 const POSTER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";

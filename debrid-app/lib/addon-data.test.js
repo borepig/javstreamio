@@ -65,6 +65,7 @@ test("public art rejects Vercel and forum hosts", () => {
   assert.equal(isPublicArtUrl("https://pics.dmm.co.jp/digital/video/waaa00629/waaa00629ps.jpg"), true);
   assert.equal(isPublicArtUrl("https://fourhoi.com/abf-389/cover-n.jpg"), true);
   assert.equal(isPublicArtUrl("https://image.mgstage.com/images/prestige/abf/389/pb_e_abf-389.jpg"), true);
+  assert.equal(isPublicArtUrl("https://raw.githubusercontent.com/borepig/javstreamio/main/posters/kr/krijav-2123.jpg"), true);
 });
 
 test("bundledMeta keeps JavDB cast and plot", async () => {
@@ -295,6 +296,13 @@ test("parseCatalogExtra reads search and skip from the Stremio extra path", () =
 test("hanime-cdn posters are public art and allowed for the poster proxy", () => {
   assert.equal(isPublicArtUrl("https://hanime-cdn.com/covers/series-cover.jpg"), true);
   assert.equal(isAllowedPosterUrl("https://hanime-cdn.com/covers/series-cover.jpg"), true);
+});
+
+test("GitHub raw posters (Chinese/Korean covers) allowed for the poster proxy", () => {
+  assert.equal(
+    isAllowedPosterUrl("https://raw.githubusercontent.com/borepig/javstreamio/main/posters/kr/krijav-2123.jpg"),
+    true
+  );
 });
 
 test("bundledStream adds a direct Online row when stream_url exists", (t) => {
