@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS key_devices (
 
 if (isNew) {
   db.prepare(
-    "INSERT INTO paid_keys (key, plan, issued_at, expires_at, max_devices) VALUES ('javpro-test', 'lifetime', '2026-11-04', '2026-12-04', 3)"
+    "INSERT INTO paid_keys (key, plan, issued_at, expires_at, max_devices) VALUES ('javpro-test', 'lifetime', '2026-11-04', NULL, 3)"
   ).run();
   console.log("created keys.sqlite with schema + test key javpro-test");
 } else {

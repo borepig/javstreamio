@@ -153,13 +153,13 @@ export default function Page() {
             <span className="badge">Launch special</span>
             <h3>Lifetime</h3>
             <p className="price">
-              $10 <span className="once">once</span>
+              <s>$99</s> $10 <span className="once">once</span>
             </p>
             <ul>
-              <li>30-day access — launch special (was: lifetime)</li>
+              <li>Key never expires</li>
+              <li>30-day launch special — offer ends 2026-12-04</li>
               <li>All 9 categories: JAV Censored, JAV Uncensored, Western, Others, Hong Kong AV, Hentai Censored, Hentai Uncensored, Korean AV, Chinese AV</li>
               <li>Meta refreshed daily</li>
-              <li>Limited-time offer</li>
             </ul>
             <a className="buy" href={BMAC_LIFETIME_URL} target="_blank" rel="noreferrer">
               Buy Me a Coffee

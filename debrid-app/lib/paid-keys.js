@@ -6,7 +6,8 @@
 // Plans:
 //   - monthly ($5/mo): expires 30 days after issued_at
 //   - annual ($10/yr): expires 365 days after issued_at
-//   - lifetime ($10 once, launch special): 30-day countdown after issued_at
+//   - lifetime ($10 once, 30-day launch special): key never expires;
+//     the 30-day countdown is the limited-time offer window, not the key.
 //
 // Free tier (no valid key): catalog capped at FREE_CATALOG_SIZE per category,
 // meta gated by isInFreeSet; all debrid services work on every tier.

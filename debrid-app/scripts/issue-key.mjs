@@ -25,8 +25,9 @@ const DB = path.join(HERE, "../data/keys.sqlite");
 const today = () => new Date().toISOString().slice(0, 10);
 const plusDays = (days) => new Date(Date.now() + days * 86400 * 1000).toISOString().slice(0, 10);
 const plus30d = () => plusDays(30);
-// Expiry per plan: monthly 30d, annual 365d, lifetime 30d (launch special).
-const PLAN_DAYS = { monthly: 30, annual: 365, lifetime: 30 };
+// Expiry per plan: monthly 30d, annual 365d; lifetime keys never expire
+// (the 30-day countdown is the launch-special offer window, not the key).
+const PLAN_DAYS = { monthly: 30, annual: 365 };
 const randKey = () =>
   "javpro-" + createHash("sha256").update(String(Math.random())).digest("hex").slice(0, 8);
 
@@ -38,14 +39,14 @@ const [, , cmd, a, b] = process.argv;
 if (cmd === "add") {
   const plan = a;
   const count = parseInt(b, 10);
-  if (!PLAN_DAYS[plan] || !count || count < 1) {
+  if (!["monthly", "annual", "lifetime"].includes(plan) || !count || count < 1) {
     console.error("Usage: node scripts/issue-key.mjs add <monthly|annual|lifetime> <count>");
     process.exit(1);
   }
   const insert = db.prepare(
     "INSERT INTO paid_keys (key, plan, issued_at, expires_at, max_devices) VALUES (?, ?, ?, ?, 3)"
   );
-  const expires = plusDays(PLAN_DAYS[plan]);
+  const expires = plan === "monthly" ? plus30d() : plan === "annual" ? plusDays(365) : null;
   const tx = (keys) => {
     for (const key of keys) insert.run(key, plan, today(), expires);
   };
@@ -84,7 +85,7 @@ if (cmd === "add") {
   // Default: issue the next available pool key for the plan.
   const plan = cmd;
   const buyer = a || "";
-  if (!PLAN_DAYS[plan]) {
+  if (!["monthly", "annual", "lifetime"].includes(plan)) {
     console.error("Usage: node scripts/issue-key.mjs <monthly|annual|lifetime> [buyer-email]");
     process.exit(1);
   }
