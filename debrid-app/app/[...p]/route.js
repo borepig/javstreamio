@@ -44,6 +44,16 @@ function clientIp(req) {
   return forwarded.split(",")[0].trim() || req.headers.get("x-real-ip") || "";
 }
 
+// The Web Request's `url.origin` reflects the listener address (localhost:3000)
+// rather than the public host behind nginx, so /play and /lulu URLs end up
+// unreachable from Stremio on the user's machine. Derive the public origin from
+// the proxied headers (X-Forwarded-Proto + Host) with `url.origin` as fallback.
+function publicOrigin(req, url) {
+  const proto = req.headers.get("x-forwarded-proto") || "http";
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || url.host;
+  return `${proto}://${host}`;
+}
+
 function withTimeout(promise, ms, fallback) {
   return Promise.race([
     promise,
@@ -97,7 +107,7 @@ export async function GET(req, { params }) {
       const body = withPublicPosters(
         bundledCatalog(catalogId, skip, paid ? undefined : FREE_CATALOG_SIZE, search),
         "catalog",
-        url.origin,
+        publicOrigin(req, url),
       );
       return NextResponse.json(body, { headers: NO_STORE });
     }
@@ -121,7 +131,7 @@ export async function GET(req, { params }) {
           return NextResponse.json({ error: "Not found" }, { status: 404 });
         }
       }
-      body = withPublicPosters(normalizeMetaBody(body), "meta", url.origin);
+      body = withPublicPosters(normalizeMetaBody(body), "meta", publicOrigin(req, url));
       return NextResponse.json(body, { headers: NO_STORE });
     }
     if (seg0 === "poster") {
@@ -178,7 +188,7 @@ export async function GET(req, { params }) {
         return new NextResponse(null, {
           status: 302,
           headers: {
-            Location: `${url.origin}/caching.mp4?v=2`,
+            Location: `${publicOrigin(req, url)}/caching.mp4?v=2`,
             "Cache-Control": "no-store",
             "Access-Control-Allow-Origin": "*",
           },
@@ -214,7 +224,7 @@ export async function GET(req, { params }) {
       if (!directUrl) {
         const item = bundledTitle(titleCode);
         if (item && item.luluToken) {
-          directUrl = `${url.origin}/lulu/${item.luluToken}/master.m3u8`;
+          directUrl = `${publicOrigin(req, url)}/lulu/${item.luluToken}/master.m3u8`;
         }
       }
       // All debrid services work on every tier; a debrid row still only
@@ -240,7 +250,7 @@ export async function GET(req, { params }) {
         {
           ...STREAM_CACHE_HINTS,
           streams: buildAddonStreams({
-            origin: url.origin,
+            origin: publicOrigin(req, url),
             service,
             token,
             infoHash,
