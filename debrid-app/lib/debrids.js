@@ -910,7 +910,9 @@ export async function resolvePikpakPlay(apiKey, { fileId, infoHash } = {}) {
         if (!r.ok || !d || d.error) return null;
         if (String(d.phase || "") !== "PHASE_TYPE_COMPLETE") return null;
         const link = ((d.medias && d.medias[0] && d.medias[0].link) || {}).url || d.web_content_link || "";
-        return link && String(link).startsWith("http") ? { success: true, url: link } : null;
+        // The site serves the player over HTTPS; the PikPak CDN also speaks
+      // HTTPS, so upgrade the link scheme to avoid mixed-content blocking.
+      return link && String(link).startsWith("http") ? { success: true, url: String(link).replace(/^http:\/\//i, "https://") } : null;
       }
       // Fallback: fid may itself be a file rather than a folder.
       const r = await getJSON(`${PP_BASE}/drive/v1/files/${encodeURIComponent(fid)}`, {
@@ -921,7 +923,9 @@ export async function resolvePikpakPlay(apiKey, { fileId, infoHash } = {}) {
       if (!r.ok || !d || d.error) return null;
       if (String(d.phase || "") !== "PHASE_TYPE_COMPLETE") return null;
       const link = ((d.medias && d.medias[0] && d.medias[0].link) || {}).url || d.web_content_link || "";
-      return link && String(link).startsWith("http") ? { success: true, url: link } : null;
+      // The site serves the player over HTTPS; the PikPak CDN also speaks
+      // HTTPS, so upgrade the link scheme to avoid mixed-content blocking.
+      return link && String(link).startsWith("http") ? { success: true, url: String(link).replace(/^http:\/\//i, "https://") } : null;
     };
 
     let fid = hasFileId(fileId) ? String(fileId) : "";
