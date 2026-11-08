@@ -21,8 +21,9 @@ fi
 # Stop the running app first: it holds node_modules/.bin open, so wiping +
 # reinstalling while it runs trips EACCES. `pm2 stop` kills the `next start`
 # parent, but the `next-server` child can linger and keep .bin open, so settle
-# briefly and kill any surviving child before the wipe. Restart it after build.
-sudo pm2 stop javstremio-debrid
+# briefly and kill any surviving child before the wipe. `pm2 stop` may fail if
+# the app definition is gone (rebuilds can drop it) — tolerate that.
+sudo pm2 stop javstremio-debrid 2>/dev/null || true
 sleep 2
 sudo pkill -f "next-server" 2>/dev/null || true
 
@@ -35,8 +36,12 @@ sudo npm ci
 sudo npm run build
 
 # The debrid-app is registered under the root pm2 daemon, not the ubuntu one.
-# It was stopped before the install; start it fresh after the build.
-sudo pm2 start javstreamio-debrid
+# A rebuild can drop or break the pm2 app definition ("Script not found"), so
+# re-register from the committed ecosystem file: delete any stale entry (tolerating
+# "not found"), then start from aws/pm2.ecosystem.json so the app comes back up
+# cleanly after the build.
+sudo pm2 delete javstremio-debrid 2>/dev/null || true
+sudo pm2 start aws/pm2.ecosystem.json
 sudo pm2 save
 sudo systemctl reload nginx
 
