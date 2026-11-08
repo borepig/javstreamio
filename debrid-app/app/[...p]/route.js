@@ -14,6 +14,7 @@ import {
 } from "../../lib/addon-data.js";
 import { lookupDebridCache, resolveDebrid, resolvePlay, unlockRdLinks, rdShouldServeCachingClip } from "../../lib/debrids.js";
 import { buildAddonStreams, includeDebridRow, STREAM_CACHE_HINTS } from "../../lib/stream-format.js";
+import { proxyM3u8, proxySegment, rewritePlaylist } from "../../lib/lulustream.js";
 import { ADDON_ID, ADDON_NAME, ADDON_VERSION } from "../../lib/version.js";
 import { isValidPaidKeyAsync, registerDevice } from "../../lib/paid-keys.js";
 import { FREE_CATALOG_SIZE, PAID_ONLY_CATEGORIES, isInFreeSet, openTitlesDb, resolveSqlitePath } from "../../lib/titles-db.js";
@@ -206,8 +207,16 @@ export async function GET(req, { params }) {
       const title = first.description || "";
       // Direct online playback (e.g. Hentaistream mp4 links) needs no debrid key.
       const directStream = streams.find((s) => s && s.url) || {};
-      const directUrl = directStream.url || "";
+      let directUrl = directStream.url || "";
       const titleCode = String(p[2] || "").replace(/\.json$/i, "");
+      // Fallback for hnt rows that lack a Hentaistream mp4: play via the
+      // Lulustream m3u8 proxied through this app (session-bound, resolved live).
+      if (!directUrl) {
+        const item = bundledTitle(titleCode);
+        if (item && item.luluToken) {
+          directUrl = `${url.origin}/lulu/${item.luluToken}/master.m3u8`;
+        }
+      }
       // All debrid services work on every tier; a debrid row still only
       // shows for Torbox/Real-Debrid when the torrent is not cached.
       const debridOk = true;
@@ -247,6 +256,50 @@ export async function GET(req, { params }) {
         },
         { headers: NO_STORE },
       );
+    }
+    if (seg0 === "lulu") {
+      const luluToken = p[1] || "";
+      const sub = p[2] || "";
+      if (sub === "master.m3u8") {
+        try {
+          const body = await proxyM3u8(luluToken);
+          return new NextResponse(body, {
+            status: 200,
+            headers: {
+              "Content-Type": "application/vnd.apple.mpegurl",
+              "Cache-Control": "no-store",
+              "Access-Control-Allow-Origin": "*",
+            },
+          });
+        } catch (e) {
+          return NextResponse.json({ error: String(e.message || e) }, { status: 502 });
+        }
+      }
+      if (sub === "seg" && p[3]) {
+        const segPath = p.slice(3).join("/");
+        try {
+          const { isPlaylist, res } = await proxySegment(luluToken, segPath);
+          const baseHeaders = { "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" };
+          if (isPlaylist) {
+            const body = rewritePlaylist(await res.text(), "/lulu/" + luluToken + "/seg");
+            return new NextResponse(body, {
+              status: 200,
+              headers: { ...baseHeaders, "Content-Type": "application/vnd.apple.mpegurl" },
+            });
+          }
+          const buf = Buffer.from(await res.arrayBuffer());
+          return new NextResponse(buf, {
+            status: 200,
+            headers: {
+              ...baseHeaders,
+              "Content-Type": res.headers.get("content-type") || "video/mp4",
+              "Accept-Ranges": "bytes",
+            },
+          });
+        } catch (e) {
+          return NextResponse.json({ error: String(e.message || e) }, { status: 502 });
+        }
+      }
     }
 
     return NextResponse.json({ error: "Not found" }, { status: 404 });

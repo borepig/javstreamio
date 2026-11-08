@@ -10,7 +10,8 @@
       "autorestart": true,
       "max_restarts": 10,
       "env": {
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "LULU_COOKIE": "cf_clearance=CsoDE6LbkUdFRpSwHbsjWOrMcSMakL7y4nbyGv22DRw6hREsOcUkpomNB6PsPlASqAKAA8vZvj3odTAdXZqP0OBEqGLaPhhcsj___wj8YBtkjz1plO4h3l8NOO2eRTvLvEtuSHb1BE2aLsYsNFZiwNtT3eFM8SvoeFx13_XipKuhJ8hEih8hukEhhKsEGI4F2cuJ-PvWhSG9lAHO0inHkOM8U-m7UZgTIiwxqoyikkL8m2iqP3pVeP0xm9xrV0FbT3FaNB4IsX5j1Tj1jhKA38M5xFuHvNL3EDVoc6oPo06yQAwgDKU4odjasnCYal6-aMqAhDfJMJ5HwkTIRCMY3R6qGC_cDlKAYCNPye_5JHMn02_omEU8McX_tjLiHbQvoyIRgDn5zARvHDKR6a6BOyH0raP_Dq2X-J0DsjY-Ze8Zx3y4mIQl_NJS54l5UgTMiMVJAS_0"
       }
     }
   ]

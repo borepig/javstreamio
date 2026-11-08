@@ -33,23 +33,9 @@ cd "$APP_DIR/debrid-app"
 npm ci
 npm run build
 
-cat > /opt/pm2.javstreamio.json <<'PM2'
-{
-  "apps": [
-    {
-      "name": "javstreamio-debrid",
-      "script": "node_modules/.bin/next",
-      "args": "start -p 3000",
-      "cwd": "/opt/javstreamio/debrid-app",
-      "instances": 1,
-      "exec_mode": "fork_mode",
-      "autorestart": true,
-      "max_restarts": 10
-    }
-  ]
-}
-PM2
-pm2 start /opt/pm2.javstreamio.json
+# Use the repo's committed pm2 ecosystem file (carries LULU_COOKIE env);
+# the clone above guarantees it exists at $APP_DIR/debrid-app/aws/.
+pm2 start "$APP_DIR/debrid-app/aws/pm2.ecosystem.json"
 pm2 save
 
 # --- nginx: proxy 80/443 -> :3000 ---

@@ -64,6 +64,7 @@ export function mapTitleRow(row) {
     category: row.category || "",
   };
   if (row.stream_url) item.streamUrl = row.stream_url;
+  if (row.lulu_token) item.luluToken = row.lulu_token;
   if (row.released) item.released = row.released;
   if (row.poster) item.poster = row.poster;
   if (row.background) item.background = row.background;

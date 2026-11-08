@@ -19,3 +19,7 @@ addon/.hs_cn_monitor.log
 .playwright-mcp/
 .qwen/
 .cursor/
+.enrich_hentai_monitor.log
+.enrich_hentai_run*.log
+.enrich_lulu_run*.log
+lulu_net.log

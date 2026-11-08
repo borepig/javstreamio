@@ -12,4 +12,4 @@ npm run build
 pm2 restart javstreamio-debrid
 systemctl reload nginx
 
-echo "redeployed: http://${DOMAIN:-<public-ip>}/manifest.json (version 0.5.6)"
+echo "redeployed: http://${DOMAIN:-<public-ip>}/manifest.json (version 0.5.7)"

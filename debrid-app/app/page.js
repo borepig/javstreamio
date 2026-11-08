@@ -154,7 +154,7 @@ export default function Page() {
               <option key={s.id} value={s.id}>{s.label}</option>
             ))}
           </select>
-          <span className="hint">All 6 debrid services work on every tier.</span>
+          <span className="hint">All 7 debrid services work on every tier.</span>
         </label>
 
         <label>

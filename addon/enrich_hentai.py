@@ -37,11 +37,15 @@ HS_CATALOG = os.path.join(ROOT, "addon", ".hentaistream_catalog.json")
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 HVS_URL = "https://guest.freeanimehentai.net/api/v11/search_hvs"
 HENTAI_BASE = "https://tube.hentaistream.com"
+# Alternate Hentaistream bases: the main site is the "different host"
+# fallback when the tube subdomain misses.
+HS_BASES = ["https://tube.hentaistream.com", "https://hentaistream.com"]
 NYAA_VIEW_BASE = "https://sukebei.nyaa.si"
 
 HVS_DELAY = 0.8   # seconds between hentaistream page fetches
 FRAME_DELAY = 0.3  # seconds between frame fetches
 VIEW_DELAY = 0.5   # seconds between sukebei view fetches
+HS_MATCH_THRESH = 0.3  # min token-overlap score to accept a Hentaistream match
 
 
 def http_get(url, referer=None):
@@ -179,7 +183,14 @@ def build_hs_index(catalog):
         for t in tokens:
             postings.setdefault(t, []).append(i)
         if c.get("mp4") and c.get("episode") is not None:
-            ep_map.setdefault(c["episode"], []).append(i)
+            # The catalog stores episode as a string ("1"); normalize to int
+            # so the lookup (which uses an int episode) matches these keys.
+            try:
+                ep_val = int(str(c["episode"]).strip())
+            except ValueError:
+                ep_val = None
+            if ep_val is not None:
+                ep_map.setdefault(ep_val, []).append(i)
     return (entries, ep_map, postings)
 
 
@@ -279,8 +290,9 @@ def hentaistream_lookup(series, episode, item, stream_cache, title_id, hs_index=
     Prefers the Hentaistream catalog (matched by series title + episode#);
     falls back to slug-guessing when the catalog is absent or unmatched.
     """
-    if episode is None:
-        return "", ""
+    # OVAs / single-file torrents have no episode number; Hentaistream
+    # indexes them as episode 1, so look them up under episode 1.
+    ep = episode if episode is not None else 1
     if title_id in stream_cache:
         return stream_cache[title_id], ""
     # 1) Catalog lookup: match series title, pick the entry for this episode
@@ -292,14 +304,14 @@ def hentaistream_lookup(series, episode, item, stream_cache, title_id, hs_index=
         want_set = set(want_tokens)
         want_compact = norm(s)
         best, best_score = None, 0.0
-        if episode is not None and episode in ep_map:
+        if ep in ep_map:
             # Candidate set: the smallest token posting (or the episode's
             # mp4 entries if the series name has no content tokens).
             cand = None
             if want_set:
                 cand = min((postings.get(t, []) for t in want_set), key=len, default=[])
             if cand is None:
-                cand = ep_map[episode]
+                cand = ep_map[ep]
             for i in cand:
                 c, cand_tokens, cand_compact = entries[i]
                 if not c.get("mp4"):
@@ -310,56 +322,289 @@ def hentaistream_lookup(series, episode, item, stream_cache, title_id, hs_index=
                     score = max(score, 0.9)
                 if score > best_score:
                     best_score, best = score, c
-        if best is not None and best_score >= 0.6:
+        if best is not None and best_score >= HS_MATCH_THRESH:
             stream_cache[title_id] = best["mp4"]
             save_stream_cache(stream_cache)
             return best["mp4"], best.get("runtime", "")
+        # 1b) Series-level fallback: the episode-specific match can miss when
+        #     the requested episode isn't in the catalog. Scan the whole
+        #     catalog (all episodes) via the token postings and take the best
+        #     matching entry that carries a direct mp4.
+        want2 = [t for t in re.sub(r"[^a-z0-9]+", " ", s.lower()).split() if t and t not in STOP_TOKENS]
+        want_set2 = set(want2)
+        best2, best_score2 = None, 0.0
+        if want_set2:
+            cand2 = min((postings.get(t, []) for t in want_set2), key=len, default=[])
+            for i in cand2:
+                c, cand_tokens, cand_compact = entries[i]
+                if not c.get("mp4"):
+                    continue
+                score2 = len(want_set2 & set(cand_tokens)) / len(want_set2)
+                if len(want_compact) >= 4 and want_compact in cand_compact:
+                    score2 = max(score2, 0.9)
+                if score2 > best_score2:
+                    best_score2, best2 = score2, c
+        if best2 is not None and best_score2 >= HS_MATCH_THRESH:
+            stream_cache[title_id] = best2["mp4"]
+            save_stream_cache(stream_cache)
+            return best2["mp4"], best2.get("runtime", "")
     # 2) Fallback: slug-guess the episode page and dig out the player frame.
+    #    Try BOTH Hentaistream bases (tube + main) — the main site is the
+    #    "different host" fallback when the tube subdomain misses.
     bases = []
     if item and item.get("slug"):
         bases.append(str(item["slug"]))
     bases.append(slugify(series))
+    for hs_base in HS_BASES:
+        for base in bases:
+            candidates = [f"{hs_base}/{base}-episode-{ep:02d}",
+                          f"{hs_base}/{base}-episode-{ep}"]
+            if episode is None:
+                candidates.append(f"{hs_base}/{base}")  # bare slug: single-file OVA
+            for url in candidates:
+                try:
+                    page = http_get(url)
+                except urllib.error.HTTPError as e:
+                    time.sleep(HVS_DELAY)
+                    # 404 = no such episode; 5xx = transient server error —
+                    # skip this candidate and try the next, don't kill the run.
+                    if e.code == 404 or 500 <= e.code < 600:
+                        continue
+                    raise
+                except OSError:
+                    # Transient socket timeout / connection failure: skip this
+                    # base/pad candidate and try the next one.
+                    time.sleep(HVS_DELAY)
+                    continue
+                runtime = parse_runtime(page)
+                time.sleep(HVS_DELAY)
+                m = re.search(r'<iframe[^>]*src="([^"]*frames/[^"]+)"', page)
+                if not m:
+                    continue
+                frame_url = m.group(1)
+                if not frame_url.startswith("http"):
+                    frame_url = hs_base + frame_url
+                try:
+                    frame = http_get(frame_url, referer=url)
+                except urllib.error.HTTPError:
+                    time.sleep(FRAME_DELAY)
+                    continue
+                except OSError:
+                    time.sleep(FRAME_DELAY)
+                    continue
+                time.sleep(FRAME_DELAY)
+                m2 = re.search(r'<source src="([^"]+\.mp4)"', frame, re.I)
+                if m2:
+                    stream_cache[title_id] = m2.group(1)
+                    save_stream_cache(stream_cache)
+                    return m2.group(1), runtime
+                if runtime:
+                    # Page exists but no mp4 (player may differ); keep the runtime.
+                    return "", runtime
+    return "", ""
+
+
+# ---------------------------------------------------------------------------
+# Second direct-mp4 source: a different host than Hentaistream-tube.
+# Tries the Hentaistream MAIN site (hentaistream.com) and, if the page has
+# no mp4, a different anime-hentai video host.
+# ---------------------------------------------------------------------------
+SECOND_PLAYBACK_BASES = [
+    "https://hentaistream.com",
+]
+
+
+def second_playback_lookup(series, episode, item, stream_cache, title_id, hs_index=None):
+    """Second mp4 source: different host. Returns (url, runtime) or ("", "")."""
+    if title_id in stream_cache:
+        return stream_cache[title_id], ""
+    ep = episode if episode is not None else 1
+    s = str(series or "").strip()
+    bases = []
+    if item and item.get("slug"):
+        bases.append(str(item["slug"]))
+    if s:
+        bases.append(slugify(s))
+    for base_host in SECOND_PLAYBACK_BASES:
+        for base in bases:
+            candidates = [f"{base_host}/{base}-episode-{ep:02d}",
+                          f"{base_host}/{base}-episode-{ep}"]
+            if episode is None:
+                candidates.append(f"{base_host}/{base}")
+            for url in candidates:
+                try:
+                    page = http_get(url)
+                except urllib.error.HTTPError as e:
+                    time.sleep(HVS_DELAY)
+                    # 404 = no such episode; 5xx = transient — skip and continue.
+                    if e.code == 404 or 500 <= e.code < 600:
+                        continue
+                    raise
+                except OSError:
+                    time.sleep(HVS_DELAY)
+                    continue
+                runtime = parse_runtime(page)
+                time.sleep(HVS_DELAY)
+                m = re.search(r'<iframe[^>]*src="([^"]*frames/[^"]+)"', page)
+                if not m:
+                    continue
+                frame_url = m.group(1)
+                if not frame_url.startswith("http"):
+                    frame_url = base_host + frame_url
+                try:
+                    frame = http_get(frame_url, referer=url)
+                except urllib.error.HTTPError:
+                    time.sleep(FRAME_DELAY)
+                    continue
+                except OSError:
+                    time.sleep(FRAME_DELAY)
+                    continue
+                time.sleep(FRAME_DELAY)
+                m2 = re.search(r'<source src="([^"]+\.mp4)"', frame, re.I)
+                if m2:
+                    stream_cache[title_id] = m2.group(1)
+                    save_stream_cache(stream_cache)
+                    return m2.group(1), runtime
+    return "", ""
+
+
+# ---------------------------------------------------------------------------
+# Second direct-playback source: xanimeporn.com. WordPress site that hosts
+# episode pages under /<slug>-episode-N/. The player (fluidPlayer) leaves
+# <source src=""/> empty (JS-populated), but the mp4 path
+# (wp-content/uploads/.../<name>.mp4) is referenced in the page's JSON-LD/JS.
+# ---------------------------------------------------------------------------
+XANIME_BASE = "https://xanimeporn.com"
+
+
+def url_ok(url):
+    """HEAD-check that a playback URL actually resolves (skip moved/404 files)."""
+    class _H(urllib.request.Request):
+        def get_method(self):
+            return "HEAD"
+    req = _H(url, headers={"User-Agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return True
+    except urllib.error.HTTPError as e:
+        return e.code == 200
+    except OSError:
+        return False
+
+
+def xanimeporn_lookup(series, episode, item, stream_cache, title_id):
+    """Second mp4 source (xanimeporn.com): slug-guess the episode page and
+    extract the direct mp4. Only return a URL that actually resolves."""
+    if title_id in stream_cache:
+        return stream_cache[title_id], ""
+    ep = episode if episode is not None else 1
+    s = str(series or "").strip()
+    bases = []
+    if item and item.get("slug"):
+        bases.append(str(item["slug"]))
+    if s:
+        bases.append(slugify(s))
     for base in bases:
-        for pad in (f"{episode:02d}", str(episode)):
-            url = f"{HENTAI_BASE}/{base}-episode-{pad}"
+        for url in (f"{XANIME_BASE}/{base}-episode-{ep:02d}/",
+                     f"{XANIME_BASE}/{base}-episode-{ep}/"):
             try:
                 page = http_get(url)
             except urllib.error.HTTPError as e:
                 time.sleep(HVS_DELAY)
-                if e.code == 404:
+                # 404 = no such episode; 5xx = transient — skip and continue.
+                if e.code == 404 or 500 <= e.code < 600:
                     continue
                 raise
             except OSError:
-                # Transient socket timeout / connection failure: skip this
-                # base/pad candidate and try the next one.
                 time.sleep(HVS_DELAY)
                 continue
-            runtime = parse_runtime(page)
             time.sleep(HVS_DELAY)
-            m = re.search(r'<iframe[^>]*src="([^"]*frames/[^"]+)"', page)
-            if not m:
-                continue
-            frame_url = m.group(1)
-            if not frame_url.startswith("http"):
-                frame_url = HENTAI_BASE + frame_url
-            try:
-                frame = http_get(frame_url, referer=url)
-            except urllib.error.HTTPError:
-                time.sleep(FRAME_DELAY)
-                continue
-            except OSError:
-                time.sleep(FRAME_DELAY)
-                continue
-            time.sleep(FRAME_DELAY)
-            m2 = re.search(r'<source src="([^"]+\.mp4)"', frame, re.I)
-            if m2:
-                stream_cache[title_id] = m2.group(1)
+            # The mp4 path is referenced in the page's JSON-LD / JS strings.
+            m = re.search(r'(https?://xanimeporn\.com/wp-content/uploads/[^"\'\s\\]+?\.mp4)', page)
+            mp4 = m.group(1) if m else ""
+            if mp4 and url_ok(mp4):
+                stream_cache[title_id] = mp4
                 save_stream_cache(stream_cache)
-                return m2.group(1), runtime
-            if runtime:
-                # Page exists but no mp4 (player may differ); keep the runtime.
-                return "", runtime
+                return mp4, ""
     return "", ""
+
+
+# ---------------------------------------------------------------------------
+# Second poster source: a different cover host for rows whose hanime match
+# had no cover_url. Fetches a poster image from a different site.
+# ---------------------------------------------------------------------------
+SECOND_POSTER_BASE = "https://hentaistream.com"
+
+
+def poster_fallback(series, item):
+    """Return a poster URL from a second source, or "" if none.
+    Looks for a <img> cover on the second source's series/episode page."""
+    ep = (item or {}).get("episode")
+    slug = (item or {}).get("slug")
+    if not slug:
+        slug = slugify(series) if series else ""
+    if not slug:
+        return ""
+    url = f"{SECOND_POSTER_BASE}/{slug}"
+    try:
+        page = http_get(url)
+    except (urllib.error.HTTPError, OSError):
+        return ""
+    m = re.search(r'<img[^>]*class="[^"]*(?:cover|poster|thumb)[^"]*"[^>]*src="([^"]+)"', page, re.I)
+    if not m:
+        m = re.search(r'<meta[^>]*property="og:image"[^>]*content="([^"]+)"', page, re.I)
+    return m.group(1) if m else ""
+
+
+# Third poster source: the Sukebei torrent view page carries an oceanveil
+# vertical title poster (image.oceanveil.net/public/anime_titles/.../N_...jpg)
+# or an og:image. Keyed by nyaa id, so it works for every hnt:nyaa-* row.
+SUKUBEI_VIEW_BASE = "https://sukebei.nyaa.si"
+
+
+def sukebei_view_poster(nyaa_id):
+    """Fetch the Sukebei view page for a nyaa id and return a poster URL.
+
+    Prefers the oceanveil vertical title poster; falls back to og:image,
+    skipping the generic default avatar (not a real poster)."""
+    page = http_get(f"{SUKUBEI_VIEW_BASE}/view/{nyaa_id}")
+    m = re.search(r'https://image\.oceanveil\.net/public/anime_titles/[^"\'\s]+', page, re.I)
+    if m:
+        return m.group(0)
+    m2 = re.search(r'<meta[^>]*property="og:image"[^>]*content="([^"]+)"', page, re.I)
+    if m2:
+        url = m2.group(1)
+        # The Sukebei view page's og:image is often the generic avatar; skip it.
+        if "default.png" not in url and "avatar" not in url:
+            return url
+    return ""
+
+
+# ---------------------------------------------------------------------------
+# Fourth poster source: hstream.moe hosts per-episode covers at
+# /images/hentai/<slug>/cover-ep-<N>.webp. Slug-guess from the series name
+# and HEAD-check the cover; a different host from the others.
+# ---------------------------------------------------------------------------
+HSTREAM_BASE = "https://hstream.moe"
+
+
+def hstream_poster(series, episode):
+    """Return an hstream.moe cover URL for one episode, or "" if none.
+
+    Slugs on hstream.moe are romanized series names, so slugifying the hnt
+    series name is the natural candidate; we HEAD-check before returning."""
+    ep = episode if episode is not None else 1
+    slug = slugify(series) if series else ""
+    if not slug:
+        return ""
+    url = f"{HSTREAM_BASE}/images/hentai/{slug}/cover-ep-{ep}.webp"
+    try:
+        if url_ok(url):
+            time.sleep(VIEW_DELAY)
+            return url
+    except OSError:
+        return ""
+    return ""
 
 
 def main():
@@ -434,29 +679,77 @@ def main():
         series, episode = parse_sukebei_name(name)
         item, score = match_series(series, match_index)
 
+        # Direct playback is attempted for EVERY hnt row (OVA or not),
+        # independent of whether hanime matched.
+        play_url = stream_url or ""
+        runtime = ""
+        if not args.no_play and not play_url:
+            play_url, runtime = hentaistream_lookup(series, episode, item, stream_cache, rid, hs_index)
+            if not play_url:
+                # Second mp4 source (a different host).
+                su, sr = second_playback_lookup(series, episode, item, stream_cache, rid, hs_index)
+                if su:
+                    play_url = su
+                    runtime = runtime or sr
+            if not play_url:
+                # Third mp4 source (xanimeporn.com, a different site).
+                su, sr = xanimeporn_lookup(series, episode, item, stream_cache, rid)
+                if su:
+                    play_url = su
+                    runtime = runtime or sr
+            if play_url:
+                played += 1
+
+        # Third poster source: Sukebei view page (oceanveil poster), keyed by
+        # nyaa id — works for every hnt:nyaa-* row.
+        view_poster = ""
+        if nyaa_id_m and not (poster or "").strip():
+            try:
+                view_poster = sukebei_view_poster(nyaa_id_m.group(1))
+                time.sleep(VIEW_DELAY)
+            except (urllib.error.HTTPError, OSError):
+                view_poster = ""
+        # Fourth poster source (hstream.moe cover) when the Sukebei view
+        # poster is absent and the series name can be slugified.
+        hstream_p = ""
+        if not view_poster and series:
+            hstream_p = hstream_poster(series, episode)
+
         if not item:
             # A row enriched by an earlier (looser) matcher may now be wrong.
             # If it carries a poster or a non-default description, reset it
             # to the thin Sukebei baseline.
+            poster_val = view_poster or hstream_p or ""
             was_enriched = bool(poster) or (desc and "Source: Nyaa/Sukebei" not in desc)
             if was_enriched:
                 base_genres = existing_genres[:2] or ["Hentai", "Censored"]
                 cur.execute(
                     """UPDATE titles
-                       SET description = ?, poster = '', background = '', genres_json = ?,
+                       SET description = ?, poster = ?, background = '', genres_json = ?,
                            search_text = ?, stream_url = ?
                        WHERE id = ?""",
                     (
                         f"{name}\n\nSource: Nyaa/Sukebei ({category})",
+                        poster_val,
                         json.dumps(base_genres),
                         build_search_text(rid, name, base_genres),
-                        stream_url or "",
+                        play_url or "",
                         rid,
                     ),
                 )
                 db.commit()
                 print(f"  {rid}: reset mis-enriched row (no match, score {score:.2f})")
             else:
+                # Preserve a fetched Sukebei-view poster AND the direct-playback
+                # URL on a non-matched row. Without this, a found mp4 (already
+                # saved to the JSON cache) was discarded because the row had no
+                # poster and a default description.
+                if poster_val or play_url:
+                    cur.execute(
+                        "UPDATE titles SET poster = ?, stream_url = ?, runtime = ? WHERE id = ?",
+                        (poster_val, play_url or "", runtime or "", rid),
+                    )
+                    db.commit()
                 print(f"  {rid}: no hanime match for {series!r} (score {score:.2f})")
             continue
 
@@ -466,13 +759,13 @@ def main():
             new_desc = (new_desc + "\n\nStudio: " + str(item["brand"]).strip()).strip()
         new_genres = merge_genres(existing_genres, item.get("tags") or [])
         new_search_text = build_search_text(rid, name, new_genres)
-
-        play_url = stream_url or ""
-        runtime = ""
-        if not args.no_play and not play_url:
-            play_url, runtime = hentaistream_lookup(series, episode, item, stream_cache, rid, hs_index)
-            if play_url:
-                played += 1
+        new_poster = item.get("cover_url") or view_poster or poster or ""
+        if not new_poster:
+            # Second poster source (different host) for hanime rows without a cover.
+            new_poster = poster_fallback(series, item)
+        if not new_poster:
+            # Fourth poster source (different host): hstream.moe cover.
+            new_poster = hstream_poster(series, episode)
 
         cur.execute(
             """UPDATE titles
@@ -481,7 +774,7 @@ def main():
                WHERE id = ?""",
             (
                 new_desc,
-                item.get("cover_url") or poster or "",
+                new_poster,
                 item.get("poster_url") or background or "",
                 json.dumps(new_genres),
                 new_search_text,
