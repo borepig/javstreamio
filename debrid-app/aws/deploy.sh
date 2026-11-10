@@ -27,7 +27,7 @@ fi
 # parent, but the `next-server` child can linger and keep .bin open, so settle
 # briefly and kill any surviving child before the wipe. `pm2 stop` may fail if
 # the app definition is gone (rebuilds can drop it) — tolerate that.
-sudo pm2 stop javstremio-debrid 2>/dev/null || true
+sudo pm2 stop javstreamio-debrid 2>/dev/null || true
 sleep 2
 sudo pkill -f "next-server" 2>/dev/null || true
 
@@ -44,13 +44,13 @@ sudo npm run build
 # re-register from the committed ecosystem file: delete any stale entry (tolerating
 # "not found"), then start from aws/pm2.ecosystem.json so the app comes back up
 # cleanly after the build.
-sudo pm2 delete javstremio-debrid 2>/dev/null || true
+sudo pm2 delete javstreamio-debrid 2>/dev/null || true
 sudo pm2 start aws/pm2.ecosystem.json
 sudo pm2 save
 sudo systemctl reload nginx
 
 if [ -n "$DOMAIN" ]; then
-  echo "redeployed: https://${DOMAIN}/manifest.json (version 0.5.8)"
+  echo "redeployed: https://${DOMAIN}/manifest.json (version 0.5.10)"
 else
-  echo "redeployed: http://<public-ip>/manifest.json (version 0.5.8)"
+  echo "redeployed: http://<public-ip>/manifest.json (version 0.5.10)"
 fi

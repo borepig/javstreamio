@@ -61,6 +61,11 @@ export function migrateTitlesDb(file) {
     );
   }
   db.exec("CREATE INDEX IF NOT EXISTS idx_titles_cat_rank ON titles (category, meta_rank, posted_at, id)");
+  // hnt series queries filter/join on (category, series_key, episode_num) —
+  // without it the hnt series catalog page took ~14s (correlated subqueries).
+  if (cols.includes("series_key") && cols.includes("episode_num")) {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_titles_cat_series ON titles (category, series_key, episode_num)");
+  }
   db.close();
 }
 
@@ -144,14 +149,11 @@ export function queryTitle(db, id) {
 export const FREE_CATALOG_SIZE = 15;
 
 // Paid-only categories: never part of the free tier — free users get an
-// empty catalog and 404 meta for these.
-export const PAID_ONLY_CATEGORIES = [
-  "hongkong",
-  "hentai-censored",
-  "hentai-uncensored",
-  "korean",
-  "chinese",
-];
+// empty catalog and 404 meta for these. The 5 paused categories
+// (hongkong, hentai-censored, hentai-uncensored, korean, chinese) are
+// removed from serving; re-add their names here if/when their metadata
+// sources are redone and re-enabled.
+export const PAID_ONLY_CATEGORIES = [];
 
 // Is this title inside the free (newest FREE_CATALOG_SIZE per category) set?
 // Rank = number of same-category titles strictly ahead of it in the
@@ -178,40 +180,60 @@ export function isInFreeSet(db, id) {
 
 export function querySeriesList(db, { category, limit = 80, search = "" } = {}) {
   const cat = String(category || "").replace(/\.json$/, "");
-  const rows = db
+  // Two-stage lookup: the old single query ran 3 correlated subqueries per
+  // group (no index on series_key) -> ~14s per catalog page on the t3.micro.
+  // Stage 1: series rows (cheap GROUP BY). Stage 2: one indexed IN() query
+  // for the details of the selected series, aggregated in JS.
+  const seriesRows = db
     .prepare(
       `SELECT t.series_key AS series_key,
                COUNT(*) AS ep_count,
-               (SELECT t2.name FROM titles t2
-                 WHERE t2.series_key = t.series_key AND t2.name != ''
-                 ORDER BY LENGTH(t2.name) DESC LIMIT 1) AS name,
-               (SELECT t3.poster FROM titles t3
-                 WHERE t3.series_key = t.series_key AND t3.poster != ''
-                 ORDER BY t3.episode_num ASC LIMIT 1) AS poster,
-               (SELECT t4.description FROM titles t4
-                 WHERE t4.series_key = t.series_key AND t4.description != ''
-                 ORDER BY t4.episode_num ASC LIMIT 1) AS description,
                MAX(t.posted_at) AS posted_at
-        FROM titles t
-        WHERE t.category = ? AND t.series_key != ''
-        GROUP BY t.series_key
-        ORDER BY posted_at DESC, t.series_key ASC
-        LIMIT ?`,
+       FROM titles t
+       WHERE t.category = ? AND t.series_key != ''
+       GROUP BY t.series_key
+       ORDER BY posted_at DESC, t.series_key ASC
+       LIMIT ?`,
     )
-    .all(cat, limit);
-  const out = rows.filter((r) => {
-    if (!search) return true;
-    const hay = searchText({ id: `hnt:${r.series_key}`, name: r.name }).toLowerCase();
-    const tokens = searchTokens(search);
-    return tokens.length ? tokens.every((t) => hay.includes(t)) : true;
-  });
-  return out.map((r) => ({
-    seriesKey: r.series_key,
-    name: r.name || `hnt:${r.series_key}`,
-    poster: r.poster || "",
-    description: r.description || "",
-    epCount: Number(r.ep_count) || 0,
-  }));
+    .all(cat, Number(limit) || 80);
+  if (!seriesRows.length) return [];
+  const keys = seriesRows.map((r) => r.series_key);
+  const ph = keys.map(() => "?").join(", ");
+  const detail = db
+    .prepare(
+      `SELECT series_key, name, poster, description, episode_num
+       FROM titles
+       WHERE category = ? AND series_key IN (${ph})`,
+    )
+    .all(cat, ...keys);
+  detail.sort((a, b) => (Number(a.episode_num) || 0) - (Number(b.episode_num) || 0));
+  const byKey = new Map();
+  for (const row of detail) {
+    const agg = byKey.get(row.series_key) || { name: "", poster: "", description: "" };
+    const name = String(row.name || "").trim();
+    if (name.length > agg.name.length) agg.name = name;
+    if (row.poster && !agg.poster) agg.poster = String(row.poster).trim();
+    const desc = String(row.description || "").trim();
+    if (desc.length > agg.description.length) agg.description = desc;
+    byKey.set(row.series_key, agg);
+  }
+  return seriesRows
+    .map((r) => {
+      const agg = byKey.get(r.series_key) || {};
+      return {
+        seriesKey: r.series_key,
+        name: agg.name || `hnt:${r.series_key}`,
+        poster: agg.poster || "",
+        description: agg.description || "",
+        epCount: Number(r.ep_count) || 0,
+      };
+    })
+    .filter((r) => {
+      if (!search) return true;
+      const hay = searchText({ id: `hnt:${r.seriesKey}`, name: r.name }).toLowerCase();
+      const tokens = searchTokens(search);
+      return tokens.length ? tokens.every((t) => hay.includes(t)) : true;
+    });
 }
 
 export function querySeriesMeta(db, seriesKey) {

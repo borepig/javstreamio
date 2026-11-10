@@ -133,7 +133,7 @@ export default function Page() {
             <p className="price">$10 <span className="once">per year</span></p>
             <ul>
               <li>12 months of access</li>
-              <li>All 9 categories: JAV Censored, JAV Uncensored, Western, Others, Hong Kong AV, Hentai Censored, Hentai Uncensored, Korean AV, Chinese AV</li>
+              <li>All 4 categories: JAV Censored, JAV Uncensored, Western, Others</li>
               <li>Meta refreshed daily</li>
               <li>One yearly payment</li>
             </ul>
@@ -158,7 +158,7 @@ export default function Page() {
             <ul>
               <li>Key never expires</li>
               <li>30-day launch special — offer ends 2026-12-04</li>
-              <li>All 9 categories: JAV Censored, JAV Uncensored, Western, Others, Hong Kong AV, Hentai Censored, Hentai Uncensored, Korean AV, Chinese AV</li>
+              <li>All 4 categories: JAV Censored, JAV Uncensored, Western, Others</li>
               <li>Meta refreshed daily</li>
             </ul>
             <a className="buy" href={BMAC_LIFETIME_URL} target="_blank" rel="noreferrer">
@@ -213,8 +213,9 @@ export default function Page() {
           Uninstall any older copy first. Add this URL (Settings → Add-ons → Custom URL).
           Without a paid key this is the free tier: 4 categories (JAV Censored, JAV
           Uncensored, Western, Others) — newest 15 titles each, all debrid services + P2P
-          playback. A paid key unlocks the other 5 categories: Hong Kong AV, Hentai Censored,
-          Hentai Uncensored, Korean AV, Chinese AV.
+          playback. A paid key unlocks the full catalog (no 15-title cap). The paused
+          categories (Hong Kong AV, Hentai Censored, Hentai Uncensored, Korean AV, Chinese AV)
+          are offline while their metadata sources are re-vetted.
           {key &&
             ` It includes your ${SERVICES.find((item) => item.id === service)?.label || service} key, which powers one-click debrid playback. Without that key, Play is a black screen.`}
           {paidKey &&

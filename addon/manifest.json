@@ -1,8 +1,8 @@
 {
   "id": "community.javstremio",
-  "version": "0.5.9",
+  "version": "0.5.10",
   "name": "Stremio JAV Database Addon",
-  "description": "Stremio JAV Database Addon 0.5.9. This is only a metadata scraper.",
+  "description": "Stremio JAV Database Addon 0.5.10. This is only a metadata scraper.",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
   "resources": [
     {
@@ -19,11 +19,7 @@
         "series"
       ],
       "idPrefixes": [
-        "jav:",
-        "hk:",
-        "kr:",
-        "cn:",
-        "hnt:"
+        "jav:"
       ]
     },
     {
@@ -33,11 +29,7 @@
         "series"
       ],
       "idPrefixes": [
-        "jav:",
-        "hk:",
-        "kr:",
-        "cn:",
-        "hnt:"
+        "jav:"
       ]
     }
   ],
@@ -46,11 +38,7 @@
     "series"
   ],
   "idPrefixes": [
-    "jav:",
-    "hk:",
-    "kr:",
-    "cn:",
-    "hnt:"
+    "jav:"
   ],
   "catalogs": [
     {
@@ -102,81 +90,6 @@
       "type": "movie",
       "id": "others",
       "name": "Others",
-      "extra": [
-        {
-          "name": "search",
-          "isRequired": false
-        },
-        {
-          "name": "skip",
-          "isRequired": false
-        }
-      ]
-    },
-    {
-      "type": "movie",
-      "id": "hongkong",
-      "name": "Hong Kong AV",
-      "extra": [
-        {
-          "name": "search",
-          "isRequired": false
-        },
-        {
-          "name": "skip",
-          "isRequired": false
-        }
-      ]
-    },
-    {
-      "type": "series",
-      "id": "hentai-censored",
-      "name": "Hentai Censored",
-      "extra": [
-        {
-          "name": "search",
-          "isRequired": false
-        },
-        {
-          "name": "skip",
-          "isRequired": false
-        }
-      ]
-    },
-    {
-      "type": "series",
-      "id": "hentai-uncensored",
-      "name": "Hentai Uncensored",
-      "extra": [
-        {
-          "name": "search",
-          "isRequired": false
-        },
-        {
-          "name": "skip",
-          "isRequired": false
-        }
-      ]
-    },
-    {
-      "type": "movie",
-      "id": "korean",
-      "name": "Korean AV",
-      "extra": [
-        {
-          "name": "search",
-          "isRequired": false
-        },
-        {
-          "name": "skip",
-          "isRequired": false
-        }
-      ]
-    },
-    {
-      "type": "movie",
-      "id": "chinese",
-      "name": "Chinese AV",
       "extra": [
         {
           "name": "search",

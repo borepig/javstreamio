@@ -227,12 +227,9 @@ export const BUNDLED_CATALOGS = [
   { type: "movie", id: "jav-uncensored", name: "JAV Uncensored", extra: CATALOG_EXTRA },
   { type: "movie", id: "western", name: "Western", extra: CATALOG_EXTRA },
   { type: "movie", id: "others", name: "Others", extra: CATALOG_EXTRA },
-  { type: "movie", id: "hongkong", name: "Hong Kong AV", extra: CATALOG_EXTRA },
-  // Hentai is TV-show style: one series per episode collection.
-  { type: "series", id: "hentai-censored", name: "Hentai Censored", extra: CATALOG_EXTRA },
-  { type: "series", id: "hentai-uncensored", name: "Hentai Uncensored", extra: CATALOG_EXTRA },
-  { type: "movie", id: "korean", name: "Korean AV", extra: CATALOG_EXTRA },
-  { type: "movie", id: "chinese", name: "Chinese AV", extra: CATALOG_EXTRA },
+  // The 5 paid categories (hongkong, hentai-censored, hentai-uncensored,
+  // korean, chinese) are paused while their metadata sources are re-vetted.
+  // Re-add them here + in titles-db PAID_ONLY_CATEGORIES when redone.
 ];
 
 const CATALOG_PAGE = 80;
