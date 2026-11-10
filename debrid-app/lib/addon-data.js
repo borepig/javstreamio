@@ -478,6 +478,12 @@ export function bundledMeta(id) {
         description: series.description || "",
         poster: series.poster || "",
         episodes: (series.episodes || []).map((e) => ({ ...e })),
+        behaviorHints: {
+          // Point the default video at the first episode's id so Stremio Web
+          // auto-selects Episode 1 instead of falling back to Season 0.
+          defaultVideoId: (series.episodes && series.episodes[0] && series.episodes[0].id) || series.id,
+          hasScheduledVideos: false,
+        },
       };
       // Series-level behavior hints: bingeGroup per infoHash keeps episodes
       // grouped in the Stremio player's "up next" (AGENTS.md convention).
