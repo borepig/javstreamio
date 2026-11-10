@@ -745,8 +745,8 @@ def scrape_new_to_sqlite(
                       id, category, name, description, release_info, released, runtime,
                       poster, background, forum_poster, dmm_missing, fourhoi_missing,
                       cast_json, genres_json, director, imdb_rating, info_hash, magnet,
-                      posted_at, search_text
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                      posted_at, search_text, meta_rank
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     title_to_sqlite_row(title),
                 )
@@ -898,8 +898,8 @@ def scrape_avgood_hk(max_pages: int = 20, batch: int = 8, delay: float = 1.0) ->
                               id, category, name, description, release_info, released, runtime,
                               poster, background, forum_poster, dmm_missing, fourhoi_missing,
                               cast_json, genres_json, director, imdb_rating, info_hash, magnet,
-                              posted_at, search_text
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                              posted_at, search_text, meta_rank
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """,
                             title_to_sqlite_row(title),
                         )
@@ -1064,8 +1064,8 @@ def scrape_ijavtorrent(category: str, max_pages: int = 10) -> dict:
                   id, category, name, description, release_info, released, runtime,
                   poster, background, forum_poster, dmm_missing, fourhoi_missing,
                   cast_json, genres_json, director, imdb_rating, info_hash, magnet,
-                  posted_at, search_text
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                  posted_at, search_text, meta_rank
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 title_to_sqlite_row(title),
             )
@@ -1213,8 +1213,8 @@ def scrape_nyaa_hentai(max_pages: int = 5) -> dict:
                       id, category, name, description, release_info, released, runtime,
                       poster, background, forum_poster, dmm_missing, fourhoi_missing,
                       cast_json, genres_json, director, imdb_rating, info_hash, magnet,
-                      posted_at, search_text
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                      posted_at, search_text, meta_rank
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     title_to_sqlite_row(title),
                 )
