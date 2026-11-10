@@ -268,6 +268,12 @@ export function querySeriesMeta(db, seriesKey) {
     description: description || "",
     poster,
     episodes,
+    behaviorHints: {
+      // Stremio Web must not fall back to "Season 0 / Episode 1" — point the
+      // default video at the first episode's id (episodes are sorted by episode_num).
+      defaultVideoId: (episodes[0] && episodes[0].id) || `hnt:${key}`,
+      hasScheduledVideos: false,
+    },
   };
 }
 
