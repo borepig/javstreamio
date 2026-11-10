@@ -91,7 +91,7 @@ input:focus, select:focus { outline: none; border-color: #f5b84c; }
 .tier.best { border-color: #f5b84c; }
 .tier.active { border-color: #f5b84c; opacity: 1; }
 .tier.dimmed { opacity: 0.55; }
-.tier.dimmed.best { border-color: #f5b84c; }
+.tier.dimmed.best { border-color: #262b33; }
 .badge {
   position: absolute;
   top: -11px;
