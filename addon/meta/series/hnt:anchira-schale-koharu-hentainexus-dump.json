@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "id": "hnt:anchira-schale-koharu-hentainexus-dump",
+    "type": "series",
+    "name": "Anchira | Schale | Koharu | HentaiNexus Dump",
+    "description": "Anchira | Schale | Koharu | HentaiNexus Dump\n\nSource: Nyaa/Sukebei (710.3 GiB) (hentai-censored)",
+    "poster": "",
+    "behaviorHints": {
+      "defaultVideoId": "hnt:anchira-schale-koharu-hentainexus-dump:1",
+      "hasScheduledVideos": false
+    },
+    "episodes": [
+      {
+        "id": "hnt:anchira-schale-koharu-hentainexus-dump:1",
+        "type": "episode",
+        "name": "Episode 1",
+        "description": "Anchira | Schale | Koharu | HentaiNexus Dump\n\nSource: Nyaa/Sukebei (710.3 GiB) (hentai-censored)",
+        "poster": "",
+        "runtime": "",
+        "released": "2025-11-22T06:00:00.000Z"
+      }
+    ]
+  }
+}

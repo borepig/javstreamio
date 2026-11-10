@@ -34,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.10"
+VERSION = "0.5.11"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -80,13 +80,13 @@ CATALOGS = (
     ("jav-uncensored", "JAV Uncensored"),
     ("western", "Western"),
     ("others", "Others"),
-    # Paid categories (hongkong, hentai-censored, hentai-uncensored, korean,
-    # chinese) are paused: the current metadata sources "do not work well" and
-    # will be redone after the user vets new source websites.
+    ("hentai-censored", "Hentai Censored"),
+    ("hentai-uncensored", "Hentai Uncensored"),
+    # korean, chinese, hongkong stay paused pending the user's source vetting.
 )
 # Hnt (Sukebei/Nyaa) catalogs are served as Stremio series (TV-show model),
 # every other catalog stays a movie.
-HNT_CATALOG_IDS = set()
+HNT_CATALOG_IDS = {"hentai-censored", "hentai-uncensored"}
 
 
 def load_records() -> list[dict]:
@@ -1482,11 +1482,11 @@ def main(use_javdb: bool = True) -> None:
         "logo": "https://www.stremio.com/website/stremio-logo-small.png",
         "resources": [
             {"name": "catalog", "types": ["movie", "series"]},
-            {"name": "meta", "types": ["movie", "series"], "idPrefixes": ["jav:"]},
-            {"name": "stream", "types": ["movie", "series"], "idPrefixes": ["jav:"]},
+            {"name": "meta", "types": ["movie", "series"], "idPrefixes": ["jav:","hnt:"]},
+            {"name": "stream", "types": ["movie", "series"], "idPrefixes": ["jav:","hnt:"]},
         ],
         "types": ["movie", "series"],
-        "idPrefixes": ["jav:"],
+        "idPrefixes": ["jav:","hnt:"],
         "catalogs": manifest_catalogs,
         "behaviorHints": {"adult": True, "p2p": True},
     }

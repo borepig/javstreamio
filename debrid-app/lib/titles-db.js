@@ -149,11 +149,13 @@ export function queryTitle(db, id) {
 export const FREE_CATALOG_SIZE = 15;
 
 // Paid-only categories: never part of the free tier — free users get an
-// empty catalog and 404 meta for these. The 5 paused categories
-// (hongkong, hentai-censored, hentai-uncensored, korean, chinese) are
-// removed from serving; re-add their names here if/when their metadata
-// sources are redone and re-enabled.
-export const PAID_ONLY_CATEGORIES = [];
+// empty catalog and 404 meta for these.
+export const PAID_ONLY_CATEGORIES = [
+  "hentai-censored",
+  "hentai-uncensored",
+  // korean, chinese, hongkong stay paused: re-add their names here when
+  // their metadata sources are vetted and redone.
+];
 
 // Is this title inside the free (newest FREE_CATALOG_SIZE per category) set?
 // Rank = number of same-category titles strictly ahead of it in the

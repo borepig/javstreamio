@@ -1,0 +1,78 @@
+{
+  "meta": {
+    "id": "hnt:hentainexus-com",
+    "type": "series",
+    "name": "[CCDC06] hentainexus.com 17001-18000 [v13]",
+    "description": "[CCDC06] hentainexus.com 17001-18000 [v13]\n\nSource: Nyaa/Sukebei (29.6 GiB) (hentai-censored)",
+    "poster": "",
+    "behaviorHints": {
+      "defaultVideoId": "hnt:hentainexus-com:1",
+      "hasScheduledVideos": false
+    },
+    "episodes": [
+      {
+        "id": "hnt:hentainexus-com:1",
+        "type": "episode",
+        "name": "Episode 1",
+        "description": "[CCDC06] hentainexus.com 1-17000 [v30]\n\nSource: Nyaa/Sukebei (59.1 GiB) (hentai-censored)",
+        "poster": "",
+        "runtime": "",
+        "released": "2026-08-07T23:33:00.000Z"
+      },
+      {
+        "id": "hnt:hentainexus-com:17001",
+        "type": "episode",
+        "name": "Episode 17001",
+        "description": "[CCDC06] hentainexus.com 17001-18000 [v13]\n\nSource: Nyaa/Sukebei (29.6 GiB) (hentai-censored)",
+        "poster": "",
+        "runtime": "",
+        "released": "2026-08-07T23:33:00.000Z"
+      },
+      {
+        "id": "hnt:hentainexus-com:18001",
+        "type": "episode",
+        "name": "Episode 18001",
+        "description": "[CCDC06] hentainexus.com 18001-19000 [v24]\n\nSource: Nyaa/Sukebei (28.5 GiB) (hentai-censored)",
+        "poster": "",
+        "runtime": "",
+        "released": "2026-10-30T20:35:00.000Z"
+      },
+      {
+        "id": "hnt:hentainexus-com:19001",
+        "type": "episode",
+        "name": "Episode 19001",
+        "description": "[CCDC06] hentainexus.com 19001-20000 [v25]\n\nSource: Nyaa/Sukebei (60.4 GiB) (hentai-censored)",
+        "poster": "",
+        "runtime": "",
+        "released": "2026-08-07T23:34:00.000Z"
+      },
+      {
+        "id": "hnt:hentainexus-com:20001",
+        "type": "episode",
+        "name": "Episode 20001",
+        "description": "[CCDC06] hentainexus.com 20001-21000 [v22]\n\nSource: Nyaa/Sukebei (65.3 GiB) (hentai-censored)",
+        "poster": "",
+        "runtime": "",
+        "released": "2026-10-30T20:36:00.000Z"
+      },
+      {
+        "id": "hnt:hentainexus-com:21001",
+        "type": "episode",
+        "name": "Episode 21001",
+        "description": "[CCDC06] hentainexus.com 21001-22000 [v18]\n\nSource: Nyaa/Sukebei (53.4 GiB) (hentai-censored)",
+        "poster": "",
+        "runtime": "",
+        "released": "2026-10-30T20:36:00.000Z"
+      },
+      {
+        "id": "hnt:hentainexus-com:22001",
+        "type": "episode",
+        "name": "Episode 22001",
+        "description": "[CCDC06] hentainexus.com 22001-23000 [v2]\n\nSource: Nyaa/Sukebei (12.1 GiB) (hentai-censored)",
+        "poster": "",
+        "runtime": "",
+        "released": "2026-10-30T20:36:00.000Z"
+      }
+    ]
+  }
+}
