@@ -327,6 +327,13 @@ def overlay_title(title: dict, bundled: dict[str, dict]) -> dict:
     return title
 
 
+def title_sqlite_meta_rank(title: dict) -> int:
+    """Precomputed catalog rank: 0 = enriched (has genres or description), 1 = bare."""
+    has_genres = bool(title.get("genres"))
+    has_desc = bool((title.get("description") or "").strip())
+    return 0 if (has_genres or has_desc) else 1
+
+
 def title_to_sqlite_row(title: dict) -> tuple:
     """Map one title dict onto the `titles` table column order."""
     return (
@@ -350,6 +357,7 @@ def title_to_sqlite_row(title: dict) -> tuple:
         title.get("magnet") or "",
         title.get("posted_at") or title.get("released") or "",
         title_search_text(title),
+        title_sqlite_meta_rank(title),
     )
 
 
@@ -383,7 +391,8 @@ def write_titles_sqlite(titles: list[dict], dest: Path | None = None) -> Path:
               info_hash TEXT DEFAULT '',
               magnet TEXT DEFAULT '',
               posted_at TEXT DEFAULT '',
-              search_text TEXT DEFAULT ''
+              search_text TEXT DEFAULT '',
+              meta_rank INTEGER DEFAULT 0
             )
             """
         )
@@ -398,10 +407,15 @@ def write_titles_sqlite(titles: list[dict], dest: Path | None = None) -> Path:
               id, category, name, description, release_info, released, runtime,
               poster, background, forum_poster, dmm_missing, fourhoi_missing,
               cast_json, genres_json, director, imdb_rating, info_hash, magnet,
-              posted_at, search_text
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              posted_at, search_text, meta_rank
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
+        )
+        # Catalog ORDER BY (meta_rank, posted_at DESC, id DESC) is then served
+        # from this index instead of a full-table scan (34k+ rows).
+        conn.execute(
+            "CREATE INDEX idx_titles_cat_rank ON titles (category, meta_rank, posted_at, id)"
         )
         conn.execute("CREATE INDEX idx_titles_cat_posted ON titles(category, posted_at DESC, id DESC)")
         conn.commit()

@@ -38,7 +38,30 @@ export function openTitlesDb(source = DEFAULT_SQLITE) {
     return source;
   }
   const file = String(source || DEFAULT_SQLITE);
-  return new DatabaseSync(file, { readOnly: true });
+  const db = new DatabaseSync(file, { readOnly: true });
+  const cols = db.prepare("PRAGMA table_info(titles)").all().map((c) => c.name);
+  if (cols.includes("meta_rank")) {
+    META_RANK = "meta_rank";
+  }
+  return db;
+}
+
+// Idempotent schema upgrade: add the precomputed `meta_rank` column (1 = bare
+// row, 0 = enriched row) and the catalog index so queryCatalog / isInFreeSet
+// are served from the index instead of a full-table scan.
+export function migrateTitlesDb(file) {
+  const db = new DatabaseSync(String(file || DEFAULT_SQLITE));
+  const cols = db.prepare("PRAGMA table_info(titles)").all().map((c) => c.name);
+  if (!cols.includes("meta_rank")) {
+    db.exec("ALTER TABLE titles ADD COLUMN meta_rank INTEGER DEFAULT 0");
+    db.exec(
+      `UPDATE titles SET meta_rank = 1
+       WHERE (genres_json IS NULL OR genres_json IN ('', '[]'))
+          AND (description IS NULL OR description = '')`,
+    );
+  }
+  db.exec("CREATE INDEX IF NOT EXISTS idx_titles_cat_rank ON titles (category, meta_rank, posted_at, id)");
+  db.close();
 }
 
 function parseJsonArray(raw) {
@@ -88,8 +111,12 @@ export function mapTitleRow(row) {
 }
 
 // Rows with metadata (non-empty genres or description) rank 0 (front);
-// bare rows rank 1 (back). Within a rank, newest first.
-const META_RANK = `CASE WHEN (genres_json IS NULL OR genres_json IN ('', '[]')) AND (description IS NULL OR description = '') THEN 1 ELSE 0 END`;
+// bare rows rank 1 (back). Within a rank, newest first. When the live DB
+// has the precomputed `meta_rank` column (added by scripts/migrate-meta-rank.mjs),
+// ORDER BY can be served from the (category, meta_rank, posted_at, id) index
+// instead of scanning every row with the CASE expression (34k+ rows = ~3s/page
+// on the t3.micro).
+let META_RANK = `CASE WHEN (genres_json IS NULL OR genres_json IN ('', '[]')) AND (description IS NULL OR description = '') THEN 1 ELSE 0 END`;
 
 export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "" } = {}) {
   const category = String(catalogId || "").replace(/\.json$/, "");
