@@ -280,14 +280,18 @@ export function querySeriesMeta(db, seriesKey) {
   const description = rows.map((r) => r.description || "").sort((a, b) => b.length - a.length)[0];
   const poster = rows.find((r) => r.poster)?.poster || "";
   const background = rows.find((r) => r.background)?.background || poster;
-  const episodes = rows.map((r) => ({
-    id: `hnt:${key}:${r.episode_num}`,
-    type: "episode",
-    name: `Episode ${r.episode_num}`,
-    poster: r.poster || "",
-    description: r.description || "",
-    runtime: r.runtime || "",
-  }));
+  // The series row (episode_num = 0) feeds name/poster/description but is
+  // not an episode — keep only real episodes (episode_num > 0).
+  const episodes = rows
+    .filter((r) => Number(r.episode_num) > 0)
+    .map((r) => ({
+      id: `hnt:${key}:${r.episode_num}`,
+      type: "episode",
+      name: `Episode ${r.episode_num}`,
+      poster: r.poster || "",
+      description: r.description || "",
+      runtime: r.runtime || "",
+    }));
   return {
     id: `hnt:${key}`,
     type: "series",

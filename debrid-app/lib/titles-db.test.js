@@ -212,6 +212,37 @@ test("querySeriesMeta: fanart (background) falls back to the series poster", () 
   assert.equal(meta.poster, "https://example.com/p1.jpg");
 });
 
+test("querySeriesMeta excludes the series row (episode_num = 0) from episodes", () => {
+  const db = new DatabaseSync(":memory:");
+  db.exec(`
+    CREATE TABLE titles (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      poster TEXT DEFAULT '',
+      background TEXT DEFAULT '',
+      runtime TEXT DEFAULT '',
+      info_hash TEXT DEFAULT '',
+      stream_url TEXT DEFAULT '',
+      series_key TEXT DEFAULT '',
+      episode_num INTEGER DEFAULT 0,
+      posted_at TEXT DEFAULT ''
+    );
+  `);
+  const insert = db.prepare(`
+    INSERT INTO titles (id, category, name, description, poster, series_key, episode_num, posted_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  insert.run("hnt:sister-breeder", "hentai", "Sister Breeder", "A series.", "https://hentai.tv/uploads/ep1.jpg", "sister-breeder", 0, "2026-11-11");
+  insert.run("hnt:sister-breeder:1", "hentai", "Sister Breeder Episode 1", "", "https://hentai.tv/uploads/ep1h.jpg", "sister-breeder", 1, "2026-11-11");
+  insert.run("hnt:sister-breeder:2", "hentai", "Sister Breeder Episode 2", "", "https://hentai.tv/uploads/ep2h.jpg", "sister-breeder", 2, "2026-11-11");
+  const meta = querySeriesMeta(db, "sister-breeder");
+  assert.deepEqual(meta.episodes.map((e) => e.name), ["Episode 1", "Episode 2"]);
+  assert.equal(meta.behaviorHints.defaultVideoId, "hnt:sister-breeder:1");
+  assert.equal(meta.poster, "https://hentai.tv/uploads/ep1.jpg");
+});
+
 function hntPagingDb() {
   const db = new DatabaseSync(":memory:");
   db.exec(`

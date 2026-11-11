@@ -71,6 +71,7 @@ test("public art rejects Vercel and forum hosts", () => {
 test("public art accepts hnt SVG cards and oceanveil covers", () => {
   assert.equal(isPublicArtUrl("https://javstremio.ddns.net/posters/hnt/18yo.svg"), true);
   assert.equal(isPublicArtUrl("https://image.oceanveil.net/public/anime_titles/000/000000533/000000533_vertical_with_logo.jpg.webp"), true);
+  assert.equal(isPublicArtUrl("https://hentai.tv/uploads/media/2025/10/Sister-Breeder-Episode-1.jpg"), true);
 });
 
 test("withPublicPosters keeps hnt series poster and fanart", () => {

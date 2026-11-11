@@ -148,7 +148,9 @@ export function isPublicArtUrl(src) {
       // Our own public art: hnt SVG title cards served from the live host.
       host === "javstremio.ddns.net" ||
       // hnt covers scraped from Sukebei view pages (og:image on oceanveil).
-      host === "image.oceanveil.net"
+      host === "image.oceanveil.net" ||
+      // Series posters scraped from hentai.tv (uploads host is public).
+      host === "hentai.tv"
     );
   } catch {
     return false;
