@@ -261,6 +261,21 @@ export async function GET(req, { params }) {
           directUrl = `${publicOrigin(req, url)}/lulu/${item.luluToken}/master.m3u8`;
         }
       }
+      // Hnt episodes: play the episode's own mp4 (stream_url). r2.1hanime.com
+      // files sit behind Cloudflare bot management ("Attention Required"), so
+      // route those through the /hntmp4 proxy (server-side fetch, optional
+      // HNT_CF_COOKIE); the other mp4 hosts (streamhentai.org, hentaiera.com,
+      // ...) are served directly.
+      if (!directUrl && /^hnt:[^:]+:\d+$/.test(titleCode)) {
+        const db = getRouteDb();
+        const hntRow = db ? queryEpisodeByRef(db, titleCode) : null;
+        const su = (hntRow && hntRow.stream_url) || "";
+        if (su) {
+          directUrl = su.includes("r2.1hanime.com")
+            ? `${publicOrigin(req, url)}/hntmp4/${encodeURIComponent(titleCode)}`
+            : su;
+        }
+      }
       // All debrid services work on every tier; a debrid row still only
       // shows for Torbox/Real-Debrid when the torrent is not cached.
       const debridOk = true;
@@ -345,6 +360,59 @@ export async function GET(req, { params }) {
         }
       }
     }
+    if (seg0 === "hntmp4") {
+      // Proxy for hnt episode mp4s on r2.1hanime.com (Cloudflare bot
+      // management: "Attention Required"). The server fetches with
+      // browser-like headers; if CF still blocks, set the HNT_CF_COOKIE env
+      // (a cf_clearance cookie from a real 1hanime.com session) on the
+      // server. Streams the body directly (no full-file buffering) and
+      // passes the client's Range request through so the player can seek.
+      const ref = decodeURIComponent(p[1] || "");
+      const db = getRouteDb();
+      const row = db && /^hnt:[^:]+:\d+$/.test(ref) ? queryEpisodeByRef(db, ref) : null;
+      const su = (row && row.stream_url) || "";
+      if (!su || !/^https?:/.test(su)) {
+        return NextResponse.json({ error: "No stream_url for this episode" }, { status: 404 });
+      }
+      const headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+        "Referer": "https://1hanime.com/",
+        "Accept": "video/mp4, video/*, */*",
+      };
+      const cfCookie = process.env.HNT_CF_COOKIE || "";
+      if (cfCookie) headers["Cookie"] = cfCookie;
+      const range = req.headers.get("range");
+      if (range) headers["Range"] = range;
+      let up;
+      try {
+        up = await fetch(su, { headers, redirect: "follow" });
+      } catch (e) {
+        return NextResponse.json({ error: String(e.message || e) }, { status: 502 });
+      }
+      const baseHeaders = {
+        "Content-Type": up.headers.get("content-type") || "video/mp4",
+        "Cache-Control": "no-store",
+        "Access-Control-Allow-Origin": "*",
+        "Accept-Ranges": "bytes",
+      };
+      if (up.status === 206) baseHeaders["Content-Range"] = up.headers.get("content-range") || "";
+      if (up.status === 403 && !cfCookie) {
+        return NextResponse.json(
+          { error: "Upstream Cloudflare 403 — set HNT_CF_COOKIE (cf_clearance) on the server", cfBlocked: true },
+          { status: 502, headers: { "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } },
+        );
+      }
+      if (!up.ok && up.status !== 206) {
+        return NextResponse.json(
+          { error: `Upstream ${up.status}`, upstreamStatus: up.status },
+          { status: 502, headers: { "Cache-Control": "no-store" } },
+        );
+      }
+      return new NextResponse(up.body, {
+        status: up.status === 206 ? 206 : 200,
+        headers: baseHeaders,
+      });
+    }
 
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   } catch (e) {
@@ -355,8 +423,9 @@ export async function GET(req, { params }) {
 export async function HEAD(req, { params }) {
   const p = params.p || [];
   // Return 200 so Stremio still GET-plays. Also add/stop on HEAD — some
-  // clients never GET if HEAD looks like an empty mp4.
-  if (p[0] === "play") {
+  // clients never GET if HEAD looks like an empty mp4. hntmp4 keeps HEAD
+  // cheap (no upstream fetch): a 200 video/mp4 is enough for the player.
+  if (p[0] === "play" || p[0] === "hntmp4") {
     const url = new URL(req.url);
     const token = url.searchParams.get("token") || "";
     const service = url.searchParams.get("service") || "";
