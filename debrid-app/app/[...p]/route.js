@@ -227,13 +227,22 @@ export async function GET(req, { params }) {
     }
     if (seg0 === "stream") {
       const rel = p.join("/");
+      const titleCode = String(p[2] || "").replace(/\.json$/i, "");
+      // hnt episode refs (hnt:<series_key>:<n>) are live SQLite rows, not static
+      // addon files — skip the static-file fetch (which 404s and early-returns
+      // empty streams) and build the stream list from the DB below.
+      const isHntEpRef = /^hnt:[^:]+:\d+$/.test(titleCode);
       let streamJson = bundledStream(p[2] || "");
       if (!streamJson) {
-        try {
-          streamJson = await fetchAddon(rel);
-        } catch (e) {
-          if (e.status === 404) return NextResponse.json({ streams: [] });
-          throw e;
+        if (isHntEpRef) {
+          streamJson = { streams: [] };
+        } else {
+          try {
+            streamJson = await fetchAddon(rel);
+          } catch (e) {
+            if (e.status === 404) return NextResponse.json({ streams: [] });
+            throw e;
+          }
         }
       }
       const streams = (streamJson && streamJson.streams) || [];
@@ -244,7 +253,6 @@ export async function GET(req, { params }) {
       // Direct online playback (e.g. Hentaistream mp4 links) needs no debrid key.
       const directStream = streams.find((s) => s && s.url) || {};
       let directUrl = directStream.url || "";
-      const titleCode = String(p[2] || "").replace(/\.json$/i, "");
       // An hnt episode ref (hnt:<series_key>:<n>) must be resolved to the
       // underlying row id (hnt:nyaa-<id>) so the lulu/debrid lookups find the row.
       let rowCode = titleCode;
