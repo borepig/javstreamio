@@ -106,7 +106,13 @@ export async function GET(req, { params }) {
     if (seg0 === "catalog") {
       const catalogId = resolveCatalogId(p[2] || "jav-censored");
       const extra = String(p[3] || "").replace(/\.json$/, "");
-      const { skip, search } = parseCatalogExtra(extra);
+      const { skip: pathSkip, search: pathSearch } = parseCatalogExtra(extra);
+      // Stremio sends skip/search as URL query params (standard protocol);
+      // also honor the legacy path-based extra.
+      const qSkip = Number(url.searchParams.get("skip") || 0);
+      const qSearch = url.searchParams.get("search") || "";
+      const skip = Math.max(pathSkip, qSkip);
+      const search = qSearch || pathSearch;
       // Free tier: newest FREE_CATALOG_SIZE per catalog. Paid tier: full catalog.
       // Paid-only categories (HK AV, hentai, Korean, Chinese) return an empty
       // catalog for free users.

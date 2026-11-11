@@ -406,7 +406,9 @@ export function bundledCatalog(catalogId, skip = 0, page = CATALOG_PAGE, search 
   const db = getTitlesDb();
   // hnt categories are series: one catalog entry per episode collection.
   if (db && key.startsWith("hentai")) {
-    const series = querySeriesList(db, { category: key, limit: page, search }).slice(skip, skip + page);
+    // skip is pushed into SQL OFFSET (the old .slice on the first `limit`
+    // rows made every page after the first 80 series empty).
+    const series = querySeriesList(db, { category: key, limit: page, offset: skip, search });
     return {
       metas: series.map((s) => ({
         id: `hnt:${s.seriesKey}`,

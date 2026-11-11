@@ -211,3 +211,42 @@ test("querySeriesMeta: fanart (background) falls back to the series poster", () 
   assert.equal(meta.background, "https://example.com/p1.jpg");
   assert.equal(meta.poster, "https://example.com/p1.jpg");
 });
+
+function hntPagingDb() {
+  const db = new DatabaseSync(":memory:");
+  db.exec(`
+    CREATE TABLE titles (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      poster TEXT DEFAULT '',
+      background TEXT DEFAULT '',
+      runtime TEXT DEFAULT '',
+      info_hash TEXT DEFAULT '',
+      stream_url TEXT DEFAULT '',
+      series_key TEXT DEFAULT '',
+      episode_num INTEGER DEFAULT 0,
+      posted_at TEXT DEFAULT ''
+    );
+  `);
+  const insert = db.prepare(`
+    INSERT INTO titles (id, category, name, series_key, episode_num, posted_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  insert.run("hnt:nyaa-1", "hentai-censored", "Series A - E01", "series-a", 1, "2026-11-05");
+  insert.run("hnt:nyaa-2", "hentai-censored", "Series B - E01", "series-b", 1, "2026-11-06");
+  insert.run("hnt:nyaa-3", "hentai-censored", "Series C - E01", "series-c", 1, "2026-11-07");
+  return db;
+}
+
+test("querySeriesList: SQL OFFSET pages past the first limit (no empty pages)", () => {
+  const db = hntPagingDb();
+  const page1 = querySeriesList(db, { category: "hentai-censored", limit: 2, offset: 0 });
+  // posted_at DESC, series_key ASC: C (11-07) then B (11-06) fill page 1.
+  assert.deepEqual(page1.map((r) => r.seriesKey), ["series-c", "series-b"]);
+  const page2 = querySeriesList(db, { category: "hentai-censored", limit: 2, offset: 2 });
+  assert.deepEqual(page2.map((r) => r.seriesKey), ["series-a"]);
+  const beyond = querySeriesList(db, { category: "hentai-censored", limit: 2, offset: 4 });
+  assert.equal(beyond.length, 0);
+});

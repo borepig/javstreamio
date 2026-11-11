@@ -200,7 +200,7 @@ export function seriesDisplayName(seriesKey) {
     .join(" ");
 }
 
-export function querySeriesList(db, { category, limit = 80, search = "" } = {}) {
+export function querySeriesList(db, { category, limit = 80, offset = 0, search = "" } = {}) {
   const cat = String(category || "").replace(/\.json$/, "");
   // Two-stage lookup: the old single query ran 3 correlated subqueries per
   // group (no index on series_key) -> ~14s per catalog page on the t3.micro.
@@ -215,9 +215,9 @@ export function querySeriesList(db, { category, limit = 80, search = "" } = {}) 
        WHERE t.category = ? AND t.series_key != ''
        GROUP BY t.series_key
        ORDER BY posted_at DESC, t.series_key ASC
-       LIMIT ?`,
+       LIMIT ? OFFSET ?`,
     )
-    .all(cat, Number(limit) || 80);
+    .all(cat, Number(limit) || 80, Number(offset) || 0);
   if (!seriesRows.length) return [];
   const keys = seriesRows.map((r) => r.series_key);
   const ph = keys.map(() => "?").join(", ");
