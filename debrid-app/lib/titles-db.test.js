@@ -252,11 +252,16 @@ test("querySeriesMeta excludes the series row (episode_num = 0) from episodes", 
   assert.deepEqual(meta.episodes.map((e) => e.name), ["Episode 1", "Episode 2"]);
   assert.equal(meta.behaviorHints.defaultVideoId, "hnt:sister-breeder:1");
   assert.equal(meta.poster, "https://hentai.tv/uploads/ep1.jpg");
-  assert.equal(meta.releaseInfo, "Brand: T Rex • Quality: 1080p • Rating: 9.7 • Year: 2025 • Language: English • Released: 2025-10-03");
+  // The brand/quality/rating/year/language/release-date line lives in the
+  // description block, not in a sub-header field.
+  assert.match(meta.description, /Brand: T Rex • Quality: 1080p • Rating: 9\.7 • Year: 2025 • Language: English • Released: 2025-10-03$/);
+  assert.equal(meta.releaseInfo, undefined);
+  assert.equal(meta.released, undefined);
   assert.equal(meta.imdbRating, "9.7");
   assert.deepEqual(meta.genres, ["Big Boobs", "Blow Job"]);
   assert.deepEqual(meta.episodes[0].genres, ["Big Boobs", "Blow Job"]);
-  assert.equal(meta.episodes[0].releaseInfo, "Brand: T Rex • Quality: 1080p • Rating: 9.7 • Year: 2025 • Language: English • Released: 2025-10-03");
+  assert.match(meta.episodes[0].description, /Brand: T Rex • Quality: 1080p/);
+  assert.equal(meta.episodes[0].releaseInfo, undefined);
 });
 
 function hntPagingDb() {

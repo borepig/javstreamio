@@ -458,15 +458,16 @@ export function bundledMeta(id) {
   if (db && epRef) {
     const row = queryEpisodeByRef(db, String(id).replace(/\.json$/, ""));
     if (!row) return null;
+    const epDesc = row.release_info
+      ? (row.description ? `${row.description}\n\n${row.release_info}` : row.release_info)
+      : (row.description || "");
     const meta = {
       id: `hnt:${epRef.key}:${epRef.episode}`,
       type: "episode",
       name: `Episode ${epRef.episode}`,
-      description: row.description || "",
+      description: epDesc,
       poster: row.poster || "",
       runtime: row.runtime || "",
-      released: row.released || "",
-      releaseInfo: row.release_info || "",
       imdbRating: row.imdb_rating || "",
     };
     if (row.stream_url) {
@@ -488,7 +489,6 @@ export function bundledMeta(id) {
         description: series.description || "",
         poster: series.poster || "",
         background: series.background || "",
-        releaseInfo: series.releaseInfo || "",
         imdbRating: series.imdbRating || "",
         genres: series.genres || [],
         episodes: (series.episodes || []).map((e) => ({ ...e })),

@@ -278,11 +278,22 @@ export function querySeriesMeta(db, seriesKey) {
   const name = key.startsWith("solo-")
     ? longestRowName || `hnt:${key}`
     : seriesDisplayName(key) || longestRowName || `hnt:${key}`;
-  const description = rows.map((r) => r.description || "").sort((a, b) => b.length - a.length)[0];
   const poster = rows.find((r) => r.poster)?.poster || "";
   const background = rows.find((r) => r.background)?.background || poster;
-  // The series row (episode_num = 0) feeds name/poster/description but is
-  // not an episode — keep only real episodes (episode_num > 0).
+  // The series row (episode_num = 0) holds series-level fields; its
+  // description was copied from the episode 1 page by the scraper. Old hnt
+  // series have no series row — fall back to the longest row description.
+  const hasSeriesRow = rows.some((r) => Number(r.episode_num) === 0);
+  const seriesRow = rows.find((r) => Number(r.episode_num) === 0) || rows[0];
+  const longestDesc = rows.map((r) => r.description || "").sort((a, b) => b.length - a.length)[0];
+  const baseDesc = hasSeriesRow ? (seriesRow.description || "") : longestDesc;
+  // Brand / quality / rating / year / language / release date render in the
+  // description block, not the sub-header (Stremio shows `releaseInfo` and
+  // `released` as the sub-header line — the user does not want them there).
+  const description = seriesRow?.release_info
+    ? (baseDesc ? `${baseDesc}\n\n${seriesRow.release_info}` : seriesRow.release_info)
+    : baseDesc;
+  // The series row is not an episode — keep only real episodes (episode_num > 0).
   const episodes = rows
     .filter((r) => Number(r.episode_num) > 0)
     .map((r) => ({
@@ -290,21 +301,19 @@ export function querySeriesMeta(db, seriesKey) {
       type: "episode",
       name: `Episode ${r.episode_num}`,
       poster: r.poster || "",
-      description: r.description || "",
+      description: r.release_info
+        ? (r.description ? `${r.description}\n\n${r.release_info}` : r.release_info)
+        : (r.description || ""),
       runtime: r.runtime || "",
-      released: r.released || "",
-      releaseInfo: r.release_info || "",
       genres: parseJsonArray(r.genres_json),
     }));
-  const seriesRow = rows.find((r) => Number(r.episode_num) === 0) || rows[0];
   return {
     id: `hnt:${key}`,
     type: "series",
     name,
-    description: description || "",
+    description,
     poster,
     background,
-    releaseInfo: seriesRow?.release_info || "",
     imdbRating: seriesRow?.imdb_rating || "",
     genres: parseJsonArray(seriesRow?.genres_json),
     episodes,
