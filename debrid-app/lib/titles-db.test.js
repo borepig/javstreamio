@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { FREE_CATALOG_SIZE, isInFreeSet, openTitlesDb, queryCatalog, queryTitle, searchText } from "./titles-db.js";
+import { FREE_CATALOG_SIZE, isInFreeSet, openTitlesDb, queryCatalog, querySeriesList, querySeriesMeta, queryTitle, searchText, seriesDisplayName } from "./titles-db.js";
 
 function createTitlesSchema(db) {
   db.exec(`
@@ -126,4 +126,79 @@ test("isInFreeSet: meta rows first, then newest FREE_CATALOG_SIZE in the free se
     assert.equal(isInFreeSet(db, `jav:TST-${n}`), false, `TST-${n} should be outside free set`);
   }
   assert.equal(isInFreeSet(db, "jav:missing"), false);
+});
+
+function hntSeriesDb() {
+  const db = new DatabaseSync(":memory:");
+  db.exec(`
+    CREATE TABLE titles (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      poster TEXT DEFAULT '',
+      runtime TEXT DEFAULT '',
+      info_hash TEXT DEFAULT '',
+      stream_url TEXT DEFAULT '',
+      series_key TEXT DEFAULT '',
+      episode_num INTEGER DEFAULT 0,
+      posted_at TEXT DEFAULT ''
+    );
+  `);
+  const insert = db.prepare(`
+    INSERT INTO titles (id, category, name, description, poster, series_key, episode_num, posted_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  // Multi-episode series with noisy raw names:
+  insert.run("hnt:nyaa-4742254", "hentai-uncensored",
+    "[geckyzz] My Matchmaking Partner Is My Student - S01 (...) [BATCH]", "An anime series.", "https://example.com/p1.jpg",
+    "my-matchmaking-partner-is-my-student", 1, "2026-11-08");
+  insert.run("hnt:nyaa-4742255", "hentai-uncensored",
+    "[geckyzz] My Matchmaking Partner Is My Student - S02 (...)", "", "",
+    "my-matchmaking-partner-is-my-student", 2, "2026-11-08");
+  insert.run("hnt:nyaa-4742256", "hentai-uncensored",
+    "[geckyzz] My Matchmaking Partner Is My Student - S03 (...)", "", "",
+    "my-matchmaking-partner-is-my-student", 3, "2026-11-08");
+  // Solo series (single episode) keeps its raw name.
+  insert.run("hnt:nyaa-4700001", "hentai-censored",
+    "[HentaiHub] Some Solo Release 720p", "", "", "solo-4700001", 1, "2026-11-01");
+  return db;
+}
+
+test("seriesDisplayName derives a clean title from the slug", () => {
+  assert.equal(seriesDisplayName("my-matchmaking-partner-is-my-student"), "My Matchmaking Partner Is My Student");
+  // Quality tokens that survive in slugs are dropped.
+  assert.equal(seriesDisplayName("ichigo-aika-strawberry-elegy-audio-eng-sub"), "Ichigo Aika Strawberry Elegy");
+  assert.equal(seriesDisplayName("solo-4700001"), "Solo 4700001");
+  assert.equal(seriesDisplayName(""), "");
+});
+
+test("querySeriesList returns clean series names with episode counts", () => {
+  const db = hntSeriesDb();
+  const series = querySeriesList(db, { category: "hentai-uncensored", limit: 10 });
+  assert.equal(series.length, 1);
+  assert.equal(series[0].seriesKey, "my-matchmaking-partner-is-my-student");
+  assert.equal(series[0].name, "My Matchmaking Partner Is My Student");
+  assert.equal(series[0].epCount, 3);
+  assert.match(series[0].poster, /p1\.jpg$/);
+  const censored = querySeriesList(db, { category: "hentai-censored", limit: 10 });
+  assert.equal(censored.length, 1);
+  assert.equal(censored[0].name, "[HentaiHub] Some Solo Release 720p");
+});
+
+test("querySeriesMeta orders episodes s01..sN and sets defaultVideoId", () => {
+  const db = hntSeriesDb();
+  const meta = querySeriesMeta(db, "my-matchmaking-partner-is-my-student");
+  assert.equal(meta.type, "series");
+  assert.equal(meta.name, "My Matchmaking Partner Is My Student");
+  assert.deepEqual(meta.episodes.map((e) => e.name), ["Episode 1", "Episode 2", "Episode 3"]);
+  assert.equal(meta.behaviorHints.defaultVideoId, "hnt:my-matchmaking-partner-is-my-student:1");
+});
+
+test("querySeriesMeta: solo series keeps its raw release name", () => {
+  const db = hntSeriesDb();
+  const meta = querySeriesMeta(db, "solo-4700001");
+  assert.equal(meta.name, "[HentaiHub] Some Solo Release 720p");
+  assert.equal(meta.episodes.length, 1);
+  assert.equal(querySeriesMeta(db, "no-such-series"), null);
 });

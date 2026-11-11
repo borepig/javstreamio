@@ -180,6 +180,26 @@ export function isInFreeSet(db, id) {
 // series_key / episode_num are filled by addon/group_hentai_series.py.
 // Series id: "hnt:<series_key>"; episode id: "hnt:<series_key>:<episode_num>".
 
+// Derive a clean display name from a slugified series_key:
+// "my-matchmaking-partner-is-my-student" -> "My Matchmaking Partner Is My Student".
+// Quality tokens that survive in the slug (audio/eng/sub/web/dl/...) are
+// dropped so a series card doesn't read "… Audio Eng Sub".
+const SERIES_NAME_STOP = new Set([
+  "audio", "eng", "sub", "subs", "subbed", "dub", "dual", "vostfr", "final",
+  "web", "dl", "hd", "h264", "h265", "avc", "x264", "aac", "flac",
+  "1080p", "720p", "480p", "ov", "ova",
+]);
+
+export function seriesDisplayName(seriesKey) {
+  const key = String(seriesKey || "").trim();
+  if (!key) return "";
+  return key
+    .split("-")
+    .filter((w) => w && !SERIES_NAME_STOP.has(w.toLowerCase()))
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
 export function querySeriesList(db, { category, limit = 80, search = "" } = {}) {
   const cat = String(category || "").replace(/\.json$/, "");
   // Two-stage lookup: the old single query ran 3 correlated subqueries per
@@ -222,9 +242,11 @@ export function querySeriesList(db, { category, limit = 80, search = "" } = {}) 
   return seriesRows
     .map((r) => {
       const agg = byKey.get(r.series_key) || {};
+      const derived = r.series_key.startsWith("solo-") ? "" : seriesDisplayName(r.series_key);
       return {
         seriesKey: r.series_key,
-        name: agg.name || `hnt:${r.series_key}`,
+        // Clean display name from the slug; solo series keep their raw name.
+        name: derived || agg.name || `hnt:${r.series_key}`,
         poster: agg.poster || "",
         description: agg.description || "",
         epCount: Number(r.ep_count) || 0,
@@ -249,8 +271,13 @@ export function querySeriesMeta(db, seriesKey) {
     )
     .all(key);
   if (!rows.length) return null;
-  // Series name: the longest non-empty name among its rows (the informative one).
-  const name = rows.map((r) => r.name || "").sort((a, b) => b.length - a.length)[0] || `hnt:${key}`;
+  // Series name: a clean display name derived from the slug (hyphens ->
+  // spaces, quality tokens dropped). Solo series (single episode) keep the
+  // longest raw row name, which is more informative than "Solo 4742254".
+  const longestRowName = rows.map((r) => r.name || "").sort((a, b) => b.length - a.length)[0];
+  const name = key.startsWith("solo-")
+    ? longestRowName || `hnt:${key}`
+    : seriesDisplayName(key) || longestRowName || `hnt:${key}`;
   const description = rows.map((r) => r.description || "").sort((a, b) => b.length - a.length)[0];
   const poster = rows.find((r) => r.poster)?.poster || "";
   const episodes = rows.map((r) => ({
