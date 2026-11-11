@@ -465,6 +465,9 @@ export function bundledMeta(id) {
       description: row.description || "",
       poster: row.poster || "",
       runtime: row.runtime || "",
+      released: row.released || "",
+      releaseInfo: row.release_info || "",
+      imdbRating: row.imdb_rating || "",
     };
     if (row.stream_url) {
       meta.behaviorHints = { bingeGroup: `javstreamio-online-${row.name || "x"}` };
@@ -485,6 +488,9 @@ export function bundledMeta(id) {
         description: series.description || "",
         poster: series.poster || "",
         background: series.background || "",
+        releaseInfo: series.releaseInfo || "",
+        imdbRating: series.imdbRating || "",
+        genres: series.genres || [],
         episodes: (series.episodes || []).map((e) => ({ ...e })),
         behaviorHints: {
           // Point the default video at the first episode's id so Stremio Web

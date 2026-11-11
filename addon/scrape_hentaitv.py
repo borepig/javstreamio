@@ -98,6 +98,30 @@ def extract_video_object(html):
         return None
 
 
+def parse_info_grid(html):
+    """Parse the episode page's info-grid: Brand / Quality / Rating / Year / Language / Release date."""
+    out = {}
+    for k, v in re.findall(r'<div class="info-k">(.*?)</div><div class="info-v[^"]*">(.*?)</div>', html, re.S):
+        v = re.sub(r'<svg.*?</svg>', '', v, flags=re.S)
+        v = re.sub(r'<[^>]+>', '', v).strip()
+        out[k] = v
+    return out
+
+
+def parse_tag_row(html):
+    return re.findall(r'<a class="tag-chip" href="/genre/[^"]+">([^<]+)</a>', html)
+
+
+def build_release_info(info):
+    parts = []
+    for k in ("Brand", "Quality", "Rating", "Year", "Language", "Release date"):
+        v = info.get(k)
+        if v:
+            label = "Released" if k == "Release date" else k
+            parts.append(f"{label}: {v}")
+    return " • ".join(parts)
+
+
 def parse_episode_page(html):
     obj = extract_video_object(html)
     if not obj:
@@ -116,13 +140,24 @@ def parse_episode_page(html):
     thumb = first(obj.get("thumbnailUrl"))
     if thumb and not thumb.startswith("http"):
         thumb = "https://hentai.tv" + thumb
+    info = parse_info_grid(html)
+    tags = parse_tag_row(html)
+    if not tags:
+        tags = obj.get("genre") or []
     return {
         "name": clean_name,
         "description": first(obj.get("description", "")).replace("➨", "").replace("☝", "").strip(),
         "thumbnail": thumb,
         "released": first(obj.get("uploadDate", "")),
         "duration": iso_to_hms(duration),
-        "genres": obj.get("genre") or [],
+        "genres": tags,
+        "brand": info.get("Brand", ""),
+        "quality": info.get("Quality", ""),
+        "rating": info.get("Rating", ""),
+        "year": info.get("Year", ""),
+        "language": info.get("Language", ""),
+        "release_date": info.get("Release date", ""),
+        "release_info": build_release_info(info),
         "embed_url": first(obj.get("embedUrl", "")),
         "url": first(obj.get("url", "")),
     }
@@ -157,30 +192,39 @@ def nhplayer_urls(embed_url):
 def upsert_series(slug, series_info, episodes):
     d = db()
     n = len(episodes)
-    # series row: id hnt:<slug>, poster = episode-1 cover (user instruction)
-    released = min((e["released"] for e in episodes if e["released"]), default="")
+    # Series row: poster = episode-1 cover, description/released/release_info/rating
+    # all come from episode 1's page (user instruction).
+    ep1 = next((e for e in episodes if e["num"] == 1), episodes[0] if episodes else None)
+    released = ep1["released"] if ep1 else ""
+    release_info = ep1.get("release_info", "") if ep1 else ""
+    rating = ep1.get("rating", "") if ep1 else ""
+    description = ep1["description"] if ep1 else series_info["description"]
     genres = sorted({g for e in episodes for g in e["genres"]})
     d.execute(
         """
-        INSERT INTO titles (id, category, name, description, poster, background, released, runtime, series_key, episode_num, genres_json, posted_at, search_text)
-        VALUES (?, 'hentai', ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+        INSERT INTO titles (id, category, name, description, poster, background, released, runtime, series_key, episode_num, genres_json, release_info, imdb_rating, posted_at, search_text)
+        VALUES (?, 'hentai', ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           category = 'hentai', name = excluded.name,
           description = excluded.description, poster = excluded.poster,
           background = excluded.background, released = excluded.released,
           genres_json = excluded.genres_json,
+          release_info = excluded.release_info,
+          imdb_rating = excluded.imdb_rating,
           search_text = excluded.search_text
         """,
         (
             f"hnt:{slug}",
             series_info["title"] or slug,
-            series_info["description"],
+            description,
             series_info["poster"],
             series_info["poster"],
             released,
             "",
             slug,
             json.dumps(genres, ensure_ascii=False),
+            release_info,
+            rating,
             time.strftime("%Y-%m-%d"),
             f"hentai {slug} {series_info['title']} {json.dumps(genres, ensure_ascii=False)}",
         ),
@@ -188,13 +232,16 @@ def upsert_series(slug, series_info, episodes):
     for ep in episodes:
         d.execute(
             """
-            INSERT INTO titles (id, category, name, description, poster, background, released, runtime, series_key, episode_num, stream_url, posted_at, search_text)
-            VALUES (?, 'hentai', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO titles (id, category, name, description, poster, background, released, runtime, series_key, episode_num, stream_url, release_info, imdb_rating, genres_json, posted_at, search_text)
+            VALUES (?, 'hentai', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
               category = 'hentai', name = excluded.name,
               description = excluded.description, poster = excluded.poster,
               background = excluded.background, released = excluded.released,
               runtime = excluded.runtime, stream_url = excluded.stream_url,
+              release_info = excluded.release_info,
+              imdb_rating = excluded.imdb_rating,
+              genres_json = excluded.genres_json,
               search_text = excluded.search_text
             """,
             (
@@ -208,6 +255,9 @@ def upsert_series(slug, series_info, episodes):
                 slug,
                 ep["num"],
                 ep.get("mp4", ""),
+                ep.get("release_info", ""),
+                ep.get("rating", ""),
+                json.dumps(ep.get("genres", []), ensure_ascii=False),
                 time.strftime("%Y-%m-%d"),
                 f"hentai {slug} {ep['name']} {ep['description'][:80]}",
             ),
