@@ -151,8 +151,7 @@ export const FREE_CATALOG_SIZE = 15;
 // Paid-only categories: never part of the free tier — free users get an
 // empty catalog and 404 meta for these.
 export const PAID_ONLY_CATEGORIES = [
-  "hentai-censored",
-  "hentai-uncensored",
+  "hentai",
   // korean, chinese, hongkong stay paused: re-add their names here when
   // their metadata sources are vetted and redone.
 ];
