@@ -546,9 +546,11 @@ export function bundledStream(id) {
       description: item.name || "",
     });
   }
-  if (item.streamUrl) {
+  if (item.streamUrl && !epRef) {
     // Direct online playback: a plain http(s) mp4 the player can stream
-    // without a debrid key.
+    // without a debrid key. Hnt hentaistream mp4s (r2.1hanime.com) are
+    // Cloudflare-protected (403 without clearance), so hnt episodes rely
+    // on the debrid (e.g. PikPak) and P2P infoHash rows instead.
     streams.push({
       name: "Online",
       url: item.streamUrl,

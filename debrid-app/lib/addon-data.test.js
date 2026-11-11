@@ -333,25 +333,24 @@ test("GitHub raw posters (Chinese/Korean covers) allowed for the poster proxy", 
   );
 });
 
-test("bundledStream adds a direct Online row when stream_url exists", (t) => {
+test("hnt episodes keep the P2P infoHash row but skip the CF-protected Online row", (t) => {
   const file = resolveSqlitePath();
   if (!file) {
     t.skip("titles.sqlite not present");
     return;
   }
   const db = openTitlesDb(file);
+  // Episode-ref rows only (hnt:<key>:<n>); legacy hnt:nyaa-* rows keep the Online row.
   const row = db
-    .prepare("SELECT id FROM titles WHERE id LIKE 'hnt:%' AND stream_url != '' LIMIT 1")
+    .prepare("SELECT id FROM titles WHERE id GLOB 'hnt:*:*' AND stream_url != '' AND info_hash != '' LIMIT 1")
     .get();
   if (!row) {
-    t.skip("no hnt rows have stream_url yet (enrichment still running)");
+    t.skip("no hnt episode rows have stream_url + info_hash yet");
     return;
   }
   const body = bundledStream(row.id);
   const streams = (body && body.streams) || [];
-  const online = streams.find((s) => s.url);
-  assert.ok(online, "expected an Online row with a url");
-  assert.equal(online.name, "Online");
+  assert.equal(streams.find((s) => s.url), undefined, "hnt episodes must not emit the Online row");
   const p2p = streams.find((s) => s.infoHash);
   assert.ok(p2p, "expected the P2P infoHash row to remain");
 });

@@ -1,8 +1,8 @@
 {
   "id": "community.javstremio",
-  "version": "0.5.20",
+  "version": "0.5.21",
   "name": "Stremio JAV Database Addon",
-  "description": "Stremio JAV Database Addon 0.5.20. This is only a metadata scraper.",
+  "description": "Stremio JAV Database Addon 0.5.21. This is only a metadata scraper.",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
   "resources": [
     {
