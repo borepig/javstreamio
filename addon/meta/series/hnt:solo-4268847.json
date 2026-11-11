@@ -9,13 +9,15 @@
       "defaultVideoId": "hnt:solo-4268847:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:solo-4268847:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "A mysterious fire and a bullied girl committing suicide led her brother (Ryou Tezuka) to take matters into his own hands.\n\n\r\n\r\nKidnapping three girls -- Yukawa Ayano, Inami Misuzu, and Tsubaki Rina -- he rapes and tortures them to extract information on why they had to bully his sister? Why did she have to die?\n\n\r\n\r\nMisuzu Inami is a model that does well, Ayano Yukawa works as an actress in public entertainment, and Tsubaki Rina seemed to be his younger sister's best friend.\n\n\r\n\r\nThere is also the mystery of a journal hiding a dark past...\n\nStudio: Suzuki Mirano",
-        "poster": "https://hanime-cdn.com/images/covers/yabai-fukushuu-yami-site-1-cv3.png",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/yabai-fukushuu-yami-site-1-cv3.png",
+        "overview": "A mysterious fire and a bullied girl committing suicide led her brother (Ryou Tezuka) to take matters into his own hands.\n\n\r\n\r\nKidnapping three girls -- Yukawa Ayano, Inami Misuzu, and Tsubaki Rina -- he rapes and tortures them to extract information on why they had to bully his sister? Why did she have to die?\n\n\r\n\r\nMisuzu Inami is a model that does well, Ayano Yukawa works as an actress in public entertainment, and Tsubaki Rina seemed to be his younger sister's best friend.\n\n\r\n\r\nThere is also the mystery of a journal hiding a dark past...\n\nStudio: Suzuki Mirano",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2025-03-09T16:26:00.000Z"
       }

@@ -34,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.21"
+VERSION = "0.5.22"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -1597,6 +1597,9 @@ def main(use_javdb: bool = True) -> None:
             "hentai-censored" if entry["category"] == "hentai-censored" else "hentai-uncensored"
         )
         catalog_metas.setdefault(series_catalog, []).append(catalog_meta)
+        # stremio-core deserializes `videos` (not `episodes`), and each video
+        # uses the Video fields: title / thumbnail / overview / season /
+        # episode / released (RFC3339 — date-only strings break the client).
         series_meta = {
             "id": f"hnt:{key}",
             "type": "series",
@@ -1604,13 +1607,15 @@ def main(use_javdb: bool = True) -> None:
             "description": description,
             "poster": poster,
             "behaviorHints": {"defaultVideoId": f"hnt:{key}:1", "hasScheduledVideos": False},
-            "episodes": [
+            "videos": [
                 {
                     "id": e["id"],
                     "type": "episode",
-                    "name": e["name"],
-                    "description": e["description"],
-                    "poster": e["poster"],
+                    "title": e["name"],
+                    "thumbnail": e["poster"],
+                    "overview": e["description"],
+                    "season": 1,
+                    "episode": e["episode_num"],
                     "runtime": e["runtime"],
                     **({"released": e["released"]} if e["released"] else {}),
                 }

@@ -9,13 +9,15 @@
       "defaultVideoId": "hnt:solo-4714536:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:solo-4714536:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "The King of Hell had held Odin, the ruler of Norse gods, captured in the Land of the Dead with the help of Loki, the Trickster. The Valkyries failed to save him and ended up becoming sex slaves to the demons.\r\n\r\n\n\r\n\r\nAs a trade to free himself, Odin had the river source to the World Tree sealed, which will destroy the whole world. But before that, Loki had Freya, Chief of Valkyries, captured to counter Odin's plot.\r\n\r\n\n\r\n\r\nIn order to prevent the World Tree to fall, Loki have to find 2 keys which are protected by 2 invincible Valkyries - Sigurd & Suvia. And Loki turned his lustful attention on Suvia who was a Princess of Prishintia.\n\nStudio: Anime Antenna Iinkai",
-        "poster": "https://hanime-cdn.com/images/covers/ikusa-otome-suvia-4.jpg",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/ikusa-otome-suvia-4.jpg",
+        "overview": "The King of Hell had held Odin, the ruler of Norse gods, captured in the Land of the Dead with the help of Loki, the Trickster. The Valkyries failed to save him and ended up becoming sex slaves to the demons.\r\n\r\n\n\r\n\r\nAs a trade to free himself, Odin had the river source to the World Tree sealed, which will destroy the whole world. But before that, Loki had Freya, Chief of Valkyries, captured to counter Odin's plot.\r\n\r\n\n\r\n\r\nIn order to prevent the World Tree to fall, Loki have to find 2 keys which are protected by 2 invincible Valkyries - Sigurd & Suvia. And Loki turned his lustful attention on Suvia who was a Princess of Prishintia.\n\nStudio: Anime Antenna Iinkai",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-09-17T07:00:00.000Z"
       }

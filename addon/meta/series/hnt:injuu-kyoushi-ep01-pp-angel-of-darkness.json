@@ -9,13 +9,15 @@
       "defaultVideoId": "hnt:injuu-kyoushi-ep01-pp-angel-of-darkness:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:injuu-kyoushi-ep01-pp-angel-of-darkness:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "Atsuko and Sayaka think they have it made when they are both accepted into the same prestigious women's academy. There, they will be free to explore the intense passion of their relationship, unbounded.\n\nBut when the mystical bonds imprisoning a hideous ancient evil that feeds on the lust of nubile women are accidentally broken, the two young lovers soon learn they have more to fear than final exams.\n\nStudio: Pink Pineapple",
-        "poster": "https://hanime-cdn.com/images/covers/injuu-kyoushi-1-xyJzmBHySN.jpg",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/injuu-kyoushi-1-xyJzmBHySN.jpg",
+        "overview": "Atsuko and Sayaka think they have it made when they are both accepted into the same prestigious women's academy. There, they will be free to explore the intense passion of their relationship, unbounded.\n\nBut when the mystical bonds imprisoning a hideous ancient evil that feeds on the lust of nubile women are accidentally broken, the two young lovers soon learn they have more to fear than final exams.\n\nStudio: Pink Pineapple",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-04-15T16:27:00.000Z"
       }

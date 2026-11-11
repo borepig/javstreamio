@@ -9,13 +9,15 @@
       "defaultVideoId": "hnt:dyogrammaton-act-2:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:dyogrammaton-act-2:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "Based on a game by ClockUp.\n\nAn enormous monster appears and attacks the city, only to be thwarted by the amazingly voluptuous superheroines! Explosive action, dynamite sex scenes and battle royales take place in this futuristic flight of fantastic proportions that will make you cream in your pants!\n\nStudio: Discovery",
-        "poster": "https://hanime-cdn.com/images/covers/dyogrammaton-2-lzEct.jpg",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/dyogrammaton-2-lzEct.jpg",
+        "overview": "Based on a game by ClockUp.\n\nAn enormous monster appears and attacks the city, only to be thwarted by the amazingly voluptuous superheroines! Explosive action, dynamite sex scenes and battle royales take place in this futuristic flight of fantastic proportions that will make you cream in your pants!\n\nStudio: Discovery",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-11-03T08:01:00.000Z"
       }

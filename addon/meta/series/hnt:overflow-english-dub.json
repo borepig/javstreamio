@@ -9,22 +9,26 @@
       "defaultVideoId": "hnt:overflow-english-dub:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:overflow-english-dub:7",
         "type": "episode",
-        "name": "Episode 7",
-        "description": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
-        "poster": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "title": "Episode 7",
+        "thumbnail": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "overview": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
+        "season": 1,
+        "episode": 7,
         "runtime": "",
         "released": "2026-10-03T23:51:00.000Z"
       },
       {
         "id": "hnt:overflow-english-dub:8",
         "type": "episode",
-        "name": "Episode 8",
-        "description": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
-        "poster": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "title": "Episode 8",
+        "thumbnail": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "overview": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
+        "season": 1,
+        "episode": 8,
         "runtime": "",
         "released": "2026-10-12T14:41:00.000Z"
       }

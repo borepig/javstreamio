@@ -4,18 +4,20 @@
     "type": "series",
     "name": "English Hentai Complete Collection 2.0 | Plex | Hama | AniTag - Feb 15, 2026",
     "description": "English Hentai Complete Collection 2.0 | Plex | Hama | AniTag - Feb 15, 2026\n\nSource: Nyaa/Sukebei (hentai-censored)",
-    "poster": "",
+    "poster": "https://javstremio.ddns.net/posters/hnt/english-hentai-complete-collection-2-0-plex-hama-anitag-feb-15.svg",
     "behaviorHints": {
       "defaultVideoId": "hnt:english-hentai-complete-collection-2-0-plex-hama-anitag-feb-15:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:english-hentai-complete-collection-2-0-plex-hama-anitag-feb-15:2026",
         "type": "episode",
-        "name": "Episode 2026",
-        "description": "English Hentai Complete Collection 2.0 | Plex | Hama | AniTag - Feb 15, 2026\n\nSource: Nyaa/Sukebei (hentai-censored)",
-        "poster": "",
+        "title": "Episode 2026",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/english-hentai-complete-collection-2-0-plex-hama-anitag-feb-15.svg",
+        "overview": "English Hentai Complete Collection 2.0 | Plex | Hama | AniTag - Feb 15, 2026\n\nSource: Nyaa/Sukebei (hentai-censored)",
+        "season": 1,
+        "episode": 2026,
         "runtime": "",
         "released": "2026-02-16T21:50:00.000Z"
       }

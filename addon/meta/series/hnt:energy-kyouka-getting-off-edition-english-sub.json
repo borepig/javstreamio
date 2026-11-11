@@ -4,27 +4,31 @@
     "type": "series",
     "name": "[HentaiHub] Energy Kyouka Getting Off Edition S01E01 720p OV WEB-DL AAC2.0 H.264 (English-Sub)",
     "description": "[HentaiHub] Energy Kyouka Getting Off Edition S01E01 720p OV WEB-DL AAC2.0 H.264 (English-Sub)\n\nSource: Nyaa/Sukebei (157.2 MiB) (hentai-censored)",
-    "poster": "",
+    "poster": "https://javstremio.ddns.net/posters/hnt/energy-kyouka-getting-off-edition-english-sub.svg",
     "behaviorHints": {
       "defaultVideoId": "hnt:energy-kyouka-getting-off-edition-english-sub:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:energy-kyouka-getting-off-edition-english-sub:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "[HentaiHub] Energy Kyouka Getting Off Edition S01E01 720p OV WEB-DL AAC2.0 H.264 (English-Sub)\n\nSource: Nyaa/Sukebei (157.2 MiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 1",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/energy-kyouka-getting-off-edition-english-sub.svg",
+        "overview": "[HentaiHub] Energy Kyouka Getting Off Edition S01E01 720p OV WEB-DL AAC2.0 H.264 (English-Sub)\n\nSource: Nyaa/Sukebei (157.2 MiB) (hentai-censored)",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2025-04-19T14:01:00.000Z"
       },
       {
         "id": "hnt:energy-kyouka-getting-off-edition-english-sub:2",
         "type": "episode",
-        "name": "Episode 2",
-        "description": "[HentaiHub] Energy Kyouka Getting Off Edition S01E02 720p OV WEB-DL AAC2.0 H.264 (English-Sub)\n\nSource: Nyaa/Sukebei (154.5 MiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 2",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/energy-kyouka-getting-off-edition-english-sub.svg",
+        "overview": "[HentaiHub] Energy Kyouka Getting Off Edition S01E02 720p OV WEB-DL AAC2.0 H.264 (English-Sub)\n\nSource: Nyaa/Sukebei (154.5 MiB) (hentai-censored)",
+        "season": 1,
+        "episode": 2,
         "runtime": "",
         "released": "2025-04-19T14:02:00.000Z"
       }

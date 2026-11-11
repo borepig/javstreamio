@@ -9,13 +9,15 @@
       "defaultVideoId": "hnt:my-matchmaking-partner-is-my-student-s01-my-marriage-partner-is-my-student-a-cocky-troublemaker-omiai-aite-wa-oshiego-tsuyoki-na-mondaiji:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:my-matchmaking-partner-is-my-student-s01-my-marriage-partner-is-my-student-a-cocky-troublemaker-omiai-aite-wa-oshiego-tsuyoki-na-mondaiji:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "NOTE: This is an entire series of short episodes combined into one video.\n\nLate-blooming teacher Nana Saigawa goes to a matchmaker appointment only to find herself paired with a problem child student named Shuuji Kuga.\n\nStudio: Seven",
-        "poster": "https://hanime-cdn.com/images/covers/omiai-aite-wa-oshiego-season-1-c.jpg",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/omiai-aite-wa-oshiego-season-1-c.jpg",
+        "overview": "NOTE: This is an entire series of short episodes combined into one video.\n\nLate-blooming teacher Nana Saigawa goes to a matchmaker appointment only to find herself paired with a problem child student named Shuuji Kuga.\n\nStudio: Seven",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-10-21T11:10:00.000Z"
       }

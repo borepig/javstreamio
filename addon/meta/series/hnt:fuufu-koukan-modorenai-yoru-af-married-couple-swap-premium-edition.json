@@ -9,13 +9,15 @@
       "defaultVideoId": "hnt:fuufu-koukan-modorenai-yoru-af-married-couple-swap-premium-edition:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:fuufu-koukan-modorenai-yoru-af-married-couple-swap-premium-edition:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "Deciding to swap each other's partners is a risky play... will they ever be able to go back to \"normal\"?\n\nStudio: Studio Houkiboshi",
-        "poster": "https://hanime-cdn.com/images/covers/fuufu-koukan-modorenai-yoru-season-1-cv1.png",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/fuufu-koukan-modorenai-yoru-season-1-cv1.png",
+        "overview": "Deciding to swap each other's partners is a risky play... will they ever be able to go back to \"normal\"?\n\nStudio: Studio Houkiboshi",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2024-12-19T22:20:00.000Z"
       }

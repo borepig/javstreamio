@@ -4,18 +4,20 @@
     "type": "series",
     "name": "(C93) [オールドスクールアカデミー (飴玉りべる)] 不思議さんのHENTAI MAHOH (よろず) [DL版]",
     "description": "(C93) [オールドスクールアカデミー (飴玉りべる)] 不思議さんのHENTAI MAHOH (よろず) [DL版]\n\nSource: Nyaa/Sukebei (120.1 MiB) (hentai-censored)",
-    "poster": "",
+    "poster": "https://javstremio.ddns.net/posters/hnt/c93.svg",
     "behaviorHints": {
       "defaultVideoId": "hnt:c93:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:c93:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "(C93) [オールドスクールアカデミー (飴玉りべる)] 不思議さんのHENTAI MAHOH (よろず) [DL版]\n\nSource: Nyaa/Sukebei (120.1 MiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 1",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/c93.svg",
+        "overview": "(C93) [オールドスクールアカデミー (飴玉りべる)] 不思議さんのHENTAI MAHOH (よろず) [DL版]\n\nSource: Nyaa/Sukebei (120.1 MiB) (hentai-censored)",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2025-07-13T00:23:00.000Z"
       }

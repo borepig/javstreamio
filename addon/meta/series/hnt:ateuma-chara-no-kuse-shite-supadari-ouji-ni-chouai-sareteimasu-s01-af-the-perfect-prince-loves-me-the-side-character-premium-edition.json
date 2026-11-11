@@ -9,13 +9,15 @@
       "defaultVideoId": "hnt:ateuma-chara-no-kuse-shite-supadari-ouji-ni-chouai-sareteimasu-s01-af-the-perfect-prince-loves-me-the-side-character-premium-edition:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:ateuma-chara-no-kuse-shite-supadari-ouji-ni-chouai-sareteimasu-s01-af-the-perfect-prince-loves-me-the-side-character-premium-edition:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "After finding himself reincarnated into the world of a novel, Loneal goes to great lengths to steer clear of Prince Alec, the hero, to avoid disrupting the main storyline between Alec and the heroine, Lily. However, to Loneal's great surprise, the prince becomes infatuated with...him?!\n\nStudio: Studio Houkiboshi",
-        "poster": "https://hanime-cdn.com/images/covers/ateuma-chara-no-kuse-shite-season-1-cv1.png",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/ateuma-chara-no-kuse-shite-season-1-cv1.png",
+        "overview": "After finding himself reincarnated into the world of a novel, Loneal goes to great lengths to steer clear of Prince Alec, the hero, to avoid disrupting the main storyline between Alec and the heroine, Lily. However, to Loneal's great surprise, the prince becomes infatuated with...him?!\n\nStudio: Studio Houkiboshi",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2024-12-17T18:16:00.000Z"
       }

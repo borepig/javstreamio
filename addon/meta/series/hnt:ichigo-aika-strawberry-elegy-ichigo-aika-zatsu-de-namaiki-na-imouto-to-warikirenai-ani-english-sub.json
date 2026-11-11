@@ -9,13 +9,15 @@
       "defaultVideoId": "hnt:ichigo-aika-strawberry-elegy-ichigo-aika-zatsu-de-namaiki-na-imouto-to-warikirenai-ani-english-sub:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:ichigo-aika-strawberry-elegy-ichigo-aika-zatsu-de-namaiki-na-imouto-to-warikirenai-ani-english-sub:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "Kouta's step-sister from Dad's remarriage was a hardcore gal, the complete opposite of him...!\n\nEven after moving in together, Aika keeps bringing guys home and doing whatever she wants, driving Kouta crazy. But after a certain incident, she starts demanding hugs from him, and more...!?\n\nStudio: Studio Houkiboshi",
-        "poster": "https://hanime-cdn.com/images/covers/ichigo-aika-zatsu-de-namaiki-na-imouto-to-warikirenai-ani-season-1-cover_1784318790.webp",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/ichigo-aika-zatsu-de-namaiki-na-imouto-to-warikirenai-ani-season-1-cover_1784318790.webp",
+        "overview": "Kouta's step-sister from Dad's remarriage was a hardcore gal, the complete opposite of him...!\n\nEven after moving in together, Aika keeps bringing guys home and doing whatever she wants, driving Kouta crazy. But after a certain incident, she starts demanding hugs from him, and more...!?\n\nStudio: Studio Houkiboshi",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2025-12-12T09:16:00.000Z"
       }

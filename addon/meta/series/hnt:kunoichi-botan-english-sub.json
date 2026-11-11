@@ -9,22 +9,26 @@
       "defaultVideoId": "hnt:kunoichi-botan-english-sub:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:kunoichi-botan-english-sub:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "One night in a merchant's mansion, a kunoichi (female ninja) named Yasuzu\r\nis violated by a group of men under the effect of \"Aura of Ogre\", called \"Demi-Ogre\".\r\nAlthough she had kept her virginity, the Demi-Ogres keeps sexually tormenting Yasuzu.\r\nNow the only thing Yasuzu can think about is her senior kunoichi Botan who she has longed for.\n\nStudio: SELFISH",
-        "poster": "https://hanime-cdn.com/images/covers/kunoichi-botan-1.png",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/kunoichi-botan-1.png",
+        "overview": "One night in a merchant's mansion, a kunoichi (female ninja) named Yasuzu\r\nis violated by a group of men under the effect of \"Aura of Ogre\", called \"Demi-Ogre\".\r\nAlthough she had kept her virginity, the Demi-Ogres keeps sexually tormenting Yasuzu.\r\nNow the only thing Yasuzu can think about is her senior kunoichi Botan who she has longed for.\n\nStudio: SELFISH",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-02-10T15:12:00.000Z"
       },
       {
         "id": "hnt:kunoichi-botan-english-sub:2",
         "type": "episode",
-        "name": "Episode 2",
-        "description": "One night in a merchant's mansion, a kunoichi (female ninja) named Yasuzu\r\nis violated by a group of men under the effect of \"Aura of Ogre\", called \"Demi-Ogre\".\r\nAlthough she had kept her virginity, the Demi-Ogres keeps sexually tormenting Yasuzu.\r\nNow the only thing Yasuzu can think about is her senior kunoichi Botan who she has longed for.\n\nStudio: SELFISH",
-        "poster": "https://hanime-cdn.com/images/covers/kunoichi-botan-1.png",
+        "title": "Episode 2",
+        "thumbnail": "https://hanime-cdn.com/images/covers/kunoichi-botan-1.png",
+        "overview": "One night in a merchant's mansion, a kunoichi (female ninja) named Yasuzu\r\nis violated by a group of men under the effect of \"Aura of Ogre\", called \"Demi-Ogre\".\r\nAlthough she had kept her virginity, the Demi-Ogres keeps sexually tormenting Yasuzu.\r\nNow the only thing Yasuzu can think about is her senior kunoichi Botan who she has longed for.\n\nStudio: SELFISH",
+        "season": 1,
+        "episode": 2,
         "runtime": "",
         "released": "2026-02-10T15:12:00.000Z"
       }

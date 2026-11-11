@@ -259,6 +259,10 @@ export function querySeriesList(db, { category, limit = 80, offset = 0, search =
     });
 }
 
+// Video.released must be RFC3339 (stremio-core parses it as a DateTime);
+// date-only strings would fail deserialization and drop the whole meta.
+const RFC3339_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+
 export function querySeriesMeta(db, seriesKey) {
   const key = String(seriesKey || "").replace(/\.json$/, "");
   if (!key) return null;
@@ -294,19 +298,28 @@ export function querySeriesMeta(db, seriesKey) {
     ? (baseDesc ? `${baseDesc}\n\n${seriesRow.release_info}` : seriesRow.release_info)
     : baseDesc;
   // The series row is not an episode — keep only real episodes (episode_num > 0).
-  const episodes = rows
+  // stremio-core's MetaItem deserializes `videos` (the `episodes` key is
+  // ignored), and each video must use the Video fields: title / thumbnail /
+  // overview / season / episode / released (RFC3339).
+  const videos = rows
     .filter((r) => Number(r.episode_num) > 0)
-    .map((r) => ({
-      id: `hnt:${key}:${r.episode_num}`,
-      type: "episode",
-      name: `Episode ${r.episode_num}`,
-      poster: r.poster || "",
-      description: r.release_info
-        ? (r.description ? `${r.description}\n\n${r.release_info}` : r.release_info)
-        : (r.description || ""),
-      runtime: r.runtime || "",
-      genres: parseJsonArray(r.genres_json),
-    }));
+    .map((r) => {
+      const video = {
+        id: `hnt:${key}:${r.episode_num}`,
+        type: "episode",
+        title: `Episode ${r.episode_num}`,
+        thumbnail: r.poster || "",
+        overview: r.release_info
+          ? (r.description ? `${r.description}\n\n${r.release_info}` : r.release_info)
+          : (r.description || ""),
+        season: 1,
+        episode: Number(r.episode_num),
+        runtime: r.runtime || "",
+        genres: parseJsonArray(r.genres_json),
+      };
+      if (r.released && RFC3339_RE.test(r.released)) video.released = r.released;
+      return video;
+    });
   return {
     id: `hnt:${key}`,
     type: "series",
@@ -316,11 +329,11 @@ export function querySeriesMeta(db, seriesKey) {
     background,
     imdbRating: seriesRow?.imdb_rating || "",
     genres: parseJsonArray(seriesRow?.genres_json),
-    episodes,
+    videos,
     behaviorHints: {
       // Stremio Web must not fall back to "Season 0 / Episode 1" — point the
-      // default video at the first episode's id (episodes are sorted by episode_num).
-      defaultVideoId: (episodes[0] && episodes[0].id) || `hnt:${key}`,
+      // default video at the first video's id (videos are sorted by episode_num).
+      defaultVideoId: (videos[0] && videos[0].id) || `hnt:${key}`,
       hasScheduledVideos: false,
     },
   };

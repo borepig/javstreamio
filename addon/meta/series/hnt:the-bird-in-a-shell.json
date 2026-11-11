@@ -4,36 +4,42 @@
     "type": "series",
     "name": "[Doomdos] - The Bird in a Shell 4 [Reese Wenn Nefta] - 01 [Uncensored] [480p OV WEB-DL]",
     "description": "[Doomdos] - The Bird in a Shell 4 [Reese Wenn Nefta] - 01 [Uncensored] [480p OV WEB-DL]\n\nSource: Nyaa/Sukebei (hentai-uncensored)",
-    "poster": "",
+    "poster": "https://image.oceanveil.net/public/anime_titles/000/000000/000000508/000000508_vertical_with_logo.jpg.webp",
     "behaviorHints": {
       "defaultVideoId": "hnt:the-bird-in-a-shell:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:the-bird-in-a-shell:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "[Doomdos] - The Bird in a Shell [Final Chapter] - 01 [Uncensored] [1080p OV WEB-DL]\n\nSource: Nyaa/Sukebei (hentai-uncensored)",
-        "poster": "",
+        "title": "Episode 1",
+        "thumbnail": "https://image.oceanveil.net/public/anime_titles/000/000000/000000508/000000508_vertical_with_logo.jpg.webp",
+        "overview": "[Doomdos] - The Bird in a Shell [Final Chapter] - 01 [Uncensored] [1080p OV WEB-DL]\n\nSource: Nyaa/Sukebei (hentai-uncensored)",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-10-01T07:19:00.000Z"
       },
       {
         "id": "hnt:the-bird-in-a-shell:3",
         "type": "episode",
-        "name": "Episode 3",
-        "description": "[Doomdos] - The Bird in a Shell 3 [Aisha Farfaris] - 01 [Uncensored] [480p OV WEB-DL]\n\nSource: Nyaa/Sukebei (hentai-uncensored)",
-        "poster": "",
+        "title": "Episode 3",
+        "thumbnail": "https://image.oceanveil.net/public/anime_titles/000/000000/000000493/000000493_vertical_with_logo.jpg.webp",
+        "overview": "[Doomdos] - The Bird in a Shell 3 [Aisha Farfaris] - 01 [Uncensored] [480p OV WEB-DL]\n\nSource: Nyaa/Sukebei (hentai-uncensored)",
+        "season": 1,
+        "episode": 3,
         "runtime": "",
         "released": "2026-09-24T07:00:00.000Z"
       },
       {
         "id": "hnt:the-bird-in-a-shell:4",
         "type": "episode",
-        "name": "Episode 4",
-        "description": "[Doomdos] - The Bird in a Shell 4 [Reese Wenn Nefta] - 01 [Uncensored] [480p OV WEB-DL]\n\nSource: Nyaa/Sukebei (hentai-uncensored)",
-        "poster": "",
+        "title": "Episode 4",
+        "thumbnail": "https://image.oceanveil.net/public/anime_titles/000/000000/000000494/000000494_vertical_with_logo.jpg.webp",
+        "overview": "[Doomdos] - The Bird in a Shell 4 [Reese Wenn Nefta] - 01 [Uncensored] [480p OV WEB-DL]\n\nSource: Nyaa/Sukebei (hentai-uncensored)",
+        "season": 1,
+        "episode": 4,
         "runtime": "",
         "released": "2026-09-24T19:00:00.000Z"
       }

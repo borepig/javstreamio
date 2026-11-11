@@ -9,22 +9,26 @@
       "defaultVideoId": "hnt:how-to-build-a-magnificent-nation-subarashiki-kokka-no-kizukikata-english-sub:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:how-to-build-a-magnificent-nation-subarashiki-kokka-no-kizukikata-english-sub:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "Ariadne just became the princess of the small country Avon. But already it's in a deep financial crisis. In an effort to save the country she declares that Avon must focus on developing their sex industry.\n\nStudio: BOMB! CUTE! BOMB!",
-        "poster": "https://hanime-cdn.com/images/covers/subarashiki-kokka-no-kizukikata-1-cv2.png",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/subarashiki-kokka-no-kizukikata-1-cv2.png",
+        "overview": "Ariadne just became the princess of the small country Avon. But already it's in a deep financial crisis. In an effort to save the country she declares that Avon must focus on developing their sex industry.\n\nStudio: BOMB! CUTE! BOMB!",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-02-10T15:13:00.000Z"
       },
       {
         "id": "hnt:how-to-build-a-magnificent-nation-subarashiki-kokka-no-kizukikata-english-sub:2",
         "type": "episode",
-        "name": "Episode 2",
-        "description": "Ariadne just became the princess of the small country Avon. But already it's in a deep financial crisis. In an effort to save the country she declares that Avon must focus on developing their sex industry.\n\nStudio: BOMB! CUTE! BOMB!",
-        "poster": "https://hanime-cdn.com/images/covers/subarashiki-kokka-no-kizukikata-1-cv2.png",
+        "title": "Episode 2",
+        "thumbnail": "https://hanime-cdn.com/images/covers/subarashiki-kokka-no-kizukikata-1-cv2.png",
+        "overview": "Ariadne just became the princess of the small country Avon. But already it's in a deep financial crisis. In an effort to save the country she declares that Avon must focus on developing their sex industry.\n\nStudio: BOMB! CUTE! BOMB!",
+        "season": 1,
+        "episode": 2,
         "runtime": "",
         "released": "2026-02-10T15:13:00.000Z"
       }

@@ -196,7 +196,7 @@ test("querySeriesMeta orders episodes s01..sN and sets defaultVideoId", () => {
   const meta = querySeriesMeta(db, "my-matchmaking-partner-is-my-student");
   assert.equal(meta.type, "series");
   assert.equal(meta.name, "My Matchmaking Partner Is My Student");
-  assert.deepEqual(meta.episodes.map((e) => e.name), ["Episode 1", "Episode 2", "Episode 3"]);
+  assert.deepEqual(meta.videos.map((e) => e.title), ["Episode 1", "Episode 2", "Episode 3"]);
   assert.equal(meta.behaviorHints.defaultVideoId, "hnt:my-matchmaking-partner-is-my-student:1");
 });
 
@@ -204,7 +204,7 @@ test("querySeriesMeta: solo series keeps its raw release name", () => {
   const db = hntSeriesDb();
   const meta = querySeriesMeta(db, "solo-4700001");
   assert.equal(meta.name, "[HentaiHub] Some Solo Release 720p");
-  assert.equal(meta.episodes.length, 1);
+  assert.equal(meta.videos.length, 1);
   assert.equal(querySeriesMeta(db, "no-such-series"), null);
 });
 
@@ -249,7 +249,7 @@ test("querySeriesMeta excludes the series row (episode_num = 0) from episodes", 
   insert.run("hnt:sister-breeder:2", "hentai", "Sister Breeder Episode 2", "", "https://hentai.tv/uploads/ep2h.jpg", "sister-breeder", 2, "2026-11-11",
     "Brand: T Rex • Quality: 1080p • Rating: 9.7 • Year: 2025 • Language: English • Released: 2025-10-03", "9.7", JSON.stringify(["Big Boobs", "Blow Job"]));
   const meta = querySeriesMeta(db, "sister-breeder");
-  assert.deepEqual(meta.episodes.map((e) => e.name), ["Episode 1", "Episode 2"]);
+  assert.deepEqual(meta.videos.map((e) => e.title), ["Episode 1", "Episode 2"]);
   assert.equal(meta.behaviorHints.defaultVideoId, "hnt:sister-breeder:1");
   assert.equal(meta.poster, "https://hentai.tv/uploads/ep1.jpg");
   // The brand/quality/rating/year/language/release-date line lives in the
@@ -259,9 +259,9 @@ test("querySeriesMeta excludes the series row (episode_num = 0) from episodes", 
   assert.equal(meta.released, undefined);
   assert.equal(meta.imdbRating, "9.7");
   assert.deepEqual(meta.genres, ["Big Boobs", "Blow Job"]);
-  assert.deepEqual(meta.episodes[0].genres, ["Big Boobs", "Blow Job"]);
-  assert.match(meta.episodes[0].description, /Brand: T Rex • Quality: 1080p/);
-  assert.equal(meta.episodes[0].releaseInfo, undefined);
+  assert.deepEqual(meta.videos[0].genres, ["Big Boobs", "Blow Job"]);
+  assert.match(meta.videos[0].overview, /Brand: T Rex • Quality: 1080p/);
+  assert.equal(meta.videos[0].releaseInfo, undefined);
 });
 
 function hntPagingDb() {

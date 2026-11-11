@@ -4,45 +4,53 @@
     "type": "series",
     "name": "[HentaiHub] I Have No Money S01E01 720p OV WEB-DL AAC2.0 H.264 (Okane ga Nai, English-Sub)",
     "description": "[HentaiHub] I Have No Money S01E01 720p OV WEB-DL AAC2.0 H.264 (Okane ga Nai, English-Sub)\n\nSource: Nyaa/Sukebei (201.4 MiB) (hentai-censored)",
-    "poster": "",
+    "poster": "https://javstremio.ddns.net/posters/hnt/i-have-no-money-okane-ga-nai-english-sub.svg",
     "behaviorHints": {
       "defaultVideoId": "hnt:i-have-no-money-okane-ga-nai-english-sub:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:i-have-no-money-okane-ga-nai-english-sub:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "[HentaiHub] I Have No Money S01E01 720p OV WEB-DL AAC2.0 H.264 (Okane ga Nai, English-Sub)\n\nSource: Nyaa/Sukebei (201.4 MiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 1",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/i-have-no-money-okane-ga-nai-english-sub.svg",
+        "overview": "[HentaiHub] I Have No Money S01E01 720p OV WEB-DL AAC2.0 H.264 (Okane ga Nai, English-Sub)\n\nSource: Nyaa/Sukebei (201.4 MiB) (hentai-censored)",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-01-15T20:51:00.000Z"
       },
       {
         "id": "hnt:i-have-no-money-okane-ga-nai-english-sub:2",
         "type": "episode",
-        "name": "Episode 2",
-        "description": "[HentaiHub] I Have No Money S01E02 720p OV WEB-DL AAC2.0 H.264 (Okane ga Nai, English-Sub)\n\nSource: Nyaa/Sukebei (188.6 MiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 2",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/i-have-no-money-okane-ga-nai-english-sub.svg",
+        "overview": "[HentaiHub] I Have No Money S01E02 720p OV WEB-DL AAC2.0 H.264 (Okane ga Nai, English-Sub)\n\nSource: Nyaa/Sukebei (188.6 MiB) (hentai-censored)",
+        "season": 1,
+        "episode": 2,
         "runtime": "",
         "released": "2026-01-15T20:52:00.000Z"
       },
       {
         "id": "hnt:i-have-no-money-okane-ga-nai-english-sub:3",
         "type": "episode",
-        "name": "Episode 3",
-        "description": "[HentaiHub] I Have No Money S01E03 720p OV WEB-DL AAC2.0 H.264 (Okane ga Nai, English-Sub)\n\nSource: Nyaa/Sukebei (194.7 MiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 3",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/i-have-no-money-okane-ga-nai-english-sub.svg",
+        "overview": "[HentaiHub] I Have No Money S01E03 720p OV WEB-DL AAC2.0 H.264 (Okane ga Nai, English-Sub)\n\nSource: Nyaa/Sukebei (194.7 MiB) (hentai-censored)",
+        "season": 1,
+        "episode": 3,
         "runtime": "",
         "released": "2026-01-15T20:53:00.000Z"
       },
       {
         "id": "hnt:i-have-no-money-okane-ga-nai-english-sub:4",
         "type": "episode",
-        "name": "Episode 4",
-        "description": "[HentaiHub] I Have No Money S01E04 720p OV WEB-DL AAC2.0 H.264 (Okane ga Nai, English-Sub)\n\nSource: Nyaa/Sukebei (210.1 MiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 4",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/i-have-no-money-okane-ga-nai-english-sub.svg",
+        "overview": "[HentaiHub] I Have No Money S01E04 720p OV WEB-DL AAC2.0 H.264 (Okane ga Nai, English-Sub)\n\nSource: Nyaa/Sukebei (210.1 MiB) (hentai-censored)",
+        "season": 1,
+        "episode": 4,
         "runtime": "",
         "released": "2026-01-15T20:54:00.000Z"
       }

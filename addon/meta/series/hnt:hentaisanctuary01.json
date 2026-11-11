@@ -4,45 +4,53 @@
     "type": "series",
     "name": "[Patreon] HentaiSanctuary01 - Kafka, Firefly and Silver Wolf - Honkai Star Rail",
     "description": "[Patreon] HentaiSanctuary01 - Kafka, Firefly and Silver Wolf - Honkai Star Rail\n\nSource: Nyaa/Sukebei (4.2 GiB) (hentai-censored)",
-    "poster": "",
+    "poster": "https://javstremio.ddns.net/posters/hnt/hentaisanctuary01.svg",
     "behaviorHints": {
       "defaultVideoId": "hnt:hentaisanctuary01:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:hentaisanctuary01:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "[Patreon] HentaiSanctuary01 - Hsin\n\nSource: Nyaa/Sukebei (2.7 GiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 1",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/hentaisanctuary01.svg",
+        "overview": "[Patreon] HentaiSanctuary01 - Hsin\n\nSource: Nyaa/Sukebei (2.7 GiB) (hentai-censored)",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-11-02T12:42:00.000Z"
       },
       {
         "id": "hnt:hentaisanctuary01:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "[Patreon] HentaiSanctuary01 - Kasane Teto\n\nSource: Nyaa/Sukebei (2.2 GiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 1",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/hentaisanctuary01.svg",
+        "overview": "[Patreon] HentaiSanctuary01 - Kasane Teto\n\nSource: Nyaa/Sukebei (2.2 GiB) (hentai-censored)",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-10-31T04:16:00.000Z"
       },
       {
         "id": "hnt:hentaisanctuary01:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "[Patreon] HentaiSanctuary01 - Yuno Gasai - Future Diary\n\nSource: Nyaa/Sukebei (4.0 GiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 1",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/hentaisanctuary01.svg",
+        "overview": "[Patreon] HentaiSanctuary01 - Yuno Gasai - Future Diary\n\nSource: Nyaa/Sukebei (4.0 GiB) (hentai-censored)",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-10-23T07:56:00.000Z"
       },
       {
         "id": "hnt:hentaisanctuary01:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "[Patreon] HentaiSanctuary01 - Kafka, Firefly and Silver Wolf - Honkai Star Rail\n\nSource: Nyaa/Sukebei (4.2 GiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 1",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/hentaisanctuary01.svg",
+        "overview": "[Patreon] HentaiSanctuary01 - Kafka, Firefly and Silver Wolf - Honkai Star Rail\n\nSource: Nyaa/Sukebei (4.2 GiB) (hentai-censored)",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-10-18T11:21:00.000Z"
       }

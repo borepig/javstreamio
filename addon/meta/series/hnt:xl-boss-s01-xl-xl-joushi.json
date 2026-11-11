@@ -9,22 +9,26 @@
       "defaultVideoId": "hnt:xl-boss-s01-xl-xl-joushi:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:xl-boss-s01-xl-xl-joushi:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "After receiving a package filled with XL Size condoms as part of a work assignment, Saki somehow ends up at home with her co-worker Keisuke and he just so happens to be able to fit an \"XL\", so he decides to \"help her out\" with her assignment.\n\nStudio: Magic Bus",
-        "poster": "https://hanime-cdn.com/images/covers/xl-joushi-season-1-cv1.png",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/xl-joushi-season-1-cv1.png",
+        "overview": "After receiving a package filled with XL Size condoms as part of a work assignment, Saki somehow ends up at home with her co-worker Keisuke and he just so happens to be able to fit an \"XL\", so he decides to \"help her out\" with her assignment.\n\nStudio: Magic Bus",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-10-21T11:20:00.000Z"
       },
       {
         "id": "hnt:xl-boss-s01-xl-xl-joushi:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "After receiving a package filled with XL Size condoms as part of a work assignment, Saki somehow ends up at home with her co-worker Keisuke and he just so happens to be able to fit an \"XL\", so he decides to \"help her out\" with her assignment.\n\nStudio: Magic Bus",
-        "poster": "https://hanime-cdn.com/images/covers/xl-joushi-season-1-cv1.png",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/xl-joushi-season-1-cv1.png",
+        "overview": "After receiving a package filled with XL Size condoms as part of a work assignment, Saki somehow ends up at home with her co-worker Keisuke and he just so happens to be able to fit an \"XL\", so he decides to \"help her out\" with her assignment.\n\nStudio: Magic Bus",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-10-21T11:17:00.000Z"
       }

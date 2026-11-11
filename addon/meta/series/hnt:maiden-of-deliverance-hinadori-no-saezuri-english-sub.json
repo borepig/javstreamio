@@ -9,22 +9,26 @@
       "defaultVideoId": "hnt:maiden-of-deliverance-hinadori-no-saezuri-english-sub:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:maiden-of-deliverance-hinadori-no-saezuri-english-sub:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "Dred Burton was a railroad tycoon who lived in a mansion with many maids who were used to serve the guests of the house. Now he's dead, but there's a new boss in town and she is just as bad as he was. The Maids are being forced into even more bizarre and debaucherous situations than ever before. How far will things go? When will the pleasurable tortures end?\n\nStudio: Discovery",
-        "poster": "https://hanime-cdn.com/images/covers/hinadori-no-saezuri-1-cv1.png",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/hinadori-no-saezuri-1-cv1.png",
+        "overview": "Dred Burton was a railroad tycoon who lived in a mansion with many maids who were used to serve the guests of the house. Now he's dead, but there's a new boss in town and she is just as bad as he was. The Maids are being forced into even more bizarre and debaucherous situations than ever before. How far will things go? When will the pleasurable tortures end?\n\nStudio: Discovery",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-01-15T20:56:00.000Z"
       },
       {
         "id": "hnt:maiden-of-deliverance-hinadori-no-saezuri-english-sub:2",
         "type": "episode",
-        "name": "Episode 2",
-        "description": "Dred Burton was a railroad tycoon who lived in a mansion with many maids who were used to serve the guests of the house. Now he's dead, but there's a new boss in town and she is just as bad as he was. The Maids are being forced into even more bizarre and debaucherous situations than ever before. How far will things go? When will the pleasurable tortures end?\n\nStudio: Discovery",
-        "poster": "https://hanime-cdn.com/images/covers/hinadori-no-saezuri-1-cv1.png",
+        "title": "Episode 2",
+        "thumbnail": "https://hanime-cdn.com/images/covers/hinadori-no-saezuri-1-cv1.png",
+        "overview": "Dred Burton was a railroad tycoon who lived in a mansion with many maids who were used to serve the guests of the house. Now he's dead, but there's a new boss in town and she is just as bad as he was. The Maids are being forced into even more bizarre and debaucherous situations than ever before. How far will things go? When will the pleasurable tortures end?\n\nStudio: Discovery",
+        "season": 1,
+        "episode": 2,
         "runtime": "",
         "released": "2026-01-15T20:56:00.000Z"
       }

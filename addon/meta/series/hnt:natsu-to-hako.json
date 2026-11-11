@@ -9,13 +9,15 @@
       "defaultVideoId": "hnt:natsu-to-hako:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:natsu-to-hako:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "Stuck in this phone booth with this country bumpkin, what else could possibly go wrong?\n\nOh. his dick is out.\n\nStudio: New Generation",
-        "poster": "https://hanime-cdn.com/images/covers/natsu-to-hako-1-cv1.webp",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/natsu-to-hako-1-cv1.webp",
+        "overview": "Stuck in this phone booth with this country bumpkin, what else could possibly go wrong?\n\nOh. his dick is out.\n\nStudio: New Generation",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-01-24T11:00:00.000Z"
       }

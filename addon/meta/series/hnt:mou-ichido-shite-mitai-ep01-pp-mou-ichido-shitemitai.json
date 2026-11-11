@@ -4,18 +4,20 @@
     "type": "series",
     "name": "[HentaiHub] Mou Ichido, Shite Mitai EP01 1080p PP WEB-DL AAC2.0 H.264 | Mou Ichido, Shitemitai. - 01 [Raw]",
     "description": "[HentaiHub] Mou Ichido, Shite Mitai EP01 1080p PP WEB-DL AAC2.0 H.264 | Mou Ichido, Shitemitai. - 01 [Raw]\n\nSource: Nyaa/Sukebei (1.2 GiB) (hentai-censored)",
-    "poster": "",
+    "poster": "https://javstremio.ddns.net/posters/hnt/mou-ichido-shite-mitai-ep01-pp-mou-ichido-shitemitai.svg",
     "behaviorHints": {
       "defaultVideoId": "hnt:mou-ichido-shite-mitai-ep01-pp-mou-ichido-shitemitai:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:mou-ichido-shite-mitai-ep01-pp-mou-ichido-shitemitai:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "[HentaiHub] Mou Ichido, Shite Mitai EP01 1080p PP WEB-DL AAC2.0 H.264 | Mou Ichido, Shitemitai. - 01 [Raw]\n\nSource: Nyaa/Sukebei (1.2 GiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 1",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/mou-ichido-shite-mitai-ep01-pp-mou-ichido-shitemitai.svg",
+        "overview": "[HentaiHub] Mou Ichido, Shite Mitai EP01 1080p PP WEB-DL AAC2.0 H.264 | Mou Ichido, Shitemitai. - 01 [Raw]\n\nSource: Nyaa/Sukebei (1.2 GiB) (hentai-censored)",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-04-10T23:18:00.000Z"
       }

@@ -9,13 +9,15 @@
       "defaultVideoId": "hnt:reika-wa-karei-na-boku-no-joou-the-animation-ep01-pp-reika-wa-karei-na-boku-no-joou-the-animation:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:reika-wa-karei-na-boku-no-joou-the-animation-ep01-pp-reika-wa-karei-na-boku-no-joou-the-animation:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "Reiji was an ordinary college student, but the inheritance he received from his father was a large mansion and a gorgeous maid named Reika!\n\nStudio: Seven",
-        "poster": "https://hanime-cdn.com/images/covers/reika-wa-karei-na-boku-no-joou-1-cv1.webp",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/reika-wa-karei-na-boku-no-joou-1-cv1.webp",
+        "overview": "Reiji was an ordinary college student, but the inheritance he received from his father was a large mansion and a gorgeous maid named Reika!\n\nStudio: Seven",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-04-10T23:44:00.000Z"
       }

@@ -9,49 +9,59 @@
       "defaultVideoId": "hnt:overflow:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:overflow:4",
         "type": "episode",
-        "name": "Episode 4",
-        "description": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
-        "poster": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "title": "Episode 4",
+        "thumbnail": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "overview": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
+        "season": 1,
+        "episode": 4,
         "runtime": "",
         "released": "2026-09-12T23:00:00.000Z"
       },
       {
         "id": "hnt:overflow:5",
         "type": "episode",
-        "name": "Episode 5",
-        "description": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
-        "poster": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "title": "Episode 5",
+        "thumbnail": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "overview": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
+        "season": 1,
+        "episode": 5,
         "runtime": "",
         "released": "2026-09-19T23:00:00.000Z"
       },
       {
         "id": "hnt:overflow:6",
         "type": "episode",
-        "name": "Episode 6",
-        "description": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
-        "poster": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "title": "Episode 6",
+        "thumbnail": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "overview": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
+        "season": 1,
+        "episode": 6,
         "runtime": "",
         "released": "2026-09-26T23:00:00.000Z"
       },
       {
         "id": "hnt:overflow:7",
         "type": "episode",
-        "name": "Episode 7",
-        "description": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
-        "poster": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "title": "Episode 7",
+        "thumbnail": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "overview": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
+        "season": 1,
+        "episode": 7,
         "runtime": "",
         "released": "2026-10-03T23:00:00.000Z"
       },
       {
         "id": "hnt:overflow:8",
         "type": "episode",
-        "name": "Episode 8",
-        "description": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
-        "poster": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "title": "Episode 8",
+        "thumbnail": "https://hanime-cdn.com/images/covers/overflow-season-1-cv2.png",
+        "overview": "\"Brother, are we really taking a bath together?\"\n\n\r\n\r\nAnd so, a forbidden bathing experience began. Me, my sister, and childhood friend—one man and two women—are sharing one bath. After involuntarily \"overflowing,\" the sister's secret love comes out?!\n\nStudio: Studio Houkiboshi",
+        "season": 1,
+        "episode": 8,
         "runtime": "",
         "released": "2026-10-10T23:00:00.000Z"
       }

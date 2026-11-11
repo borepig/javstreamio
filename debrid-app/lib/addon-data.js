@@ -214,9 +214,14 @@ export function withPublicPosters(body, kind, origin = "") {
   }
   if (kind === "meta" && body.meta) {
     const meta = applyPublicArt(body.meta, "meta", origin);
-    if (Array.isArray(meta.episodes)) {
-      // Series meta: rewrite each episode's poster the same way.
-      meta.episodes = meta.episodes.map((ep) => applyPublicArt(ep, "meta", origin));
+    if (Array.isArray(meta.videos)) {
+      // Series meta: apply public-art rules to each video; keep the
+      // thumbnail only when its host is on the public allowlist.
+      meta.videos = meta.videos.map((v) => {
+        const nv = applyPublicArt(v, "meta", origin);
+        if (nv.thumbnail && !isPublicArtUrl(nv.thumbnail)) delete nv.thumbnail;
+        return nv;
+      });
     }
     return { ...body, meta };
   }
@@ -491,11 +496,13 @@ export function bundledMeta(id) {
         background: series.background || "",
         imdbRating: series.imdbRating || "",
         genres: series.genres || [],
-        episodes: (series.episodes || []).map((e) => ({ ...e })),
+        // stremio-core reads `videos`, not `episodes` — keep the key the
+        // client actually deserializes.
+        videos: (series.videos || []).map((v) => ({ ...v })),
         behaviorHints: {
-          // Point the default video at the first episode's id so Stremio Web
+          // Point the default video at the first video's id so Stremio Web
           // auto-selects Episode 1 instead of falling back to Season 0.
-          defaultVideoId: (series.episodes && series.episodes[0] && series.episodes[0].id) || series.id,
+          defaultVideoId: (series.videos && series.videos[0] && series.videos[0].id) || series.id,
           hasScheduledVideos: false,
         },
       };

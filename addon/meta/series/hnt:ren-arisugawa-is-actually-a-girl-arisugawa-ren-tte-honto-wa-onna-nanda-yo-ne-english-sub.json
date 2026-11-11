@@ -9,22 +9,26 @@
       "defaultVideoId": "hnt:ren-arisugawa-is-actually-a-girl-arisugawa-ren-tte-honto-wa-onna-nanda-yo-ne-english-sub:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:ren-arisugawa-is-actually-a-girl-arisugawa-ren-tte-honto-wa-onna-nanda-yo-ne-english-sub:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "Kyouhei's only brush with fame is being the cousin of Japan's hottest male celebrity, Arisugawa Ren. They haven't spoken in years—until Ren suddenly shows up at Kyouhei's rundown apartment out of the blue! But when Kyouhei accidentally discovers Ren's biggest secret... everything changes.\n\nRen may be the picture of cool confidence on stage, but off-camera, \"he\" is actually a she—and surprisingly adorable?!\n\nStudio: Studio LEO",
-        "poster": "https://hanime-cdn.com/images/covers/arisugawa-ren-tte-honto-wa-onna-nanda-yo-ne-season-1-cv1_1793489258.webp",
+        "title": "Episode 1",
+        "thumbnail": "https://hanime-cdn.com/images/covers/arisugawa-ren-tte-honto-wa-onna-nanda-yo-ne-season-1-cv1_1793489258.webp",
+        "overview": "Kyouhei's only brush with fame is being the cousin of Japan's hottest male celebrity, Arisugawa Ren. They haven't spoken in years—until Ren suddenly shows up at Kyouhei's rundown apartment out of the blue! But when Kyouhei accidentally discovers Ren's biggest secret... everything changes.\n\nRen may be the picture of cool confidence on stage, but off-camera, \"he\" is actually a she—and surprisingly adorable?!\n\nStudio: Studio LEO",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2025-12-12T09:18:00.000Z"
       },
       {
         "id": "hnt:ren-arisugawa-is-actually-a-girl-arisugawa-ren-tte-honto-wa-onna-nanda-yo-ne-english-sub:6",
         "type": "episode",
-        "name": "Episode 6",
-        "description": "Kyouhei's only brush with fame is being the cousin of Japan's hottest male celebrity, Arisugawa Ren. They haven't spoken in years—until Ren suddenly shows up at Kyouhei's rundown apartment out of the blue! But when Kyouhei accidentally discovers Ren's biggest secret... everything changes.\n\nRen may be the picture of cool confidence on stage, but off-camera, \"he\" is actually a she—and surprisingly adorable?!\n\nStudio: Studio LEO",
-        "poster": "https://hanime-cdn.com/images/covers/arisugawa-ren-tte-honto-wa-onna-nanda-yo-ne-season-1-cv1_1793489258.webp",
+        "title": "Episode 6",
+        "thumbnail": "https://hanime-cdn.com/images/covers/arisugawa-ren-tte-honto-wa-onna-nanda-yo-ne-season-1-cv1_1793489258.webp",
+        "overview": "Kyouhei's only brush with fame is being the cousin of Japan's hottest male celebrity, Arisugawa Ren. They haven't spoken in years—until Ren suddenly shows up at Kyouhei's rundown apartment out of the blue! But when Kyouhei accidentally discovers Ren's biggest secret... everything changes.\n\nRen may be the picture of cool confidence on stage, but off-camera, \"he\" is actually a she—and surprisingly adorable?!\n\nStudio: Studio LEO",
+        "season": 1,
+        "episode": 6,
         "runtime": "",
         "released": "2026-02-15T18:11:00.000Z"
       }

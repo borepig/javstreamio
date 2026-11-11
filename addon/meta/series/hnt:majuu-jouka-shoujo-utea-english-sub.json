@@ -9,22 +9,26 @@
       "defaultVideoId": "hnt:majuu-jouka-shoujo-utea-english-sub:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:majuu-jouka-shoujo-utea-english-sub:3",
         "type": "episode",
-        "name": "Episode 3",
-        "description": "Karen and Mizuki are magical Utea girls who protect the world from evil aliens. How do they go about doing that? By letting the beasts fuck their brains out of course!\n\nStudio: Edge",
-        "poster": "https://hanime-cdn.com/images/covers/majuu-jouka-shoujo-utea-1.jpg",
+        "title": "Episode 3",
+        "thumbnail": "https://hanime-cdn.com/images/covers/majuu-jouka-shoujo-utea-1.jpg",
+        "overview": "Karen and Mizuki are magical Utea girls who protect the world from evil aliens. How do they go about doing that? By letting the beasts fuck their brains out of course!\n\nStudio: Edge",
+        "season": 1,
+        "episode": 3,
         "runtime": "",
         "released": "2025-04-19T13:50:00.000Z"
       },
       {
         "id": "hnt:majuu-jouka-shoujo-utea-english-sub:4",
         "type": "episode",
-        "name": "Episode 4",
-        "description": "Karen and Mizuki are magical Utea girls who protect the world from evil aliens. How do they go about doing that? By letting the beasts fuck their brains out of course!\n\nStudio: Edge",
-        "poster": "https://hanime-cdn.com/images/covers/majuu-jouka-shoujo-utea-1.jpg",
+        "title": "Episode 4",
+        "thumbnail": "https://hanime-cdn.com/images/covers/majuu-jouka-shoujo-utea-1.jpg",
+        "overview": "Karen and Mizuki are magical Utea girls who protect the world from evil aliens. How do they go about doing that? By letting the beasts fuck their brains out of course!\n\nStudio: Edge",
+        "season": 1,
+        "episode": 4,
         "runtime": "",
         "released": "2025-04-19T13:52:00.000Z"
       }

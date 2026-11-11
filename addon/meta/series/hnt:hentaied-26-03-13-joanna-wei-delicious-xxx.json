@@ -4,18 +4,20 @@
     "type": "series",
     "name": "Hentaied.26.03.13.Joanna.Wei.Delicious.XXX.1080p",
     "description": "Hentaied.26.03.13.Joanna.Wei.Delicious.XXX.1080p\n\nSource: Nyaa/Sukebei (253.4 MiB) (hentai-censored)",
-    "poster": "",
+    "poster": "https://javstremio.ddns.net/posters/hnt/hentaied-26-03-13-joanna-wei-delicious-xxx.svg",
     "behaviorHints": {
       "defaultVideoId": "hnt:hentaied-26-03-13-joanna-wei-delicious-xxx:1",
       "hasScheduledVideos": false
     },
-    "episodes": [
+    "videos": [
       {
         "id": "hnt:hentaied-26-03-13-joanna-wei-delicious-xxx:1",
         "type": "episode",
-        "name": "Episode 1",
-        "description": "Hentaied.26.03.13.Joanna.Wei.Delicious.XXX.1080p\n\nSource: Nyaa/Sukebei (253.4 MiB) (hentai-censored)",
-        "poster": "",
+        "title": "Episode 1",
+        "thumbnail": "https://javstremio.ddns.net/posters/hnt/hentaied-26-03-13-joanna-wei-delicious-xxx.svg",
+        "overview": "Hentaied.26.03.13.Joanna.Wei.Delicious.XXX.1080p\n\nSource: Nyaa/Sukebei (253.4 MiB) (hentai-censored)",
+        "season": 1,
+        "episode": 1,
         "runtime": "",
         "released": "2026-03-20T06:21:00.000Z"
       }
