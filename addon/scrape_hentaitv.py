@@ -51,7 +51,10 @@ def get(url, delay=True):
 
 def b64url(v):
     pad = "=" * (-len(v) % 4)
-    return base64.b64decode(v + pad).decode()
+    try:
+        return base64.b64decode(v + pad).decode()
+    except Exception:
+        return ""
 
 
 def series_slugs_page(page):
@@ -125,7 +128,15 @@ def build_release_info(info):
 def parse_episode_page(html):
     obj = extract_video_object(html)
     if not obj:
-        return {}
+        # No VideoObject in the RSC payload (e.g. some hentai.tv episode pages).
+        # Return a fully-keyed default dict so the series still writes a row
+        # with empty fields instead of crashing on ep["name"] and being skipped.
+        return {
+            "name": "", "description": "", "thumbnail": "", "released": "",
+            "duration": "", "genres": [], "brand": "", "quality": "",
+            "rating": "", "year": "", "language": "", "release_date": "",
+            "release_info": "", "embed_url": "", "url": "",
+        }
     def first(v):
         if isinstance(v, list):
             return v[0] if v else ""
@@ -177,9 +188,12 @@ def iso_to_hms(isodur):
 
 def nhplayer_urls(embed_url):
     """Decode the base64 video/subtitle urls from the nhplayer page."""
-    if not embed_url:
+    if not embed_url or not embed_url.startswith("http"):
         return "", ""
-    html = get(embed_url, delay=True)
+    try:
+        html = get(embed_url, delay=True)
+    except Exception:
+        return "", ""
     m = re.search(r'data-id="([^"]+)"', html)
     if not m:
         return "", ""
