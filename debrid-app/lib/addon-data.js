@@ -477,6 +477,7 @@ export function bundledMeta(id) {
         name: series.name,
         description: series.description || "",
         poster: series.poster || "",
+        background: series.background || "",
         episodes: (series.episodes || []).map((e) => ({ ...e })),
         behaviorHints: {
           // Point the default video at the first episode's id so Stremio Web

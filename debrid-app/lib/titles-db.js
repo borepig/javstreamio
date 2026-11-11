@@ -265,7 +265,7 @@ export function querySeriesMeta(db, seriesKey) {
   if (!key) return null;
   const rows = db
     .prepare(
-      `SELECT id, name, description, poster, runtime, info_hash, stream_url, episode_num
+      `SELECT id, name, description, poster, background, runtime, info_hash, stream_url, episode_num
        FROM titles WHERE series_key = ? AND category LIKE 'hentai%'
        ORDER BY episode_num ASC`
     )
@@ -280,6 +280,7 @@ export function querySeriesMeta(db, seriesKey) {
     : seriesDisplayName(key) || longestRowName || `hnt:${key}`;
   const description = rows.map((r) => r.description || "").sort((a, b) => b.length - a.length)[0];
   const poster = rows.find((r) => r.poster)?.poster || "";
+  const background = rows.find((r) => r.background)?.background || poster;
   const episodes = rows.map((r) => ({
     id: `hnt:${key}:${r.episode_num}`,
     type: "episode",
@@ -294,6 +295,7 @@ export function querySeriesMeta(db, seriesKey) {
     name,
     description: description || "",
     poster,
+    background,
     episodes,
     behaviorHints: {
       // Stremio Web must not fall back to "Season 0 / Episode 1" — point the

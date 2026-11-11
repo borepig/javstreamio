@@ -137,6 +137,7 @@ function hntSeriesDb() {
       name TEXT NOT NULL,
       description TEXT DEFAULT '',
       poster TEXT DEFAULT '',
+      background TEXT DEFAULT '',
       runtime TEXT DEFAULT '',
       info_hash TEXT DEFAULT '',
       stream_url TEXT DEFAULT '',
@@ -201,4 +202,12 @@ test("querySeriesMeta: solo series keeps its raw release name", () => {
   assert.equal(meta.name, "[HentaiHub] Some Solo Release 720p");
   assert.equal(meta.episodes.length, 1);
   assert.equal(querySeriesMeta(db, "no-such-series"), null);
+});
+
+test("querySeriesMeta: fanart (background) falls back to the series poster", () => {
+  const db = hntSeriesDb();
+  const meta = querySeriesMeta(db, "my-matchmaking-partner-is-my-student");
+  // No row carries a background, so the series poster is used as fanart.
+  assert.equal(meta.background, "https://example.com/p1.jpg");
+  assert.equal(meta.poster, "https://example.com/p1.jpg");
 });
