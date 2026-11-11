@@ -68,6 +68,33 @@ test("public art rejects Vercel and forum hosts", () => {
   assert.equal(isPublicArtUrl("https://raw.githubusercontent.com/borepig/javstreamio/main/posters/kr/krijav-2123.jpg"), true);
 });
 
+test("public art accepts hnt SVG cards and oceanveil covers", () => {
+  assert.equal(isPublicArtUrl("https://javstremio.ddns.net/posters/hnt/18yo.svg"), true);
+  assert.equal(isPublicArtUrl("https://image.oceanveil.net/public/anime_titles/000/000000533/000000533_vertical_with_logo.jpg.webp"), true);
+});
+
+test("withPublicPosters keeps hnt series poster and fanart", () => {
+  const seriesMeta = {
+    meta: {
+      id: "hnt:18yo",
+      type: "series",
+      name: "18yo",
+      poster: "https://javstremio.ddns.net/posters/hnt/18yo.svg",
+      background: "https://javstremio.ddns.net/posters/hnt/18yo.svg",
+    },
+  };
+  const out = withPublicPosters(seriesMeta, "meta", "https://javstremio.ddns.net");
+  assert.equal(out.meta.poster, "https://javstremio.ddns.net/posters/hnt/18yo.svg");
+  assert.equal(out.meta.background, "https://javstremio.ddns.net/posters/hnt/18yo.svg");
+
+  const catalog = withPublicPosters(
+    { metas: [{ id: "hnt:18yo", type: "series", name: "18yo", poster: "https://javstremio.ddns.net/posters/hnt/18yo.svg" }] },
+    "catalog",
+    "https://javstremio.ddns.net",
+  );
+  assert.equal(catalog.metas[0].poster, "https://javstremio.ddns.net/posters/hnt/18yo.svg");
+});
+
 test("bundledMeta keeps JavDB cast and plot", async () => {
   const { bundledMeta } = await import("./addon-data.js");
   const body = bundledMeta("jav:JUR-093");

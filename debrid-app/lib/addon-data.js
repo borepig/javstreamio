@@ -144,7 +144,11 @@ export function isPublicArtUrl(src) {
       host.endsWith(".jdbstatic.com") ||
       host === "avgood.com" ||
       host === "images.ijavtorrent.com" ||
-      host === "raw.githubusercontent.com"
+      host === "raw.githubusercontent.com" ||
+      // Our own public art: hnt SVG title cards served from the live host.
+      host === "javstremio.ddns.net" ||
+      // hnt covers scraped from Sukebei view pages (og:image on oceanveil).
+      host === "image.oceanveil.net"
     );
   } catch {
     return false;
