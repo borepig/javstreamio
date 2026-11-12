@@ -322,54 +322,70 @@ def scrape_all():
     return slugs
 
 
+SITEMAP_URL = f"{BASE}/sitemap.xml"
+
+
+def sitemap_refs():
+    """Fetch the sitemap once; return (series slugs, (slug, episode_num) refs).
+
+    The listing is alphabetical with no episode counts, so the old incremental
+    mode had to fetch all 40 listing pages + every series page. The sitemap
+    (5192 entries: 1569 series + 3503 episodes, with lastmod) is a single fetch
+    that drives the daily refresh: new series = slugs missing from the DB, new
+    episodes = episode refs missing from the DB; only those few pages are fetched.
+    """
+    xml = get(SITEMAP_URL)
+    entries = re.findall(r"<url>(.*?)</url>", xml, re.S)
+    slugs, episodes = set(), []
+    for e in entries:
+        loc_m = re.search(r"<loc>([^<]+)</loc>", e)
+        if not loc_m:
+            continue
+        loc = loc_m.group(1)
+        m = re.search(r"/series/([^/?#]+)$", loc)
+        if m:
+            slugs.add(m.group(1))
+            continue
+        m = re.search(r"/hentai/(.+)-episode-(\d+)$", loc)
+        if m:
+            episodes.append((m.group(1), int(m.group(2))))
+    return slugs, episodes
+
+
 def scrape_incremental():
-    """Daily refresh: full-scrape new series, only new episodes for existing ones."""
+    """Daily refresh via the sitemap: one fetch, then scrape only what's new."""
     d = db()
     existing_slugs = {
         r[0] for r in d.execute(
             "SELECT series_key FROM titles WHERE category='hentai' AND episode_num=0"
         )
     }
-    max_ep = {
-        r[0]: (r[1] or 0)
+    existing_eps = {
+        (r[0], r[1])
         for r in d.execute(
-            """SELECT series_key, MAX(episode_num) FROM titles
-               WHERE category='hentai' AND episode_num>=1 GROUP BY series_key"""
+            "SELECT series_key, episode_num FROM titles WHERE category='hentai' AND episode_num>=1"
         )
     }
-    slugs, seen, page = [], set(), 1
-    while page <= 40:
-        batch = series_slugs_page(page)
-        fresh = [s for s in batch if s not in seen]
-        seen.update(batch)
-        slugs.extend(fresh)
-        if not fresh:
-            break
-        page += 1
-    new_series = 0
-    updated_series = 0
-    for slug in slugs:
-        if slug not in existing_slugs:
-            scrape_series(slug)
-            new_series += 1
-        else:
-            html = get(f"{BASE}/series/{slug}")
-            info = parse_series_page(html)
-            cur_max = max_ep.get(slug, 0)
-            if info["episodes"] > cur_max:
-                episodes = []
-                for n in range(cur_max + 1, info["episodes"] + 1):
-                    ehtml = get(f"{BASE}/hentai/{slug}-episode-{n}")
-                    ep = parse_episode_page(ehtml)
-                    ep["num"] = n
-                    mp4, _srt = nhplayer_urls(ep.get("embed_url", ""))
-                    ep["mp4"] = mp4
-                    episodes.append(ep)
-                if episodes:
-                    upsert_episode_rows(d, slug, episodes)
-                    updated_series += 1
-    print(f"[hentaitv] incremental: {new_series} new series, {updated_series} series with new episodes")
-    return {"new_series": new_series, "updated_series": updated_series}
+    sitemap_slugs, sitemap_episodes = sitemap_refs()
+    new_slugs = sorted(sitemap_slugs - existing_slugs)
+    new_slug_set = set(new_slugs)
+    # Episodes of brand-new series are handled by scrape_series(); skip them here.
+    new_episodes = [
+        (s, n)
+        for (s, n) in sitemap_episodes
+        if (s, n) not in existing_eps and s not in new_slug_set
+    ]
+    for slug in new_slugs:
+        scrape_series(slug)
+    for slug, n in new_episodes:
+        ehtml = get(f"{BASE}/hentai/{slug}-episode-{n}")
+        ep = parse_episode_page(ehtml)
+        ep["num"] = n
+        mp4, _srt = nhplayer_urls(ep.get("embed_url", ""))
+        ep["mp4"] = mp4
+        upsert_episode_rows(d, slug, [ep])
+    print(f"[hentaitv] incremental: {len(new_slugs)} new series, {len(new_episodes)} new episodes")
+    return {"new_series": len(new_slugs), "new_episodes": len(new_episodes)}
 
 
 def main():
