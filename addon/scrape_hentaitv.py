@@ -243,6 +243,10 @@ def upsert_series(slug, series_info, episodes):
             f"hentai {slug} {series_info['title']} {json.dumps(genres, ensure_ascii=False)}",
         ),
     )
+    upsert_episode_rows(d, slug, episodes)
+
+
+def upsert_episode_rows(d, slug, episodes):
     for ep in episodes:
         d.execute(
             """
@@ -318,14 +322,68 @@ def scrape_all():
     return slugs
 
 
+def scrape_incremental():
+    """Daily refresh: full-scrape new series, only new episodes for existing ones."""
+    d = db()
+    existing_slugs = {
+        r[0] for r in d.execute(
+            "SELECT series_key FROM titles WHERE category='hentai' AND episode_num=0"
+        )
+    }
+    max_ep = {
+        r[0]: (r[1] or 0)
+        for r in d.execute(
+            """SELECT series_key, MAX(episode_num) FROM titles
+               WHERE category='hentai' AND episode_num>=1 GROUP BY series_key"""
+        )
+    }
+    slugs, seen, page = [], set(), 1
+    while page <= 40:
+        batch = series_slugs_page(page)
+        fresh = [s for s in batch if s not in seen]
+        seen.update(batch)
+        slugs.extend(fresh)
+        if not fresh:
+            break
+        page += 1
+    new_series = 0
+    updated_series = 0
+    for slug in slugs:
+        if slug not in existing_slugs:
+            scrape_series(slug)
+            new_series += 1
+        else:
+            html = get(f"{BASE}/series/{slug}")
+            info = parse_series_page(html)
+            cur_max = max_ep.get(slug, 0)
+            if info["episodes"] > cur_max:
+                episodes = []
+                for n in range(cur_max + 1, info["episodes"] + 1):
+                    ehtml = get(f"{BASE}/hentai/{slug}-episode-{n}")
+                    ep = parse_episode_page(ehtml)
+                    ep["num"] = n
+                    mp4, _srt = nhplayer_urls(ep.get("embed_url", ""))
+                    ep["mp4"] = mp4
+                    episodes.append(ep)
+                if episodes:
+                    upsert_episode_rows(d, slug, episodes)
+                    updated_series += 1
+    print(f"[hentaitv] incremental: {new_series} new series, {updated_series} series with new episodes")
+    return {"new_series": new_series, "updated_series": updated_series}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--series", help="scrape a single series slug (example mode)")
     ap.add_argument("--all", action="store_true", help="scrape the whole site")
+    ap.add_argument("--incremental", action="store_true",
+                    help="daily mode: full-scrape new series, only new episodes for existing series")
     ap.add_argument("--limit", type=int, default=0, help="max series for --all (0 = all)")
     args = ap.parse_args()
     if args.series:
         scrape_series(args.series)
+    elif args.incremental:
+        scrape_incremental()
     elif args.all:
         slugs = scrape_all()
     else:
