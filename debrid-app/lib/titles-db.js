@@ -152,7 +152,8 @@ export const FREE_CATALOG_SIZE = 15;
 // empty catalog and 404 meta for these.
 export const PAID_ONLY_CATEGORIES = [
   "hentai",
-  // korean, chinese, hongkong stay paused: re-add their names here when
+  "hongkong",
+  // korean, chinese stay paused: re-add their names here when
   // their metadata sources are vetted and redone.
 ];
 

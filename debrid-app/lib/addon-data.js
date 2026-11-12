@@ -242,7 +242,9 @@ export const BUNDLED_CATALOGS = [
   { type: "movie", id: "others", name: "Others", extra: CATALOG_EXTRA },
   // Single Hentai catalog (hentai.tv source; replaces the censored/uncensored pair).
   { type: "series", id: "hentai", name: "Hentai", extra: CATALOG_EXTRA },
-  // korean, chinese, hongkong stay paused while their metadata sources are
+  // HK Category III (Wikipedia meta + SearXNG magnet search; Cantonese original audio priority).
+  { type: "movie", id: "hongkong", name: "HK Cat III", extra: CATALOG_EXTRA },
+  // korean, chinese stay paused while their metadata sources are
   // re-vetted; re-add them here + in titles-db PAID_ONLY_CATEGORIES when redone.
 ];
 

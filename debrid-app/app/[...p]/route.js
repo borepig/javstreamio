@@ -25,6 +25,7 @@ import {
   openTitlesDb,
   queryEpisodeByRef,
   querySeriesMeta,
+  queryTitle,
   resolveSqlitePath,
 } from "../../lib/titles-db.js";
 
@@ -232,10 +233,20 @@ export async function GET(req, { params }) {
       // addon files — skip the static-file fetch (which 404s and early-returns
       // empty streams) and build the stream list from the DB below.
       const isHntEpRef = /^hnt:[^:]+:\d+$/.test(titleCode);
+      // HK Cat III rows live only in the live SQLite (no static stream files).
+      const isHkRef = /^hk:/.test(titleCode);
       let streamJson = bundledStream(p[2] || "");
       if (!streamJson) {
         if (isHntEpRef) {
           streamJson = { streams: [] };
+        } else if (isHkRef) {
+          const db = getRouteDb();
+          const hkRow = db ? queryTitle(db, titleCode) : null;
+          streamJson = {
+            streams: hkRow && hkRow.infoHash
+              ? [{ infoHash: hkRow.infoHash, name: "Debrid", description: hkRow.name || "" }]
+              : [],
+          };
         } else {
           try {
             streamJson = await fetchAddon(rel);

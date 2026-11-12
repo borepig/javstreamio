@@ -1,8 +1,8 @@
 {
   "id": "community.javstremio",
-  "version": "0.5.34",
+  "version": "0.5.35",
   "name": "Stremio JAV Database Addon",
-  "description": "Stremio JAV Database Addon 0.5.34. This is only a metadata scraper.",
+  "description": "Stremio JAV Database Addon 0.5.35. This is only a metadata scraper.",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
   "resources": [
     {
@@ -20,7 +20,8 @@
       ],
       "idPrefixes": [
         "jav:",
-        "hnt:"
+        "hnt:",
+        "hk:"
       ]
     },
     {
@@ -31,7 +32,8 @@
       ],
       "idPrefixes": [
         "jav:",
-        "hnt:"
+        "hnt:",
+        "hk:"
       ]
     }
   ],
@@ -41,7 +43,8 @@
   ],
   "idPrefixes": [
     "jav:",
-    "hnt:"
+    "hnt:",
+    "hk:"
   ],
   "catalogs": [
     {
