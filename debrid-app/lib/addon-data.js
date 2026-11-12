@@ -58,7 +58,9 @@ export function normalizeMetaBody(body) {
   else delete meta.released;
   if (meta.id) {
     const hints = { ...(meta.behaviorHints || {}) };
-    if (!hints.defaultVideoId) hints.defaultVideoId = meta.id;
+    // Movies (single video) point the default video at their own id. Series
+    // manage their default episode via querySeriesMeta — do not override.
+    if (!hints.defaultVideoId && meta.type !== "series") hints.defaultVideoId = meta.id;
     if (hints.hasScheduledVideos == null) hints.hasScheduledVideos = false;
     meta.behaviorHints = hints;
   }
@@ -499,12 +501,11 @@ export function bundledMeta(id) {
         // stremio-core reads `videos`, not `episodes` — keep the key the
         // client actually deserializes.
         videos: (series.videos || []).map((v) => ({ ...v })),
-        behaviorHints: {
-          // Point the default video at the first video's id so Stremio Web
-          // auto-selects Episode 1 instead of falling back to Season 0.
-          defaultVideoId: (series.videos && series.videos[0] && series.videos[0].id) || series.id,
-          hasScheduledVideos: false,
-        },
+        // Pass through the hints computed by querySeriesMeta: solo (single-episode)
+        // series carry defaultVideoId (so Stremio plays the lone episode);
+        // multi-episode series omit it so the client renders the episode grid
+        // (all episodes + posters) instead of auto-opening S1E1.
+        behaviorHints: { ...(series.behaviorHints || {}), hasScheduledVideos: false },
       };
       // Series-level behavior hints: bingeGroup per infoHash keeps episodes
       // grouped in the Stremio player's "up next" (AGENTS.md convention).

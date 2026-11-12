@@ -191,13 +191,60 @@ test("querySeriesList returns clean series names with episode counts", () => {
   assert.equal(censored[0].name, "[HentaiHub] Some Solo Release 720p");
 });
 
-test("querySeriesMeta orders episodes s01..sN and sets defaultVideoId", () => {
+test("querySeriesList: search scans the full set (deep series still found)", () => {
+  // Regression: the old code ran LIMIT/OFFSET first, then filtered the page,
+  // so a series ranked beyond the first `limit` was invisible to search.
+  const db = new DatabaseSync(":memory:");
+  db.exec(`
+    CREATE TABLE titles (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      poster TEXT DEFAULT '',
+      series_key TEXT DEFAULT '',
+      episode_num INTEGER DEFAULT 0,
+      posted_at TEXT DEFAULT ''
+    );
+  `);
+  const insert = db.prepare(
+    `INSERT INTO titles (id, category, name, series_key, episode_num, posted_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  );
+  const N = 100;
+  for (let i = 1; i <= N; i++) {
+    // newest first: i=1 is the most recent. sister-breeder is the oldest -> deep.
+    const date = `2026-${String(11 - Math.floor(i / 20)).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}`;
+    insert.run(`hnt:series-${i}`, "hentai", `Series ${i}`, `series-${i}`, 0, date);
+  }
+  insert.run("hnt:sister-breeder", "hentai", "Sister Breeder", "sister-breeder", 0, "2025-01-01");
+  insert.run("hnt:sister-breeder:1", "hentai", "Sister Breeder Episode 1", "sister-breeder", 1, "2025-01-01");
+
+  // sister-breeder is ranked last (oldest), far past the default limit of 80.
+  const hit = querySeriesList(db, { category: "hentai", limit: 80, offset: 0, search: "Sister Breeder" });
+  assert.equal(hit.length, 1);
+  assert.equal(hit[0].seriesKey, "sister-breeder");
+
+  // A search token not present anywhere returns nothing.
+  const none = querySeriesList(db, { category: "hentai", limit: 80, offset: 0, search: "Zorblatt" });
+  assert.equal(none.length, 0);
+
+  // No search still paginates: first page has 80 (not the deep series).
+  const page = querySeriesList(db, { category: "hentai", limit: 80, offset: 0 });
+  assert.equal(page.length, 80);
+  assert.ok(!page.some((s) => s.seriesKey === "sister-breeder"));
+});
+
+test("querySeriesMeta orders episodes s01..sN; multi-episode series omit defaultVideoId", () => {
   const db = hntSeriesDb();
   const meta = querySeriesMeta(db, "my-matchmaking-partner-is-my-student");
   assert.equal(meta.type, "series");
   assert.equal(meta.name, "My Matchmaking Partner Is My Student");
   assert.deepEqual(meta.videos.map((e) => e.title), ["Episode 1", "Episode 2", "Episode 3"]);
-  assert.equal(meta.behaviorHints.defaultVideoId, "hnt:my-matchmaking-partner-is-my-student:1");
+  // Multi-episode series omit defaultVideoId so the client renders the
+  // episode grid (all episodes + posters) instead of auto-opening S1E1.
+  assert.equal(meta.behaviorHints.defaultVideoId, undefined);
+  assert.equal(meta.behaviorHints.hasScheduledVideos, false);
 });
 
 test("querySeriesMeta: solo series keeps its raw release name", () => {
@@ -205,6 +252,9 @@ test("querySeriesMeta: solo series keeps its raw release name", () => {
   const meta = querySeriesMeta(db, "solo-4700001");
   assert.equal(meta.name, "[HentaiHub] Some Solo Release 720p");
   assert.equal(meta.videos.length, 1);
+  // Solo (single-episode) series keep defaultVideoId so the lone episode
+  // plays directly (no grid needed).
+  assert.equal(meta.behaviorHints.defaultVideoId, "hnt:solo-4700001:1");
   assert.equal(querySeriesMeta(db, "no-such-series"), null);
 });
 
@@ -250,7 +300,8 @@ test("querySeriesMeta excludes the series row (episode_num = 0) from episodes", 
     "Brand: T Rex • Quality: 1080p • Rating: 9.7 • Year: 2025 • Language: English • Released: 2025-10-03", "9.7", JSON.stringify(["Big Boobs", "Blow Job"]));
   const meta = querySeriesMeta(db, "sister-breeder");
   assert.deepEqual(meta.videos.map((e) => e.title), ["Episode 1", "Episode 2"]);
-  assert.equal(meta.behaviorHints.defaultVideoId, "hnt:sister-breeder:1");
+  // Two episodes = multi-episode series -> defaultVideoId omitted.
+  assert.equal(meta.behaviorHints.defaultVideoId, undefined);
   assert.equal(meta.poster, "https://hentai.tv/uploads/ep1.jpg");
   // The brand/quality/rating/year/language/release-date line lives in the
   // description block, not in a sub-header field.

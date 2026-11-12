@@ -201,24 +201,52 @@ export function seriesDisplayName(seriesKey) {
 
 export function querySeriesList(db, { category, limit = 80, offset = 0, search = "" } = {}) {
   const cat = String(category || "").replace(/\.json$/, "");
+  const limitN = Number(limit) || 80;
+  const offsetN = Number(offset) || 0;
+  const searching = String(search || "").trim() !== "";
+  const tokens = searchTokens(search);
   // Two-stage lookup: the old single query ran 3 correlated subqueries per
   // group (no index on series_key) -> ~14s per catalog page on the t3.micro.
   // Stage 1: series rows (cheap GROUP BY). Stage 2: one indexed IN() query
   // for the details of the selected series, aggregated in JS.
-  const seriesRows = db
-    .prepare(
-      `SELECT t.series_key AS series_key,
+  // Without a search, SQL does the pagination (LIMIT/OFFSET). With a search,
+  // the SQL must return EVERY series (no LIMIT) so the filter runs over the
+  // full set; the page is then sliced in JS. Searching only the first page
+  // (the old behavior) made deep series (e.g. Sister Breeder, ranked ~1568/1569)
+  // invisible to search.
+  let sql = `SELECT t.series_key AS series_key,
                COUNT(*) AS ep_count,
                MAX(t.posted_at) AS posted_at
        FROM titles t
        WHERE t.category = ? AND t.series_key != ''
        GROUP BY t.series_key
-       ORDER BY posted_at DESC, t.series_key ASC
-       LIMIT ? OFFSET ?`,
-    )
-    .all(cat, Number(limit) || 80, Number(offset) || 0);
+       ORDER BY posted_at DESC, t.series_key ASC`;
+  const params = [cat];
+  if (!searching) {
+    sql += "\n       LIMIT ? OFFSET ?";
+    params.push(limitN, offsetN);
+  }
+  const seriesRows = db.prepare(sql).all(...params);
   if (!seriesRows.length) return [];
-  const keys = seriesRows.map((r) => r.series_key);
+  // Search the full set by slug-derived name + id, then fetch details only
+  // for the matched keys (keeps the detail IN() list small and under the
+  // SQLite variable limit).
+  let keys;
+  if (searching) {
+    const matched = [];
+    for (const r of seriesRows) {
+      const derived = r.series_key.startsWith("solo-") ? "" : seriesDisplayName(r.series_key);
+      const name = derived || `hnt:${r.series_key}`;
+      const hay = searchText({ id: `hnt:${r.seriesKey}`, name }).toLowerCase();
+      if (tokens.length === 0 || tokens.every((t) => hay.includes(t))) {
+        matched.push(r.series_key);
+      }
+    }
+    if (!matched.length) return [];
+    keys = matched;
+  } else {
+    keys = seriesRows.map((r) => r.series_key);
+  }
   const ph = keys.map(() => "?").join(", ");
   const detail = db
     .prepare(
@@ -238,7 +266,11 @@ export function querySeriesList(db, { category, limit = 80, offset = 0, search =
     if (desc.length > agg.description.length) agg.description = desc;
     byKey.set(row.series_key, agg);
   }
-  return seriesRows
+  const matchedSet = searching
+    ? new Set(keys)
+    : null;
+  const page = seriesRows
+    .filter((r) => !matchedSet || matchedSet.has(r.series_key))
     .map((r) => {
       const agg = byKey.get(r.series_key) || {};
       const derived = r.series_key.startsWith("solo-") ? "" : seriesDisplayName(r.series_key);
@@ -250,13 +282,9 @@ export function querySeriesList(db, { category, limit = 80, offset = 0, search =
         description: agg.description || "",
         epCount: Number(r.ep_count) || 0,
       };
-    })
-    .filter((r) => {
-      if (!search) return true;
-      const hay = searchText({ id: `hnt:${r.seriesKey}`, name: r.name }).toLowerCase();
-      const tokens = searchTokens(search);
-      return tokens.length ? tokens.every((t) => hay.includes(t)) : true;
     });
+  // When searching, the SQL returned all rows (no LIMIT) — slice the page in JS.
+  return searching ? page.slice(offsetN, offsetN + limitN) : page;
 }
 
 // Video.released must be RFC3339 (stremio-core parses it as a DateTime);
@@ -331,9 +359,11 @@ export function querySeriesMeta(db, seriesKey) {
     genres: parseJsonArray(seriesRow?.genres_json),
     videos,
     behaviorHints: {
-      // Stremio Web must not fall back to "Season 0 / Episode 1" — point the
-      // default video at the first video's id (videos are sorted by episode_num).
-      defaultVideoId: (videos[0] && videos[0].id) || `hnt:${key}`,
+      // Solo (single-episode) series point the default video at that episode
+      // so Stremio plays it directly. Multi-episode series omit defaultVideoId
+      // so the client renders the episode grid (all episodes + posters)
+      // instead of auto-opening S1E1.
+      ...(videos.length === 1 && videos[0] ? { defaultVideoId: videos[0].id } : {}),
       hasScheduledVideos: false,
     },
   };
