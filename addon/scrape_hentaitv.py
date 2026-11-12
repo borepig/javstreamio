@@ -127,12 +127,25 @@ def build_release_info(info):
 
 def parse_episode_page(html):
     obj = extract_video_object(html)
+    # Per-episode synopsis: the page's own watch-desc block (user instruction:
+    # each episode's summary must change per episode, not the shared Sukebei
+    # VideoObject text).
+    watch_m = re.search(r'<p class="watch-desc"[^>]*>(.*?)</p>', html, re.S)
+    ep_synopsis = ""
+    if watch_m:
+        ep_synopsis = re.sub(r"<[^>]+>", "", watch_m.group(1)).strip()
+    # Per-episode poster: the FIRST poster-img on the episode page is that
+    # episode's own cover (e.g. .../1LDK-JK-...-Episode-2.jpg); the later
+    # poster-img tags are covers of related episodes.
+    posters = re.findall(r'<img class="poster-img"[^>]+src="([^"]+)"', html)
+    ep_poster = "https://hentai.tv" + posters[0] if posters else ""
+
     if not obj:
         # No VideoObject in the RSC payload (e.g. some hentai.tv episode pages).
         # Return a fully-keyed default dict so the series still writes a row
         # with empty fields instead of crashing on ep["name"] and being skipped.
         return {
-            "name": "", "description": "", "thumbnail": "", "released": "",
+            "name": "", "description": ep_synopsis, "thumbnail": ep_poster, "released": "",
             "duration": "", "genres": [], "brand": "", "quality": "",
             "rating": "", "year": "", "language": "", "release_date": "",
             "release_info": "", "embed_url": "", "url": "",
@@ -148,6 +161,8 @@ def parse_episode_page(html):
     clean_name = m.group(1) if m else name
     # Some episode pages title as "... - Watch on AnimeIDHentai" -> strip the suffix.
     clean_name = re.sub(r"\s*-\s*Watch on .*$", "", clean_name)
+    # Sukebei VideoObject names arrive as "Sukebei\n<slug>" — drop the prefix line.
+    clean_name = re.sub(r"^Sukebei\s*\n", "", clean_name).strip()
     thumb = first(obj.get("thumbnailUrl"))
     if thumb and not thumb.startswith("http"):
         thumb = "https://hentai.tv" + thumb
@@ -157,8 +172,10 @@ def parse_episode_page(html):
         tags = obj.get("genre") or []
     return {
         "name": clean_name,
-        "description": first(obj.get("description", "")).replace("➨", "").replace("☝", "").strip(),
-        "thumbnail": thumb,
+        # Page-specific synopsis first; fall back to the VideoObject text.
+        "description": ep_synopsis or first(obj.get("description", "")).replace("➨", "").replace("☝", "").strip(),
+        # The episode's own poster-img beats the Sukebei thumbnail.
+        "thumbnail": ep_poster or thumb,
         "released": first(obj.get("uploadDate", "")),
         "duration": iso_to_hms(duration),
         "genres": tags,

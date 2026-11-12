@@ -289,30 +289,35 @@ test("querySeriesMeta excludes the series row (episode_num = 0) from episodes", 
     );
   `);
   const insert = db.prepare(`
-    INSERT INTO titles (id, category, name, description, poster, series_key, episode_num, posted_at, release_info, imdb_rating, genres_json)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO titles (id, category, name, description, poster, series_key, episode_num, posted_at, release_info, imdb_rating, genres_json, released)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   insert.run("hnt:sister-breeder", "hentai", "Sister Breeder", "A series.", "https://hentai.tv/uploads/ep1.jpg", "sister-breeder", 0, "2026-11-11",
-    "Brand: T Rex • Quality: 1080p • Rating: 9.7 • Year: 2025 • Language: English • Released: 2025-10-03", "9.7", JSON.stringify(["Big Boobs", "Blow Job"]));
-  insert.run("hnt:sister-breeder:1", "hentai", "Sister Breeder Episode 1", "", "https://hentai.tv/uploads/ep1h.jpg", "sister-breeder", 1, "2026-11-11",
-    "Brand: T Rex • Quality: 1080p • Rating: 9.7 • Year: 2025 • Language: English • Released: 2025-10-03", "9.7", JSON.stringify(["Big Boobs", "Blow Job"]));
-  insert.run("hnt:sister-breeder:2", "hentai", "Sister Breeder Episode 2", "", "https://hentai.tv/uploads/ep2h.jpg", "sister-breeder", 2, "2026-11-11",
-    "Brand: T Rex • Quality: 1080p • Rating: 9.7 • Year: 2025 • Language: English • Released: 2025-10-03", "9.7", JSON.stringify(["Big Boobs", "Blow Job"]));
+    "Brand: T Rex • Quality: 1080p • Rating: 9.7 • Year: 2025 • Language: English • Released: 2025-10-03", "9.7", JSON.stringify(["Big Boobs", "Blow Job"]), "2025-10-03T00:00:00.000Z");
+  insert.run("hnt:sister-breeder:1", "hentai", "Sister Breeder Episode 1", "Episode 1 synopsis.", "https://hentai.tv/uploads/ep1h.jpg", "sister-breeder", 1, "2026-11-11",
+    "Brand: T Rex • Quality: 1080p • Rating: 9.7 • Year: 2025 • Language: English • Released: 2025-10-03", "9.7", JSON.stringify(["Big Boobs", "Blow Job"]), "2025-10-04T00:00:00.000Z");
+  insert.run("hnt:sister-breeder:2", "hentai", "Sister Breeder Episode 2", "Episode 2 synopsis.", "https://hentai.tv/uploads/ep2h.jpg", "sister-breeder", 2, "2026-11-11",
+    "Brand: T Rex • Quality: 1080p • Rating: 9.7 • Year: 2025 • Language: English • Released: 2025-10-03", "9.7", JSON.stringify(["Big Boobs", "Blow Job"]), "2025-10-05T00:00:00.000Z");
   const meta = querySeriesMeta(db, "sister-breeder");
   assert.deepEqual(meta.videos.map((e) => e.title), ["Episode 1", "Episode 2"]);
   // Two episodes = multi-episode series -> defaultVideoId omitted.
   assert.equal(meta.behaviorHints.defaultVideoId, undefined);
   assert.equal(meta.poster, "https://hentai.tv/uploads/ep1.jpg");
-  // The brand/quality/rating/year/language/release-date line lives in the
-  // description block, not in a sub-header field.
-  assert.match(meta.description, /Brand: T Rex • Quality: 1080p • Rating: 9\.7 • Year: 2025 • Language: English • Released: 2025-10-03$/);
-  assert.equal(meta.releaseInfo, undefined);
-  assert.equal(meta.released, undefined);
+  // Synopsis-only description: the brand/quality/rating/year/language/release
+  // date line must NOT be in the summary (rating -> imdbRating, release
+  // date -> released, per the stremio Meta model).
+  assert.equal(meta.description, "A series.");
   assert.equal(meta.imdbRating, "9.7");
   assert.deepEqual(meta.genres, ["Big Boobs", "Blow Job"]);
+  // Release date lives in the dedicated `released` field (RFC3339), not text.
+  assert.equal(meta.released, "2025-10-03T00:00:00.000Z");
+  // Per-episode synopsis + per-episode poster.
+  assert.deepEqual(meta.videos.map((v) => v.overview), ["Episode 1 synopsis.", "Episode 2 synopsis."]);
+  assert.deepEqual(meta.videos.map((v) => v.thumbnail),
+    ["https://hentai.tv/uploads/ep1h.jpg", "https://hentai.tv/uploads/ep2h.jpg"]);
+  assert.deepEqual(meta.videos.map((v) => v.released),
+    ["2025-10-04T00:00:00.000Z", "2025-10-05T00:00:00.000Z"]);
   assert.deepEqual(meta.videos[0].genres, ["Big Boobs", "Blow Job"]);
-  assert.match(meta.videos[0].overview, /Brand: T Rex • Quality: 1080p/);
-  assert.equal(meta.videos[0].releaseInfo, undefined);
 });
 
 function hntPagingDb() {

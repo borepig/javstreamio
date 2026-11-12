@@ -318,13 +318,11 @@ export function querySeriesMeta(db, seriesKey) {
   const hasSeriesRow = rows.some((r) => Number(r.episode_num) === 0);
   const seriesRow = rows.find((r) => Number(r.episode_num) === 0) || rows[0];
   const longestDesc = rows.map((r) => r.description || "").sort((a, b) => b.length - a.length)[0];
+  // Synopsis-only description (user instruction: brand/quality/rating/year/
+  // language/release date are NOT summary text — they live in dedicated
+  // stremio fields: rating -> imdbRating, release date -> released (RFC3339)).
   const baseDesc = hasSeriesRow ? (seriesRow.description || "") : longestDesc;
-  // Brand / quality / rating / year / language / release date render in the
-  // description block, not the sub-header (Stremio shows `releaseInfo` and
-  // `released` as the sub-header line — the user does not want them there).
-  const description = seriesRow?.release_info
-    ? (baseDesc ? `${baseDesc}\n\n${seriesRow.release_info}` : seriesRow.release_info)
-    : baseDesc;
+  const released = seriesRow?.released && RFC3339_RE.test(seriesRow.released) ? seriesRow.released : "";
   // The series row is not an episode — keep only real episodes (episode_num > 0).
   // stremio-core's MetaItem deserializes `videos` (the `episodes` key is
   // ignored), and each video must use the Video fields: title / thumbnail /
@@ -336,10 +334,12 @@ export function querySeriesMeta(db, seriesKey) {
         id: `hnt:${key}:${r.episode_num}`,
         type: "episode",
         title: `Episode ${r.episode_num}`,
+        // Per-episode poster (the episode's own cover from the hentai.tv
+        // episode page), falling back to the Sukebei thumbnail.
         thumbnail: r.poster || "",
-        overview: r.release_info
-          ? (r.description ? `${r.description}\n\n${r.release_info}` : r.release_info)
-          : (r.description || ""),
+        // Per-episode synopsis from the episode page's watch-desc block; the
+        // summary changes per episode (user instruction).
+        overview: r.description || "",
         season: 1,
         episode: Number(r.episode_num),
         runtime: r.runtime || "",
@@ -352,9 +352,10 @@ export function querySeriesMeta(db, seriesKey) {
     id: `hnt:${key}`,
     type: "series",
     name,
-    description,
+    description: baseDesc,
     poster,
     background,
+    ...(released ? { released } : {}),
     imdbRating: seriesRow?.imdb_rating || "",
     genres: parseJsonArray(seriesRow?.genres_json),
     videos,

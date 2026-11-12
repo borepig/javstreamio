@@ -465,17 +465,18 @@ export function bundledMeta(id) {
   if (db && epRef) {
     const row = queryEpisodeByRef(db, String(id).replace(/\.json$/, ""));
     if (!row) return null;
-    const epDesc = row.release_info
-      ? (row.description ? `${row.description}\n\n${row.release_info}` : row.release_info)
-      : (row.description || "");
     const meta = {
       id: `hnt:${epRef.key}:${epRef.episode}`,
       type: "episode",
       name: `Episode ${epRef.episode}`,
-      description: epDesc,
+      // Synopsis only — brand/quality/rating/year/language lines live in the
+      // dedicated fields (imdbRating, released), not in the summary.
+      description: row.description || "",
       poster: row.poster || "",
       runtime: row.runtime || "",
       imdbRating: row.imdb_rating || "",
+      // normalizeMetaBody validates/converts it to strict RFC3339 (or drops it).
+      ...(row.released ? { released: row.released } : {}),
     };
     if (row.stream_url) {
       meta.behaviorHints = { bingeGroup: `javstreamio-online-${row.name || "x"}` };
@@ -497,6 +498,8 @@ export function bundledMeta(id) {
         poster: series.poster || "",
         background: series.background || "",
         imdbRating: series.imdbRating || "",
+        // Series release date (RFC3339) — stremio-core deserializes Meta.released.
+        ...(series.released ? { released: series.released } : {}),
         genres: series.genres || [],
         // stremio-core reads `videos`, not `episodes` — keep the key the
         // client actually deserializes.
