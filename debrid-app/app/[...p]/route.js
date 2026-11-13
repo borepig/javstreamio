@@ -164,6 +164,9 @@ export async function GET(req, { params }) {
       } else if (db && /^hnt:[^:]+$/.test(id)) {
         const series = querySeriesMeta(db, id);
         if (series && series.poster) item = { id, poster: series.poster };
+      } else if (db && /^hk:/.test(id)) {
+        // HK Cat III rows (douban poster or live-host SVG card).
+        item = queryTitle(db, id);
       }
       if (!item) item = bundledTitle(id);
       let src = (item && (item.forumPoster || item.poster)) || "";

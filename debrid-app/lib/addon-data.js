@@ -67,7 +67,15 @@ export function normalizeMetaBody(body) {
   return { meta: withStremioCredits(meta) };
 }
 
-const POSTER_HOSTS = ["tu.djhdhs.us", "jdbstatic.com", "hanime-cdn.com", "raw.githubusercontent.com"];
+const POSTER_HOSTS = [
+  "tu.djhdhs.us",
+  "jdbstatic.com",
+  "hanime-cdn.com",
+  "raw.githubusercontent.com",
+  // HK Cat III posters scraped from douban (subject_suggest -> img*.doubanio.com).
+  "doubanio.com",
+  "img.douban.com",
+];
 const POSTER_REFERER = "https://sehuatang.org/";
 const POSTER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
@@ -153,15 +161,38 @@ export function isPublicArtUrl(src) {
       host === "image.oceanveil.net" ||
       // Series posters scraped from hentai.tv (uploads host is public).
       host === "hentai.tv"
+      // HK Cat III posters: douban poster images (hotlink-protected, so
+      // catalog/meta responses route them through the /poster proxy).
+      || host === "doubanio.com" || host.endsWith(".doubanio.com")
+      || host === "img.douban.com"
     );
   } catch {
     return false;
   }
 }
 
+// Hotlink-protected image hosts: the /poster proxy must fetch these with a
+// host-specific Referer (douban hosts need movie.douban.com; djhdhs.us needs
+// sehuatang.org). Any other public host (DMM, fourhoi, hnt cards) fetches
+// fine with the default referer.
+const NEEDS_PROXY_HOSTS = ["doubanio.com", "img.douban.com"];
+
+function artHost(url) {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
 function forumPosterUrl(item, origin) {
   if (!origin || !item || !item.id) return "";
-  if (!item.forumPoster && !String(item.poster || "").includes("djhdhs.us")) return "";
+  const host = artHost(item.poster);
+  if (
+    !item.forumPoster &&
+    !String(item.poster || "").includes("djhdhs.us") &&
+    !NEEDS_PROXY_HOSTS.includes(host)
+  ) return "";
   return `${origin}${posterPathFor(item.type || "movie", item.id)}`;
 }
 
@@ -608,6 +639,23 @@ export function withProxiedPosters(body, origin, kind) {
   return body;
 }
 
+// doubanio.com / img.douban.com are hotlink-protected: they 418/403 without
+// a douban.com Referer. All other poster hosts use the default referer.
+function posterRefererFor(src) {
+  try {
+    const host = new URL(src).hostname.toLowerCase();
+    if (
+      host === "img.douban.com" || host === "douban.com" || host.endsWith(".douban.com") ||
+      host === "doubanio.com" || host.endsWith(".doubanio.com")
+    ) {
+      return "https://movie.douban.com/";
+    }
+  } catch {
+    return POSTER_REFERER;
+  }
+  return POSTER_REFERER;
+}
+
 export async function fetchRemotePoster(src) {
   if (!isAllowedPosterUrl(src)) {
     const err = new Error("Poster host not allowed");
@@ -617,7 +665,7 @@ export async function fetchRemotePoster(src) {
   const res = await fetch(src, {
     headers: {
       "User-Agent": POSTER_UA,
-      Referer: POSTER_REFERER,
+      Referer: posterRefererFor(src),
       Accept: "image/jpeg,image/png,image/*;q=0.5",
     },
     redirect: "follow",
