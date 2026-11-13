@@ -172,6 +172,8 @@ export function isPublicArtUrl(src) {
       // catalog/meta responses route them through the /poster proxy).
       || host === "doubanio.com" || host.endsWith(".doubanio.com")
       || host === "img.douban.com"
+      // HK Cat III wiki posters (og:image) live on Wikimedia CDN.
+      || host === "upload.wikimedia.org"
     );
   } catch {
     return false;

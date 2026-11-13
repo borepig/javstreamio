@@ -368,9 +368,9 @@ def main() -> int:
                 desc_parts.append(f"(Wikipedia 香港三级片列表 {year})")
                 desc = " ".join(desc_parts)
             if avgood["released"]:
-                released = f"{avgood['released']}-00:00:00.000Z"
+                released = f"{avgood['released']}T00:00:00.000Z"
             elif wiki.get("released"):
-                released = f"{wiki['released']}-00:00:00.000Z"
+                released = f"{wiki['released']}T00:00:00.000Z"
             else:
                 released = f"{year}-01-01T00:00:00.000Z"
             search_text = " ".join(x for x in [zh, year, wiki.get("en_alias", "")] if x).lower()
