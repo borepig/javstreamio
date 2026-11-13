@@ -35,7 +35,13 @@ ROOT = Path(__file__).resolve().parent.parent
 META_JSON = ROOT / "addon" / "hk_cat3_av.json"
 DB = ROOT / "debrid-app" / "data" / "titles.sqlite"
 
-AVGGOOD_BASE = "https://avgood.com/c/745"
+# Three AvGood catalogs: c/745 香港三级倫理, c/612 三级, c/595 四级.
+AVGGOOD_CATALOGS = [
+    ("745", "https://avgood.com/c/745"),
+    ("612", "https://avgood.com/c/612"),
+    ("595", "https://avgood.com/c/595"),
+]
+PENDING_JSON = ROOT / "addon" / ".hk_cat3_firecrawl_pending.json"
 
 MAGNET_RE = re.compile(r'magnet:\?xt=urn:btih:([A-Fa-f0-9]{40})')
 HASH_RE = re.compile(r'urn:btih:([A-Fa-f0-9]{40})')
@@ -50,7 +56,7 @@ DUB_RE = re.compile(r"國語|国语|mandarin|eng\s*dub|english\s*dub|雙語|双�
 CARD_RE = re.compile(r'<a class="card" href="(?:https?://avgood\.com)?/c/(\d+)\.html">.*?</a>', re.S)
 CARD_TITLE_RE = re.compile(r'<h3 class="card-title"><b>(.*?)</b></h3>', re.S)
 TAG_CLEAN_RE = re.compile(r'\[[^\]]*\]|【[^】]*】')
-PAGINATION_RE = re.compile(r'href="(?:https?://avgood\.com)?/c/745/(\d+)/?"')
+# Pagination links are built per-catalog in main().
 
 # Minimal traditional→simplified map covering the characters that appear in the
 # AvGood titles (which are traditional) so they can be compared against the
@@ -126,9 +132,10 @@ def main() -> int:
     have = {r[0] for r in db.execute(
         "SELECT id FROM titles WHERE category='hongkong' AND magnet LIKE 'magnet:%'")}
 
-    # 1) Walk the catalog pages, collecting (avgood_id, cleaned_title).
+    # 1) Walk each catalog's pages, collecting (avgood_id, cleaned_title).
     items: list[tuple[str, str]] = []
     item_titles: dict[str, str] = {}  # avgood_id -> cleaned item title
+    seen: set[str] = set()
 
     def scan_page(html: str) -> None:
         for m in CARD_RE.finditer(html):
@@ -136,20 +143,22 @@ def main() -> int:
             tm = CARD_TITLE_RE.search(m.group(0))
             if tm:
                 raw_title = clean_name(tm.group(1))
-                if aid and raw_title:
+                if aid and raw_title and aid not in seen:
+                    seen.add(aid)
                     items.append((aid, raw_title))
                     item_titles[aid] = raw_title
 
-    # Page 1 also reveals the pagination extent (max page number).
-    html = fetch(AVGGOOD_BASE + "/")
-    page_nums = [int(m.group(1)) for m in PAGINATION_RE.finditer(html)]
-    max_page = min(max(page_nums) if page_nums else 1, args.max_pages or 1 << 30)
-    scan_page(html)
-    for page in range(2, max_page + 1):
-        html = fetch(f"{AVGGOOD_BASE}/{page}/")
+    for cat, base in AVGGOOD_CATALOGS:
+        pag_re = re.compile(rf'href="(?:https?://avgood\.com)?/c/{cat}/(\d+)/?"')
+        html = fetch(base + "/")
+        page_nums = [int(m.group(1)) for m in pag_re.finditer(html)]
+        max_page = min(max(page_nums) if page_nums else 1, args.max_pages or 1 << 30)
         scan_page(html)
-        time.sleep(0.5)
-    print(f"[avgood] catalog pages={max_page} items={len(items)}", flush=True)
+        for page in range(2, max_page + 1):
+            html = fetch(f"{base}/{page}/")
+            scan_page(html)
+            time.sleep(0.5)
+        print(f"[avgood] c/{cat} pages={max_page} items={len(items)}", flush=True)
 
     # 2) Match items against missing Wikipedia titles (by cleaned zh name).
     missing = [i for i in range(len(titles)) if f"hk:cat3-{i}" not in have]
@@ -163,6 +172,7 @@ def main() -> int:
     # 3) For each match, fetch the detail page and extract magnets.
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
     found = nomag = 0
+    firecrawl_pending: list[dict] = []
     for aid, widx in matched.items():
         t = titles[widx]
         slug = f"hk:cat3-{widx}"
@@ -209,11 +219,32 @@ def main() -> int:
             print(f"[avgood] {slug} {zh} ({year}) -> magnet score={best[0]} avgood c/{aid}", flush=True)
         else:
             nomag += 1
-            print(f"[avgood] {slug} {zh} ({year}) -> no magnet on AvGood page", flush=True)
+            firecrawl_pending.append({
+                "url": f"https://avgood.com/c/{aid}.html",
+                "title_idx": widx,
+                "zh": zh,
+                "en": en,
+                "year": year,
+            })
+            print(f"[avgood] {slug} {zh} ({year}) -> no magnet on AvGood page (-> firecrawl)", flush=True)
         time.sleep(0.5)
 
+    # Merge into any pre-existing pending list (resume-safe).
+    if PENDING_JSON.exists():
+        try:
+            existing = json.loads(PENDING_JSON.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            existing = []
+        have_urls = {p.get("url") for p in firecrawl_pending}
+        firecrawl_pending.extend(p for p in existing if p.get("url") not in have_urls)
+
+    if firecrawl_pending:
+        PENDING_JSON.write_text(
+            json.dumps(firecrawl_pending, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"[avgood] {len(firecrawl_pending)} detail pages queued for Firecrawl -> {PENDING_JSON.name}", flush=True)
+
     db.close()
-    print(f"done-avgood: matched={len(matched)} found={found} no_magnet={nomag}", flush=True)
+    print(f"done-avgood: matched={len(matched)} found={found} no_magnet={nomag} firecrawl_pending={len(firecrawl_pending)}", flush=True)
     return 0
 
 
