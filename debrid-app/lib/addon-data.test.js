@@ -326,6 +326,15 @@ test("hanime-cdn posters are public art and allowed for the poster proxy", () =>
   assert.equal(isAllowedPosterUrl("https://hanime-cdn.com/covers/series-cover.jpg"), true);
 });
 
+test("douban posters are public art and allowed for the poster proxy", () => {
+  const douban = "https://img3.doubanio.com/view/photo/s_ratio_poster/public/p2911053327.jpg";
+  assert.equal(isPublicArtUrl(douban), true);
+  assert.equal(isAllowedPosterUrl(douban), true);
+  const liveCard = "https://javstremio.ddns.net/posters/hkcat3/hk-cat3-5.svg";
+  assert.equal(isPublicArtUrl(liveCard), true);
+  assert.equal(isAllowedPosterUrl(liveCard), true);
+});
+
 test("GitHub raw posters (Chinese/Korean covers) allowed for the poster proxy", () => {
   assert.equal(
     isAllowedPosterUrl("https://raw.githubusercontent.com/borepig/javstreamio/main/posters/kr/krijav-2123.jpg"),

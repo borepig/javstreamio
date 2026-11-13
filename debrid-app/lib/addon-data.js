@@ -75,6 +75,8 @@ const POSTER_HOSTS = [
   // HK Cat III posters scraped from douban (subject_suggest -> img*.doubanio.com).
   "doubanio.com",
   "img.douban.com",
+  // HK Cat III SVG title cards are served from the live host's /posters dir.
+  "javstremio.ddns.net",
 ];
 const POSTER_REFERER = "https://sehuatang.org/";
 const POSTER_UA =
