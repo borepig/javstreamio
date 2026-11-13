@@ -77,6 +77,11 @@ const POSTER_HOSTS = [
   "img.douban.com",
   // HK Cat III SVG title cards are served from the live host's /posters dir.
   "javstremio.ddns.net",
+  // HK Cat III wiki posters (og:image) live on Wikimedia CDN.
+  "upload.wikimedia.org",
+  // AvGood detail-page posters (avgood.com/remote/pic/...) are publicly
+  // fetchable — HK Cat III magnets + posters come from AvGood search.
+  "avgood.com",
 ];
 const POSTER_REFERER = "https://sehuatang.org/";
 const POSTER_UA =
