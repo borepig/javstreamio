@@ -665,8 +665,8 @@ function posterRefererFor(src) {
   return POSTER_REFERER;
 }
 
-export async function fetchRemotePoster(src) {
-  if (!isAllowedPosterUrl(src)) {
+export async function fetchRemotePoster(src, allowAnyHttps = false) {
+  if (!allowAnyHttps && !isAllowedPosterUrl(src)) {
     const err = new Error("Poster host not allowed");
     err.status = 400;
     throw err;

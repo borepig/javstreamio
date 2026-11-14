@@ -34,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.43"
+VERSION = "0.5.44"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -192,10 +192,11 @@ def is_public_art(url: str) -> bool:
 
 
 def forum_cover(rec: dict) -> str:
-    """First sehuatang preview image. Stremio cannot hotlink these; Vercel /poster can."""
+    """First sehuatang preview image (any https host); the app's /poster proxy
+    fetches it server-side so Stremio never hotlinks the random image CDNs."""
     images = rec.get("preview_images") or []
     for img in images:
-        if isinstance(img, str) and img.startswith("https://") and "djhdhs.us" in img:
+        if isinstance(img, str) and img.startswith("https://"):
             return img
     return ""
 

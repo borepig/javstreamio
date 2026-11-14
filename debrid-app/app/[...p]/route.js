@@ -180,7 +180,9 @@ export async function GET(req, { params }) {
         }
       }
       if (!src) return NextResponse.json({ error: "Not found" }, { status: 404 });
-      const img = await fetchRemotePoster(src);
+      // hk: rows carry forum preview images on random CDN hosts; allow any
+      // https host because the proxy fetches them server-side.
+      const img = await fetchRemotePoster(src, /^hk:/.test(id));
       const buf = await img.arrayBuffer();
       return new NextResponse(buf, {
         headers: {
