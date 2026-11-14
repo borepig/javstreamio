@@ -140,6 +140,19 @@ def parse_runtime_from_markdown(md: str) -> str:
     return ""
 
 
+def parse_genres_from_markdown(md: str):
+    """Pull the genres line from a scraped movie page (Douban/Baike 类型, IMDB/TMDB Genres)."""
+    for pat in (
+        r"类型[：:]\s*([^\n]+)",
+        r"類型[：:]\s*([^\n]+)",
+        r"Genres[：:]\s*([^\n]+)",
+    ):
+        m = re.search(pat, md)
+        if m:
+            return [g.strip() for g in re.split(r"、|/|，|,|;", m.group(1)) if g.strip()]
+    return []
+
+
 def parse_douban_poster(md: str) -> str:
     """Extract an allow-listed poster (doubanio/douban) from a scraped Douban page."""
     m = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"', md)
@@ -155,17 +168,45 @@ def parse_douban_poster(md: str) -> str:
     return ""
 
 
+FLAT_DESC_KEYS = ("导演", "導演", "编剧", "主演", "类型", "類型", "片长", "片長", "语言", "語言", "上映日期", "制片国家/地区", "又名")
+
+
+def parse_flat_desc(desc: str):
+    """Pull director/cast/genres/runtime from a flat key-value description
+    (Douban/Baike style: '... 导演: X 主演: A / B 类型: 剧情 / 情色 片长: 82分钟')."""
+    out = {}
+    alt = "|".join(FLAT_DESC_KEYS)
+    pat = re.compile(rf"({alt})[：:]\s*([^\n]*?)(?=(?:{alt})[：:]|$)")
+    for key, val in pat.findall(desc):
+        v = val.strip()
+        if not v:
+            continue
+        if key in ("导演", "導演"):
+            out["director"] = v
+        elif key == "主演":
+            out["cast"] = [c.strip() for c in re.split(r"/|、|，|,", v) if c.strip()]
+        elif key in ("类型", "類型"):
+            out["genres"] = [g.strip() for g in re.split(r"/|、|，|,", v) if g.strip()]
+        elif key in ("片长", "片長"):
+            m = re.search(r"(\d+)\s*分钟", v)
+            if m:
+                out["runtime"] = f"{m.group(1)}m"
+    return out
+
+
 def enrich_title(idx: int, t: dict, db, total: int, dry_run: bool, fix_posters: bool) -> str:
     row_id = f"hk:cat3-{idx}"
     row = db.execute(
-        "SELECT poster, background, cast_json FROM titles WHERE id = ?", (row_id,)
+        "SELECT poster, background, cast_json, genres_json FROM titles WHERE id = ?", (row_id,)
     ).fetchone()
     if not row:
         print(f"[hkcat3meta] {idx + 1}/{total} {row_id}: row missing, skipped")
         return "skip"
     poster = row[0] or ""
     cast_json = row[2] or ""
-    if cast_json and cast_json not in ("", "[]"):
+    genres_json = row[3] or ""
+    filled = lambda v: bool(v) and v not in ("", "[]", "null")
+    if filled(cast_json) and filled(genres_json):
         return "ok"  # already enriched
 
     name = (t.get("zh") or "").strip()
@@ -186,17 +227,23 @@ def enrich_title(idx: int, t: dict, db, total: int, dry_run: bool, fix_posters: 
     u = src.get("url") or ""
     if "imdb.com" in u:
         fields.update(parse_imdb(title, desc))
-    elif "baidu.com" in u or "baike" in u:
+    if "baidu.com" in u or "baike" in u:
         fields.update(parse_baike(desc))
+    # Flat key-value descriptions (Douban/Baike) carry 导演/主演/类型/片长.
+    fields.update(parse_flat_desc(desc))
 
-    # Scrape for runtime when still missing (Baike/Douban pages).
-    runtime = fields.get("runtime")
-    if not runtime:
+    # Scrape for missing runtime/genres (Baike/Douban pages).
+    if not (fields.get("runtime") and fields.get("genres")):
         md = fc_scrape(u)
         if md:
-            runtime = parse_runtime_from_markdown(md)
-            if runtime:
-                fields["runtime"] = runtime
+            if not fields.get("runtime"):
+                runtime = parse_runtime_from_markdown(md)
+                if runtime:
+                    fields["runtime"] = runtime
+            if not fields.get("genres"):
+                genres = parse_genres_from_markdown(md)
+                if genres:
+                    fields["genres"] = genres
             if fix_posters and "douban" in u:
                 p = parse_douban_poster(md)
                 if p and poster.startswith(LIVE_HOST_PREFIX):
