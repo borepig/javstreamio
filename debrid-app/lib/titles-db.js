@@ -153,6 +153,12 @@ export const FREE_CATALOG_SIZE = 15;
 export const PAID_ONLY_CATEGORIES = [
   "hentai",
   "hongkong",
+  "korea",
+  "western",
+  "japan",
+  "france",
+  "japan-photo",
+  "cat3-others",
   // korean, chinese stay paused: re-add their names here when
   // their metadata sources are vetted and redone.
 ];

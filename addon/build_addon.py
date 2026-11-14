@@ -34,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.44"
+VERSION = "0.5.45"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -782,14 +782,37 @@ def hk_meta_id(rec: dict) -> str:
     return "hk:cat3-" + (m.group(1) if m else "unknown")
 
 
+# sehuatang forum-107 subcategory (thread `tag`) -> target catalog.
+# Per-country split (2026-11-15): 三级 and 四级 of the same country share a
+# catalog; 写真 stays 日本写真 only; everything else lands in cat3-others.
+HK_TAG_CATALOG = {
+    "韩国三级": "korea",
+    "香港三级": "hongkong",
+    "香港四级": "hongkong",
+    "美国三级": "western",
+    "美国四级": "western",
+    "日本三级": "japan",
+    "日本写真": "japan-photo",
+    "法国三级": "france",
+    "法国四级": "france",
+}
+
+
+def hk_tag_catalog(tag: str) -> str:
+    """Map a sehuatang subcategory tag to its target catalog."""
+    return HK_TAG_CATALOG.get((tag or "").strip(), "cat3-others")
+
+
 def scrape_sehuatang_hk(forum_id: int = 107, max_pages: int = 0) -> dict:
     """Scrape sehuatang forum 107 (all categories) into the live SQLite.
 
     sehuatang forum-107 is the 三级/四级/写真 forum spanning many countries.
     Each thread's post carries the poster (preview image) + magnet inline, so
-    the hongkong catalog gets real covers + playable magnets without extra
-    lookups. Every scraped title is stored as category 'hongkong' with id
-    'hk:cat3-<threadid>' so the paid 'hongkong' catalog serves them.
+    the paid per-country catalogs (korea / hongkong / western / japan /
+    france / japan-photo / cat3-others) get real covers + playable magnets
+    without extra lookups. New titles are stored under the catalog mapped
+    from the thread's subcategory tag (HK_TAG_CATALOG), with id
+    'hk:cat3-<threadid>'.
     Resume-safe: rows whose id is already in the DB are skipped.
     Genres are NOT scraped here; they are filled by the Firecrawl job
     (addon/hk_cat3_genres.py) so the scrape stays fast and engine-independent.
@@ -839,7 +862,7 @@ def scrape_sehuatang_hk(forum_id: int = 107, max_pages: int = 0) -> dict:
                     continue
                 title = build_title(rec, use_javdb=False)
                 title["id"] = meta_id
-                title["category"] = "hongkong"
+                title["category"] = hk_tag_catalog(rec.get("tag"))
                 title["posted_at"] = rec.get("posted_at") or title.get("released") or ""
                 with jsonl.open("a", encoding="utf-8") as handle:
                     handle.write(json.dumps(rec, ensure_ascii=False) + "\n")

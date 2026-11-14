@@ -284,6 +284,13 @@ export const BUNDLED_CATALOGS = [
   { type: "series", id: "hentai", name: "Hentai", extra: CATALOG_EXTRA },
   // HK Category III (Wikipedia meta + SearXNG magnet search; Cantonese original audio priority).
   { type: "movie", id: "hongkong", name: "HK Cat III", extra: CATALOG_EXTRA },
+  // sehuatang forum-107 per-country split (2026-11-15): each row is tagged
+  // by subcategory; 'western' above already serves JAV western + hk US 三级/四级.
+  { type: "movie", id: "korea", name: "Korea Cat III", extra: CATALOG_EXTRA },
+  { type: "movie", id: "japan", name: "Japan Cat III", extra: CATALOG_EXTRA },
+  { type: "movie", id: "france", name: "France Cat III", extra: CATALOG_EXTRA },
+  { type: "movie", id: "japan-photo", name: "Japan Photo", extra: CATALOG_EXTRA },
+  { type: "movie", id: "cat3-others", name: "Cat III Others", extra: CATALOG_EXTRA },
   // korean, chinese stay paused while their metadata sources are
   // re-vetted; re-add them here + in titles-db PAID_ONLY_CATEGORIES when redone.
 ];
