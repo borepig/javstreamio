@@ -82,6 +82,10 @@ const POSTER_HOSTS = [
   // AvGood detail-page posters (avgood.com/remote/pic/...) are publicly
   // fetchable — HK Cat III magnets + posters come from AvGood search.
   "avgood.com",
+  // HK Cat III poster fill (hk_cat3_posters.py): movie-DB og:image CDNs
+  // (TMDB rawHtml og:image, IMDB media CDN).
+  "media.themoviedb.org",
+  "m.media-amazon.com",
 ];
 const POSTER_REFERER = "https://sehuatang.org/";
 const POSTER_UA =
