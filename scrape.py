@@ -84,6 +84,12 @@ def looks_blocked(html: str) -> bool:
 
 def read_html(page: Page, url: str) -> tuple[str, str]:
     page.goto(url, wait_until="domcontentloaded", timeout=45000)
+    # Let the Cloudflare "Just a moment" challenge auto-clear before touching the 18+ gate.
+    for _ in range(30):
+        title = (page.title() or "").lower()
+        if "just a moment" not in title and "请稍候" not in title:
+            break
+        page.wait_for_timeout(1500)
     gate = page.locator("text=满18岁")
     if gate.count():
         gate.first.click()
@@ -380,9 +386,18 @@ class Site:
     def fetch_many(self, urls: list[str]) -> list[dict[str, str | int]]:
         return self.page.evaluate(
             """async (urls) => {
+                const TIMEOUT_MS = 30000;
                 return Promise.all(urls.map(async (url) => {
-                    const response = await fetch(url, {credentials: 'include'});
-                    return {url, status: response.status, html: await response.text()};
+                    const ctrl = new AbortController();
+                    const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+                    try {
+                        const response = await fetch(url, {credentials: 'include', signal: ctrl.signal});
+                        return {url, status: response.status, html: await response.text()};
+                    } catch (e) {
+                        return {url, status: 0, html: '', error: String((e && e.message) || e)};
+                    } finally {
+                        clearTimeout(timer);
+                    }
                 }));
             }""",
             urls,

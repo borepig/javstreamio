@@ -34,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.42"
+VERSION = "0.5.43"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -767,6 +767,115 @@ def scrape_new_to_sqlite(
         "pages": pages_done,
         "caught_up_page": caught_up_page,
         "total_in_db": len(existing),
+    }
+
+
+def hk_meta_id(rec: dict) -> str:
+    """Row id for sehuatang HK titles: hk:cat3-<sehuatang thread id>.
+
+    The thread id comes from the sehuatang thread URL; it is unique and
+    filename-safe. The `hk:` prefix matches the manifest idPrefixes so
+    Stremio routes /meta and /stream for these rows to this addon.
+    """
+    m = THREAD_ID_RE.search(rec.get("url") or "")
+    return "hk:cat3-" + (m.group(1) if m else "unknown")
+
+
+def scrape_sehuatang_hk(forum_id: int = 107, max_pages: int = 0) -> dict:
+    """Scrape sehuatang forum 107 (all categories) into the live SQLite.
+
+    sehuatang forum-107 is the 三级/四级/写真 forum spanning many countries.
+    Each thread's post carries the poster (preview image) + magnet inline, so
+    the hongkong catalog gets real covers + playable magnets without extra
+    lookups. Every scraped title is stored as category 'hongkong' with id
+    'hk:cat3-<threadid>' so the paid 'hongkong' catalog serves them.
+    Resume-safe: rows whose id is already in the DB are skipped.
+    Genres are NOT scraped here; they are filled by the Firecrawl job
+    (addon/hk_cat3_genres.py) so the scrape stays fast and engine-independent.
+    """
+    dest = TITLES_SQLITE
+    jsonl = ROOT / "data" / f"forum-{forum_id}-all.jsonl"
+    jsonl.parent.mkdir(parents=True, exist_ok=True)
+    bundled = load_bundled_overlay()
+
+    conn = sqlite3.connect(dest)
+    existing = {row[0] for row in conn.execute("SELECT id FROM titles WHERE id LIKE 'hk:cat3-%'")}
+
+    base = "https://sehuatang.org/"
+    site = Site()
+    added = 0
+    pages_done = 0
+    caught_up_page = 0
+    first_url = f"{base}forum-{forum_id}-1.html"
+    hongkong_total = 0
+    try:
+        first_html = site.open(first_url)
+        fid, _current, last = forum_identity(first_url, first_html)
+        end_page = last if max_pages <= 0 else min(last, max_pages)
+        for page_no in range(1, end_page + 1):
+            page_url = f"{base}forum-{fid}-{page_no}.html"
+            listing_html = first_html if page_no == 1 else str(site.fetch_many([page_url])[0]["html"])
+            if looks_blocked(listing_html):
+                print(f"page {page_no}: blocked; stopping", file=sys.stderr)
+                break
+            listing = parse_forum(listing_html, page_url)
+            threads = listing["threads"]
+            payloads = site.fetch_many([t["url"] for t in threads]) if threads else []
+            by_url = {str(p["url"]): p for p in payloads}
+            new_in_page = 0
+            for thread in threads:
+                payload = by_url.get(thread["url"])
+                if not payload:
+                    continue
+                html = str(payload["html"])
+                if int(payload["status"]) != 200 or looks_blocked(html):
+                    continue
+                rec = movie_record(html, thread)
+                if not rec or not (rec.get("magnet") or "").strip():
+                    continue
+                meta_id = hk_meta_id(rec)
+                if meta_id in existing:
+                    continue
+                title = build_title(rec, use_javdb=False)
+                title["id"] = meta_id
+                title["category"] = "hongkong"
+                title["posted_at"] = rec.get("posted_at") or title.get("released") or ""
+                with jsonl.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO titles (
+                      id, category, name, description, release_info, released, runtime,
+                      poster, background, forum_poster, dmm_missing, fourhoi_missing,
+                      cast_json, genres_json, director, imdb_rating, info_hash, magnet,
+                      posted_at, search_text, meta_rank
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    title_to_sqlite_row(title),
+                )
+                conn.commit()
+                existing.add(meta_id)
+                added += 1
+                new_in_page += 1
+            pages_done = page_no
+            if not threads:
+                # Reached the end of the forum (or the page was unreadable/blocked).
+                # Do NOT stop when a page's titles are merely already in the DB (a resume
+                # run) — only stop when the page has no threads at all.
+                caught_up_page = page_no
+                print(f"page {page_no}: no threads; stopping", file=sys.stderr)
+                break
+        hongkong_total = conn.execute(
+            "SELECT count(*) FROM titles WHERE category='hongkong'"
+        ).fetchone()[0]
+        conn.close()
+    finally:
+        site.close()
+    return {
+        "added": added,
+        "pages": pages_done,
+        "caught_up_page": caught_up_page,
+        "hongkong_total": hongkong_total,
     }
 
 
@@ -1686,6 +1795,17 @@ if __name__ == "__main__":
         help="Max sehuatang pages to read during --scrape-sqlite (0 = read until caught up)",
     )
     parser.add_argument(
+        "--scrape-hk",
+        action="store_true",
+        help="Scrape sehuatang forum 107 (all 三级/四级/写真 categories) into live SQLite as category 'hongkong', id 'hk:cat3-<threadid>'",
+    )
+    parser.add_argument(
+        "--scrape-hk-pages",
+        type=int,
+        default=0,
+        help="Max forum-107 pages to read (0 = read until caught up)",
+    )
+    parser.add_argument(
         "--scrape-avgood",
         action="store_true",
         help="Scrape AvGood HK sections (c/612 三级 + c/595 四级), keep HD/Cantonese titles only",
@@ -1765,6 +1885,13 @@ if __name__ == "__main__":
                 f"added={s['added']} skipped={s['skipped']} no_magnet={s['no_magnet']} "
                 f"pages={s['pages']} total_in_db={s['total_in_db']}"
             )
+    if args.scrape_hk:
+        stats = scrape_sehuatang_hk(forum_id=107, max_pages=args.scrape_hk_pages)
+        print(
+            "scrape sehuatang hk (forum-107): "
+            f"added={stats['added']} pages={stats['pages']} "
+            f"caught_up_page={stats['caught_up_page']} hongkong_total={stats['hongkong_total']}"
+        )
     if args.scrape_sqlite:
         stats = scrape_new_to_sqlite(use_javdb=not args.no_javdb, max_pages=args.scrape_pages)
         print(
