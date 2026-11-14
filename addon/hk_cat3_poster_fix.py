@@ -84,9 +84,10 @@ def search_sxng(query: str, num: int = 10) -> tuple:
     - searched_ok True: the engine answered; results may be empty (a real
       "no poster found" verdict).
     - searched_ok False: the upstream engines were rate-limited/unreachable
-      even after retries (5s/10s/20s on 0-result, 15s->300s backoff capped
-      at 4 transport retries) — NOT proof a poster doesn't exist; the row
-      must be kept and re-tried later."""
+      even after retries (one 5s 0-result retry — the self-hosted Firecrawl
+      search is the engine-independent fallback, so no long 5/10/20s backoff;
+      15s->300s backoff capped at 4 transport retries) — NOT proof a poster
+      doesn't exist; the row must be kept and re-tried later."""
     url = f"{SEARXNG}/search?q={urllib.parse.quote(query)}&format=json&pageno=1"
     backoff = 15
     zero_tries = 0
@@ -101,10 +102,10 @@ def search_sxng(query: str, num: int = 10) -> tuple:
             if results:
                 return results, True
             zero_tries += 1
-            if zero_tries > 3:
-                print("    sxng 0 results after 3 retries (engines rate-limited)")
+            if zero_tries > 1:
+                print("    sxng 0 results after 1 retry (engines rate-limited)")
                 return [], False
-            print(f"    sxng 0 results; retry {zero_tries}/3 in {zero_wait}s")
+            print(f"    sxng 0 results; retry {zero_tries}/1 in {zero_wait}s")
             time.sleep(zero_wait)
             zero_wait = min(zero_wait * 2, 30)
         except Exception as e:
@@ -115,6 +116,29 @@ def search_sxng(query: str, num: int = 10) -> tuple:
             print(f"    sxng error: {e}; retrying in {backoff}s")
             time.sleep(backoff)
             backoff = min(backoff * 2, 300)
+
+
+def fc_search(name: str, limit: int = 5) -> tuple:
+    """Self-hosted Firecrawl search (independent of the rate-limited SearXNG).
+    Returns (results, searched_ok): searched_ok False means the search itself
+    failed (HTTP error after retry / success=False) — keep the row and retry."""
+    body = json.dumps({"query": name, "limit": limit}).encode()
+    for attempt in (1, 2):
+        try:
+            req = Request(FIRECRAWL_API + "/v2/search", data=body,
+                          headers={"Content-Type": "application/json"})
+            with urlopen(req, timeout=60) as r:
+                d = json.loads(r.read())
+            if not d.get("success"):
+                return [], False
+            return (d.get("data") or {}).get("web") or [], True
+        except Exception as e:
+            if attempt == 1:
+                print(f"    firecrawl search error: {e}; retrying in 3s")
+                time.sleep(3)
+                continue
+            print(f"    firecrawl search error: {e}")
+            return [], False
 
 
 def firecrawl_scrape_html(url: str) -> tuple:
@@ -202,7 +226,14 @@ def find_poster(name: str):
             return p
         time.sleep(0.3)
     results, searched_ok = search_sxng(name)
-    if not searched_ok:
+    fc_searched = False
+    if not results:
+        # SearXNG rate-limited or zero results: the self-hosted Firecrawl
+        # search is the engine-independent fallback (user: finish without
+        # waiting for the SearXNG upstream engines to recover).
+        results, fc_searched = fc_search(name)
+        searched_ok = fc_searched
+    if not searched_ok and not fc_searched:
         return SXXNG_DOWN
     scrape_failed = False
     for r in results[:5]:

@@ -41,13 +41,13 @@ from hk_cat3_wiki_magnet_search import (
     build_variants,
     fetch_page,
     fetch_page_magnets,
-    search_sxng,
     score_candidate,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
 META_JSON = ROOT / "addon" / "hk_cat3_av.json"
 DB = ROOT / "debrid-app" / "data" / "titles.sqlite"
+SEARXNG = os.environ.get("SEARXNG_URL", "http://192.168.68.83:8888")
 FIRECRAWL_API = os.environ.get("FIRECRAWL_API_URL", "http://192.168.68.83:3002")
 
 NO_WORKING_LINK = "no_link"      # searched, nothing confirmed -> delete
@@ -74,6 +74,21 @@ def fc_search(query: str, limit: int = 5):
                 continue
             print(f"    firecrawl search error: {e}")
             return [], False
+
+
+def sxng_search_fast(query: str, num: int = 10) -> tuple:
+    """One-shot SearXNG search, no zero-result backoff: when the SearXNG
+    upstream engines are rate-limited the Firecrawl search below is the
+    engine-independent fallback, so don't waste ~35s of 5/10/20s retries per
+    title (user: finish without waiting). Returns (results, searched_ok)."""
+    url = f"{SEARXNG}/search?q={urllib.parse.quote(query)}&format=json&pageno=1"
+    try:
+        req = Request(url, headers={"User-Agent": "javstreamio-hkcat3/1.0"})
+        with urlopen(req, timeout=30) as r:
+            data = json.loads(r.read())
+        return (data.get("results") or []), True
+    except Exception:
+        return [], False
 
 
 def verify_film(name: str, year: str):
@@ -117,8 +132,6 @@ def process_title(idx: int, t: dict, db, total: int, dry_run: bool,
                 best = (s, det["magnet"], det["hash"], f"avgood /c/{rid}.html")
         time.sleep(0.3)
 
-    search_available = True
-    sxng_ok = True
     if best:
         # Confirmed working link found on AvGood.
         action = "updated"
@@ -126,13 +139,13 @@ def process_title(idx: int, t: dict, db, total: int, dry_run: bool,
         magnet, h = best[1], best[2]
     else:
         # 2) Not found on AvGood -> verify the film via Firecrawl (Chinese
-        #    name + year), then look for a working magnet via SearXNG.
+        #    name + year), then look for a working magnet via SearXNG, with
+        #    the self-hosted Firecrawl search as the engine-independent
+        #    fallback when the SearXNG upstream engines are rate-limited.
         confirmed, fc_ok = verify_film(zh, year)
-        sxng_results = search_sxng(f"{zh} {year} 1080p 粤語")
-        sxng_ok = len(sxng_results) > 0
-        if not fc_ok or not sxng_ok:
-            search_available = False
-        found_sxng = None
+        q = f"{zh} {year} 1080p 粤語"
+        sxng_results, sxng_ok = sxng_search_fast(q)
+        found = None
         if sxng_ok:
             for res in sxng_results[:6]:
                 url = (res.get("url") or "").strip()
@@ -141,26 +154,37 @@ def process_title(idx: int, t: dict, db, total: int, dry_run: bool,
                 cand_name = f"{res.get('title','')} {res.get('content','')}"
                 for magnet, h in fetch_page_magnets(url):
                     s = score_candidate(cand_name, variants)
-                    if found_sxng is None or s > found_sxng[0]:
-                        found_sxng = (s, magnet, h, url)
+                    if found is None or s > found[0]:
+                        found = (s, magnet, h, url)
                 time.sleep(0.3)
-        if found_sxng:
-            best = found_sxng
+        fc_results = []
+        fc_searched = fc_ok
+        if found is None:
+            # No magnet in the SearXNG results (or SearXNG rate-limited):
+            # query the self-hosted Firecrawl search for more candidates.
+            fc_results, fc_searched = fc_search(q)
+            if fc_searched:
+                for res in fc_results[:6]:
+                    url = (res.get("url") or "").strip()
+                    if not url:
+                        continue
+                    cand_name = f"{res.get('title','')} {res.get('description','')}"
+                    for magnet, h in fetch_page_magnets(url):
+                        s = score_candidate(cand_name, variants)
+                        if found is None or s > found[0]:
+                            found = (s, magnet, h, url)
+                    time.sleep(0.3)
+        if found:
+            best = found
             action = "updated"
             src = best[3]
             magnet, h = best[1], best[2]
+        elif not (sxng_ok or fc_searched):
+            # Neither search path could produce a verdict: keep for retry.
+            print(f"[hkcat3magnet] {idx + 1}/{total} {slug} {zh} ({year}): searches unavailable (sxng_ok={sxng_ok}, fc_searched={fc_searched}), kept for retry")
+            return "pending"
         else:
-            # No confirmed working link (AvGood + SearXNG found none).
-            if not search_available:
-                # Search tools were unavailable: keep for retry.
-                print(f"[hkcat3magnet] {idx + 1}/{total} {slug} {zh} ({year}): search unavailable (fc_ok={fc_ok}, sxng_ok={sxng_ok}), kept for retry")
-                return "pending"
-            # SearXNG answered with 0 results (rate-limited) -> not proof of
-            # absence, so also keep for retry.
-            if not sxng_ok:
-                print(f"[hkcat3magnet] {idx + 1}/{total} {slug} {zh} ({year}): sxng rate-limited, kept for retry")
-                return "pending"
-            # Search fully available, film (un)confirmed, no working link.
+            # Searches fully available, no confirmed working link.
             action = "deleted" if not confirmed else "kept_legacy" if keep_legacy else "deleted"
             src = "none"
             magnet, h = row[0] or "", legacy_hash
