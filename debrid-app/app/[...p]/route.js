@@ -49,6 +49,51 @@ function getRouteDb() {
   return routeDb;
 }
 
+// Generated SVG title card for cat3 rows whose stored forum-preview host
+// 404/403s (uploadhouse.com / pic2607v.cc go stale when the forum moves
+// files around). Served in place of a 502 so the board keeps a visible
+// (ugly-but-present) poster until the poster-fill job stores a real one.
+function chunkLongWord(word, maxChars) {
+  if (word.length <= maxChars) return [word];
+  const chunks = [];
+  for (let i = 0; i < word.length; i += maxChars) chunks.push(word.slice(i, i + maxChars));
+  return chunks;
+}
+
+function wrapCardText(text, maxChars) {
+  const out = [];
+  let cur = "";
+  for (const word of String(text || "").split(/\s+/)) {
+    for (const chunk of chunkLongWord(word, maxChars)) {
+      if ((cur + " " + chunk).trim().length > maxChars && cur) {
+        out.push(cur);
+        cur = chunk;
+      } else {
+        cur = (cur + " " + chunk).trim();
+      }
+    }
+  }
+  if (cur) out.push(cur);
+  return out.slice(0, 6);
+}
+
+function svgTitleCard(name) {
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const lines = wrapCardText(name, 16);
+  const startY = 270 - ((lines.length - 1) * 36) / 2;
+  const tspans = lines
+    .map((l, i) => `    <tspan x="180" ${i ? 'dy="36"' : `y="${startY}"`}>${esc(l)}</tspan>`)
+    .join("\n");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="540" viewBox="0 0 360 540">
+  <rect width="360" height="540" fill="#1c1e26"/>
+  <rect x="8" y="8" width="344" height="524" fill="none" stroke="#3d4254" stroke-width="2"/>
+  <text x="180" fill="#e8eaf2" font-family="Arial, sans-serif" font-size="26" font-weight="bold" text-anchor="middle" dominant-baseline="middle">
+${tspans}
+  </text>
+  <text x="180" y="500" fill="#8a90a8" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">JAV STREAMIO</text>
+</svg>`;
+}
+
 function clientIp(req) {
   const forwarded = req.headers.get("x-forwarded-for") || "";
   return forwarded.split(",")[0].trim() || req.headers.get("x-real-ip") || "";
@@ -182,7 +227,24 @@ export async function GET(req, { params }) {
       if (!src) return NextResponse.json({ error: "Not found" }, { status: 404 });
       // hk: rows carry forum preview images on random CDN hosts; allow any
       // https host because the proxy fetches them server-side.
-      const img = await fetchRemotePoster(src, /^hk:/.test(id));
+      let img;
+      try {
+        img = await fetchRemotePoster(src, /^hk:/.test(id));
+      } catch (e) {
+        // Dead forum-preview hosts (uploadhouse.com / pic2607v.cc 404):
+        // serve the generated SVG title card instead of 502.
+        if (/^hk:/.test(id) && item && item.name) {
+          return new NextResponse(svgTitleCard(String(item.name)), {
+            headers: {
+              "Content-Type": "image/svg+xml",
+              "Cache-Control": "public, max-age=86400, s-maxage=86400",
+              "Access-Control-Allow-Origin": "*",
+              "Cross-Origin-Resource-Policy": "cross-origin",
+            },
+          });
+        }
+        throw e;
+      }
       const buf = await img.arrayBuffer();
       return new NextResponse(buf, {
         headers: {
