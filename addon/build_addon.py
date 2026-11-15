@@ -34,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.48"
+VERSION = "0.5.49"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -1615,11 +1615,11 @@ def main(use_javdb: bool = True) -> None:
         "logo": "https://www.stremio.com/website/stremio-logo-small.png",
         "resources": [
             {"name": "catalog", "types": ["movie", "series"]},
-            {"name": "meta", "types": ["movie", "series"], "idPrefixes": ["jav:","hnt:"]},
-            {"name": "stream", "types": ["movie", "series"], "idPrefixes": ["jav:","hnt:"]},
+            {"name": "meta", "types": ["movie", "series"], "idPrefixes": ["jav:","hnt:","hk:"]},
+            {"name": "stream", "types": ["movie", "series"], "idPrefixes": ["jav:","hnt:","hk:"]},
         ],
         "types": ["movie", "series"],
-        "idPrefixes": ["jav:","hnt:"],
+        "idPrefixes": ["jav:","hnt:","hk:"],
         "catalogs": manifest_catalogs,
         "behaviorHints": {"adult": True, "p2p": True},
     }

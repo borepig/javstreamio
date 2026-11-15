@@ -1,8 +1,8 @@
 {
   "id": "community.javstremio",
-  "version": "0.5.48",
+  "version": "0.5.49",
   "name": "Stremio JAV Database Addon",
-  "description": "Stremio JAV Database Addon 0.5.48. This is only a metadata scraper.",
+  "description": "Stremio JAV Database Addon 0.5.49. This is only a metadata scraper.",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
   "resources": [
     {
@@ -20,7 +20,8 @@
       ],
       "idPrefixes": [
         "jav:",
-        "hnt:"
+        "hnt:",
+        "hk:"
       ]
     },
     {
@@ -31,7 +32,8 @@
       ],
       "idPrefixes": [
         "jav:",
-        "hnt:"
+        "hnt:",
+        "hk:"
       ]
     }
   ],
@@ -41,7 +43,8 @@
   ],
   "idPrefixes": [
     "jav:",
-    "hnt:"
+    "hnt:",
+    "hk:"
   ],
   "catalogs": [
     {
@@ -49,8 +52,14 @@
       "id": "jav-censored",
       "name": "JAV Censored",
       "extra": [
-        { "name": "search", "isRequired": false },
-        { "name": "skip", "isRequired": false }
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
       ]
     },
     {
@@ -58,8 +67,14 @@
       "id": "jav-uncensored",
       "name": "JAV Uncensored",
       "extra": [
-        { "name": "search", "isRequired": false },
-        { "name": "skip", "isRequired": false }
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
       ]
     },
     {
@@ -67,8 +82,14 @@
       "id": "western",
       "name": "Western",
       "extra": [
-        { "name": "search", "isRequired": false },
-        { "name": "skip", "isRequired": false }
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
       ]
     },
     {
@@ -76,71 +97,44 @@
       "id": "others",
       "name": "Others",
       "extra": [
-        { "name": "search", "isRequired": false },
-        { "name": "skip", "isRequired": false }
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
       ]
     },
     {
       "type": "series",
-      "id": "hentai",
-      "name": "Hentai",
+      "id": "hentai-censored",
+      "name": "Hentai Censored",
       "extra": [
-        { "name": "search", "isRequired": false },
-        { "name": "skip", "isRequired": false }
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
       ]
     },
     {
-      "type": "movie",
-      "id": "hongkong",
-      "name": "HK Cat III",
+      "type": "series",
+      "id": "hentai-uncensored",
+      "name": "Hentai Uncensored",
       "extra": [
-        { "name": "search", "isRequired": false },
-        { "name": "skip", "isRequired": false }
-      ]
-    },
-    {
-      "type": "movie",
-      "id": "korea",
-      "name": "Korea Cat III",
-      "extra": [
-        { "name": "search", "isRequired": false },
-        { "name": "skip", "isRequired": false }
-      ]
-    },
-    {
-      "type": "movie",
-      "id": "japan",
-      "name": "Japan Cat III",
-      "extra": [
-        { "name": "search", "isRequired": false },
-        { "name": "skip", "isRequired": false }
-      ]
-    },
-    {
-      "type": "movie",
-      "id": "france",
-      "name": "France Cat III",
-      "extra": [
-        { "name": "search", "isRequired": false },
-        { "name": "skip", "isRequired": false }
-      ]
-    },
-    {
-      "type": "movie",
-      "id": "japan-photo",
-      "name": "Japan Photo",
-      "extra": [
-        { "name": "search", "isRequired": false },
-        { "name": "skip", "isRequired": false }
-      ]
-    },
-    {
-      "type": "movie",
-      "id": "cat3-others",
-      "name": "Cat III Others",
-      "extra": [
-        { "name": "search", "isRequired": false },
-        { "name": "skip", "isRequired": false }
+        {
+          "name": "search",
+          "isRequired": false
+        },
+        {
+          "name": "skip",
+          "isRequired": false
+        }
       ]
     }
   ],
