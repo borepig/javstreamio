@@ -130,6 +130,24 @@ test("buildStreamList puts Torbox http first and magnet as infoHash", () => {
   assert.notEqual(streams[0].behaviorHints.bingeGroup, streams[1].behaviorHints.bingeGroup);
 });
 
+test("buildAddonStreams drops notWebReady for hk:cat3 (P2P shows in Stremio Web)", () => {
+  const streams = buildAddonStreams({
+    origin: "https://javstremio.ddns.net",
+    service: "pikpak",
+    token: "test",
+    infoHash: "FC1EFE87188815C548B09127D9376B3F9506D5C3",
+    sourceName: "5.19G",
+    sourceDescription: "猛男诞生记：开始变强",
+    cached: false,
+    includeDebrid: true,
+    notWebReady: false,
+  });
+  const p2p = streams.find((s) => s.infoHash);
+  assert.ok(p2p, "P2P row present");
+  assert.equal(p2p.behaviorHints.notWebReady, undefined);
+  assert.equal(p2p.behaviorHints.bingeGroup, "javstreamio-p2p-fc1efe87188815c548b09127d9376b3f9506d5c3");
+});
+
 test("unwrapTorrent does not return a different torrent from mylist", () => {
   const body = {
     data: [

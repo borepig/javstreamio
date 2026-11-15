@@ -217,6 +217,7 @@ export function buildAddonStreams({
   includeDebrid = true,
   resolvedUrl = "",
   directUrl = "",
+  notWebReady = true,
 }) {
   const debridUrl =
     resolvedUrl ||
@@ -233,6 +234,7 @@ export function buildAddonStreams({
     token,
     setupUrl: origin,
     directUrl,
+    notWebReady,
   });
 }
 
@@ -248,18 +250,24 @@ export function formatDebridStream({ service, url, size, title, flags, infoHash,
   };
 }
 
-export function formatTorrentStream({ infoHash, size, title, flags }) {
+// notWebReady hides the P2P row in Stremio Web (the web client cannot play
+// magnets). JAV static rows (有码) ship without the hint, which is why JAV
+// P2P shows in Web; the live-built hk:cat3 rows carried notWebReady, so Web
+// showed zero streams ("No streams were found"). hnt keeps the hint because
+// Web plays its Online/directUrl rows instead.
+export function formatTorrentStream({ infoHash, size, title, flags, notWebReady = true }) {
   const sizeBit = size || "";
   const hash = String(infoHash || "").toLowerCase();
-  return {
+  const row = {
     name: sizeBit ? `P2P\n${sizeBit}` : "P2P",
     description: [title, flags || "Magnet"].filter(Boolean).join("\n"),
     infoHash: hash,
     behaviorHints: {
       bingeGroup: `javstreamio-p2p-${hash || title || "x"}`,
-      notWebReady: true,
     },
   };
+  if (notWebReady) row.behaviorHints.notWebReady = true;
+  return row;
 }
 
 // Direct online playback: the stream row carries a plain http(s) mp4 URL
@@ -292,6 +300,7 @@ export function buildStreamList({
   token,
   setupUrl,
   directUrl = "",
+  notWebReady = true,
 }) {
   const { size, flags } = splitSizeFlags(sourceName);
   const title = sourceDescription || "";
@@ -306,7 +315,7 @@ export function buildStreamList({
     out.push(formatOnlineStream({ url: directUrl, title, flags }));
   }
   if (infoHash) {
-    out.push(formatTorrentStream({ infoHash, size, title, flags }));
+    out.push(formatTorrentStream({ infoHash, size, title, flags, notWebReady }));
   }
   return out;
 }

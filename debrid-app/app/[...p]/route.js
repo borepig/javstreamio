@@ -335,6 +335,11 @@ export async function GET(req, { params }) {
             resolvedUrl,
             includeDebrid: Boolean(debridOk && service && token && infoHash && includeDebridRow(service, cached)),
             directUrl,
+            // hk:cat3 rows are only ever built live (no static stream files):
+            // drop notWebReady so the P2P row shows in Stremio Web (matching
+            // JAV's static 有码 rows, which carry no behavior hints). hnt keeps
+            // the hint — Web plays those via their Online/directUrl rows.
+            notWebReady: !isHkRef,
           }),
         },
         { headers: NO_STORE },
