@@ -34,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.55"
+VERSION = "0.5.56"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -1938,5 +1938,9 @@ if __name__ == "__main__":
         titles = build_sqlite_titles(use_javdb=not args.no_javdb)
         dest = write_titles_sqlite(titles)
         print(f"sqlite: {len(titles)} titles -> {dest.relative_to(ROOT)}")
-    else:
+    # A scrape-only invocation (e.g. --scrape-hk / --scrape-hentai) must not
+    # fall through to the full static build (jav321 404 retries): when any
+    # scrape flag is set, skip main().
+    elif not (args.scrape_avgood or args.scrape_korean or args.scrape_chinese
+               or args.scrape_hentai or args.scrape_hk):
         main(use_javdb=not args.no_javdb)

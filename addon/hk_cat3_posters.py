@@ -196,6 +196,8 @@ def find_poster(query: str):
     then per-candidate scrape + extract + allow-list check + verify.
     Returns (poster_url, status) with status in {"found", "no_result",
     "no_usable"}."""
+    if not (query or "").strip():
+        return "", "no_result"
     results = search_with_backoff(query)
     if not results:
         return "", "no_result"

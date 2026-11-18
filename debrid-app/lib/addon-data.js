@@ -69,6 +69,10 @@ export function normalizeMetaBody(body) {
 
 const POSTER_HOSTS = [
   "tu.djhdhs.us",
+  // Sehuatang forum-preview mirror domain (sehuatang forum images rotate
+  // across tu.djhdhs.us / tu.w4kmzkm.com); the /poster proxy fetches with
+  // the sehuatang.org Referer, so mirror hosts belong on the allowlist.
+  "tu.w4kmzkm.com",
   "jdbstatic.com",
   "hanime-cdn.com",
   "raw.githubusercontent.com",
