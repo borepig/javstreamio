@@ -34,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.60"
+VERSION = "0.5.61"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -527,15 +527,26 @@ def update_sqlite_title(dest: Path, title: dict) -> None:
         conn.close()
 
 
+# JAV enrichment scope: the two primary JAV catalogs plus the JAV-prefixed
+# titles filed under the broad "others" and "western" categories. The
+# "western" category also holds HK Cat III titles (hk: ids), so the
+# jav:-prefix guard keeps JavDB lookups off those.
+JAV_ENRICH_CATEGORIES = ("jav-censored", "jav-uncensored", "others", "western")
+
+
+def _is_jav_enrich_target(row: dict) -> bool:
+    return (
+        bool(row.get("id"))
+        and row.get("category") in JAV_ENRICH_CATEGORIES
+        and str(row.get("id") or "").lower().startswith("jav:")
+    )
+
+
 def enrich_sqlite_rows(rows: list[dict], lookup, allow_network: bool = False) -> list[dict]:
     """Apply JavDB fields to JAV rows. Lookup order is newest first; output
     order is unchanged so the live catalog does not jump to the oldest title."""
     by_id = {row["id"]: dict(row) for row in rows if row.get("id")}
-    work = [
-        row
-        for row in rows
-        if row.get("id") and row.get("category") in ("jav-censored", "jav-uncensored")
-    ]
+    work = [row for row in rows if _is_jav_enrich_target(row)]
     work.sort(key=lambda row: (row.get("posted_at") or "", row.get("id") or ""), reverse=True)
     for row in work:
         current = by_id[row["id"]]
@@ -640,7 +651,7 @@ def enrich_live_sqlite(
         missing = [
             row
             for row in cached
-            if row.get("category") in ("jav-censored", "jav-uncensored")
+            if _is_jav_enrich_target(row)
             and not (row.get("genres") or [])
         ]
         missing.sort(key=lambda row: (row.get("posted_at") or "", row.get("id") or ""), reverse=True)
