@@ -116,6 +116,74 @@ function withTimeout(promise, ms, fallback) {
   ]);
 }
 
+// This Node build's URL searchParams / Buffer utf8 / TextDecoder /
+// decodeURIComponent corrupt specific CJK 3-byte sequences (e.g. 單體作品
+// decodes as "??體??品"), so the genre filter can't match rows. Workaround:
+// parse the raw percent-encoded query, percent-decode to bytes, then decode
+// UTF-8 bytes to code points in pure JS (String.fromCodePoint is clean).
+function decodeRawQueryParam(name, url) {
+  const raw = String(url.search || "").replace(/^\?/, "");
+  if (!raw) return "";
+  for (const pair of raw.split("&")) {
+    const eq = pair.indexOf("=");
+    if (eq > 0 && pair.slice(0, eq) === name) {
+      const value = pair.slice(eq + 1);
+      const bytes = [];
+      for (let i = 0; i < value.length; i++) {
+        if (
+          value[i] === "%" &&
+          i + 2 < value.length &&
+          /^%[0-9A-Fa-f]{2}$/.test(value.slice(i, i + 3))
+        ) {
+          bytes.push(parseInt(value.slice(i + 1, i + 3), 16));
+          i += 2;
+        } else {
+          const code = value.charCodeAt(i);
+          if (code <= 0x7f) {
+            bytes.push(code);
+          } else if (code <= 0x7ff) {
+            bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+          } else {
+            const next = i + 1 < value.length ? value.charCodeAt(i + 1) : 0;
+            if (code >= 0xd800 && code <= 0xdbff && next >= 0xdc00 && next <= 0xdfff) {
+              const cp = 0x10000 + ((code - 0xd800) << 10) + (next - 0xdc00);
+              bytes.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3f), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+              i += 1;
+            } else {
+              bytes.push(0xf0 | (code >> 18), 0x80 | ((code >> 12) & 0x3f), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+            }
+          }
+        }
+      }
+      let out = "";
+      let i = 0;
+      while (i < bytes.length) {
+        const b = bytes[i];
+        if (b < 0x80) {
+          out += String.fromCharCode(b);
+          i += 1;
+        } else if (b >= 0xf0 && i + 3 < bytes.length) {
+          const cp = ((b & 0x07) << 18) | ((bytes[i + 1] & 0x3f) << 12) | ((bytes[i + 2] & 0x3f) << 6) | (bytes[i + 3] & 0x3f);
+          out += String.fromCodePoint(cp);
+          i += 4;
+        } else if (b >= 0xe0 && i + 2 < bytes.length) {
+          const cp = ((b & 0x0f) << 12) | ((bytes[i + 1] & 0x3f) << 6) | (bytes[i + 2] & 0x3f);
+          out += String.fromCodePoint(cp);
+          i += 3;
+        } else if (b >= 0xc0 && i + 1 < bytes.length) {
+          const cp = ((b & 0x1f) << 6) | (bytes[i + 1] & 0x3f);
+          out += String.fromCodePoint(cp);
+          i += 2;
+        } else {
+          i += 1;
+        }
+      }
+      return out;
+    }
+  }
+  return "";
+}
+
 // Catch-all serving the Stremio addon protocol. `app/page.js` still owns "/", so this
 // handles /manifest.json, /catalog/..., /meta/... (proxied from GitHub raw) and a dynamic
 // /stream/... that resolves the torrent through the user's debrid service + key.
@@ -160,10 +228,13 @@ export async function GET(req, { params }) {
       } = parseCatalogExtra(extra);
       // Stremio sends extras as URL query params (standard protocol);
       // also honor the legacy path-based extra.
-      const qSkip = Number(url.searchParams.get("skip") || 0);
-      const qSearch = url.searchParams.get("search") || "";
-      const qGenre = (url.searchParams.get("genre") || "").trim();
-      const qYear = (url.searchParams.get("year") || "").trim();
+      // 0.5.66: query values are decoded manually (raw percent-decode +
+      // pure-JS UTF-8) because this Node build's built-in query decoding
+      // corrupts CJK genre strings like 單體作品.
+      const qSkip = Number(decodeRawQueryParam("skip", url) || 0);
+      const qSearch = decodeRawQueryParam("search", url);
+      const qGenre = decodeRawQueryParam("genre", url).trim();
+      const qYear = decodeRawQueryParam("year", url).trim();
       const skip = Math.max(pathSkip, qSkip);
       const search = qSearch || pathSearch;
       const genre = qGenre || pathGenre;
@@ -175,18 +246,6 @@ export async function GET(req, { params }) {
         return NextResponse.json({ metas: [] }, { headers: NO_STORE });
       }
       const catalog = bundledCatalog(catalogId, skip, paid ? undefined : FREE_CATALOG_SIZE, search, genre, year);
-      // TEMP DEBUG (0.5.65): trace the live genre/year filter bug.
-      console.log("[catalog-debug]", {
-        catalogId,
-        qGenre: url.searchParams.get("genre") || "",
-        qYear: url.searchParams.get("year") || "",
-        pathGenre,
-        pathYear,
-        search: search || "(none)",
-        skip,
-        paid,
-        metas: catalog.metas.length,
-      });
       const body = withPublicPosters(catalog, "catalog", publicOrigin(req, url));
       return NextResponse.json(body, { headers: NO_STORE });
     }

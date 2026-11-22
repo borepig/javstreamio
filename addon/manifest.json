@@ -1,8 +1,8 @@
 {
   "id": "community.javstremio",
-  "version": "0.5.65",
+  "version": "0.5.66",
   "name": "Stremio JAV Database Addon",
-  "description": "Stremio JAV Database Addon 0.5.65. Catalogs support genre and year filters (Stremio Web filter UI); catalog debug tracing for the live genre filter. This is only a metadata scraper.",
+  "description": "Stremio JAV Database Addon 0.5.66. Catalogs support genre and year filters (Stremio Web filter UI); CJK genre values are now decoded from the raw query so filters like 單體作品 work. This is only a metadata scraper.",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
   "resources": [
     {
