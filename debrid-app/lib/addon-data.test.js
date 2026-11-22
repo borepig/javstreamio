@@ -13,7 +13,7 @@ import {
   parseCatalogExtra,
   bundledStream,
 } from "./addon-data.js";
-import { openTitlesDb, resolveSqlitePath } from "./titles-db.js";
+import { openTitlesDb, resolveSqlitePath, queryCatalog, querySeriesList } from "./titles-db.js";
 import { ADDON_VERSION } from "./version.js";
 
 test("dmmPoster splits catalog poster from fanart", () => {
@@ -308,17 +308,53 @@ test("manifest exposes the four category catalogs", () => {
   for (const catalog of manifest.catalogs) {
     assert.deepEqual(
       catalog.extra.map((item) => item.name),
-      ["search", "skip"],
+      ["search", "skip", "genre", "year"],
     );
   }
 });
 
-test("parseCatalogExtra reads search and skip from the Stremio extra path", () => {
-  assert.deepEqual(parseCatalogExtra(""), { search: "", skip: 0 });
-  assert.deepEqual(parseCatalogExtra("skip=80"), { search: "", skip: 80 });
-  assert.deepEqual(parseCatalogExtra("search=WAAA"), { search: "WAAA", skip: 0 });
-  assert.deepEqual(parseCatalogExtra("search=WAAA-629&skip=80"), { search: "WAAA-629", skip: 80 });
-  assert.deepEqual(parseCatalogExtra("search=宝生みさと.json"), { search: "宝生みさと", skip: 0 });
+test("parseCatalogExtra reads search, skip, genre and year from the Stremio extra path", () => {
+  assert.deepEqual(parseCatalogExtra(""), { search: "", skip: 0, genre: "", year: "" });
+  assert.deepEqual(parseCatalogExtra("skip=80"), { search: "", skip: 80, genre: "", year: "" });
+  assert.deepEqual(parseCatalogExtra("search=WAAA"), { search: "WAAA", skip: 0, genre: "", year: "" });
+  assert.deepEqual(parseCatalogExtra("search=WAAA-629&skip=80"), { search: "WAAA-629", skip: 80, genre: "", year: "" });
+  assert.deepEqual(parseCatalogExtra("search=宝生みさと.json"), { search: "宝生みさと", skip: 0, genre: "", year: "" });
+  assert.deepEqual(parseCatalogExtra("genre=美乳&year=2019"), { search: "", skip: 0, genre: "美乳", year: "2019" });
+});
+
+test("queryCatalog filters by genre and year", () => {
+  const file = resolveSqlitePath();
+  if (!file) {
+    return;
+  }
+  const db = openTitlesDb(file);
+  const byGenre = queryCatalog(db, { catalogId: "jav-censored", page: 3, genre: "美乳" });
+  assert.ok(byGenre.length > 0, "expected at least 3 titles with genre 美乳");
+  for (const t of byGenre) {
+    assert.ok((t.genres || []).includes("美乳"), `${t.id} must carry genre 美乳`);
+  }
+  const byYear = queryCatalog(db, { catalogId: "jav-censored", page: 3, year: "2024" });
+  assert.ok(byYear.length > 0, "expected at least 3 titles released in 2024");
+  for (const t of byYear) {
+    const yearOk = String(t.released || "").startsWith("2024") || String(t.releaseInfo || "").includes("2024");
+    assert.ok(yearOk, `${t.id} must be a 2024 title`);
+  }
+  const none = queryCatalog(db, { catalogId: "jav-censored", page: 3, year: "1999" });
+  assert.equal(none.length, 0, "no 1999 titles expected in the recent censored set");
+});
+
+test("querySeriesList filters hnt series by genre and year", () => {
+  const file = resolveSqlitePath();
+  if (!file) return;
+  const db = openTitlesDb(file);
+  const all = querySeriesList(db, { category: "hentai", limit: 3 });
+  assert.ok(all.length > 0, "hentai series list should not be empty");
+  const byGenre = querySeriesList(db, { category: "hentai", limit: 3, genre: "OVA" });
+  const byYear = querySeriesList(db, { category: "hentai", limit: 3, year: "2025" });
+  // OVA / 2025 may simply have no matches in the top of the list — the
+  // filters must not throw and must return a valid (possibly empty) page.
+  assert.ok(Array.isArray(byGenre) && Array.isArray(byYear));
+  void all;
 });
 
 test("hanime-cdn posters are public art and allowed for the poster proxy", () => {

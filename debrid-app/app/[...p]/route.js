@@ -152,13 +152,22 @@ export async function GET(req, { params }) {
     if (seg0 === "catalog") {
       const catalogId = resolveCatalogId(p[2] || "jav-censored");
       const extra = String(p[3] || "").replace(/\.json$/, "");
-      const { skip: pathSkip, search: pathSearch } = parseCatalogExtra(extra);
-      // Stremio sends skip/search as URL query params (standard protocol);
+      const {
+        skip: pathSkip,
+        search: pathSearch,
+        genre: pathGenre,
+        year: pathYear,
+      } = parseCatalogExtra(extra);
+      // Stremio sends extras as URL query params (standard protocol);
       // also honor the legacy path-based extra.
       const qSkip = Number(url.searchParams.get("skip") || 0);
       const qSearch = url.searchParams.get("search") || "";
+      const qGenre = (url.searchParams.get("genre") || "").trim();
+      const qYear = (url.searchParams.get("year") || "").trim();
       const skip = Math.max(pathSkip, qSkip);
       const search = qSearch || pathSearch;
+      const genre = qGenre || pathGenre;
+      const year = qYear || pathYear;
       // Free tier: newest FREE_CATALOG_SIZE per catalog. Paid tier: full catalog.
       // Paid-only categories (HK AV, hentai, Korean, Chinese) return an empty
       // catalog for free users.
@@ -166,7 +175,7 @@ export async function GET(req, { params }) {
         return NextResponse.json({ metas: [] }, { headers: NO_STORE });
       }
       const body = withPublicPosters(
-        bundledCatalog(catalogId, skip, paid ? undefined : FREE_CATALOG_SIZE, search),
+        bundledCatalog(catalogId, skip, paid ? undefined : FREE_CATALOG_SIZE, search, genre, year),
         "catalog",
         publicOrigin(req, url),
       );

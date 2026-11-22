@@ -123,7 +123,7 @@ export function mapTitleRow(row) {
 // on the t3.micro).
 let META_RANK = `CASE WHEN (genres_json IS NULL OR genres_json IN ('', '[]')) AND (description IS NULL OR description = '') THEN 1 ELSE 0 END`;
 
-export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "" } = {}) {
+export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "", genre = "", year = "" } = {}) {
   const category = String(catalogId || "").replace(/\.json$/, "");
   const tokens = searchTokens(search);
   let sql = "SELECT * FROM titles WHERE category = ?";
@@ -131,6 +131,20 @@ export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "" }
   for (const token of tokens) {
     sql += " AND search_text LIKE ?";
     params.push(`%${token}%`);
+  }
+  // Genre filter: exact quoted match inside the genres_json array
+  // (e.g. '["美乳","熟女"]' matches '"美乳"').
+  const genreParam = String(genre || "").trim();
+  if (genreParam) {
+    sql += " AND instr(lower(genres_json), lower(?)) > 0";
+    params.push(`"${genreParam}"`);
+  }
+  // Year filter: rows carry the year in `released` (RFC3339 or date-only)
+  // or, when released is empty, in release_info (bare years like "2024").
+  const yearParam = String(year || "").trim();
+  if (yearParam) {
+    sql += " AND (substr(released, 1, 4) = ? OR (released IN ('', NULL) AND release_info = ?))";
+    params.push(yearParam, yearParam);
   }
   sql += ` ORDER BY ${META_RANK}, posted_at DESC, id DESC LIMIT ? OFFSET ?`;
   params.push(Number(page) || 80, Number(skip) || 0);
@@ -206,7 +220,7 @@ export function seriesDisplayName(seriesKey) {
     .join(" ");
 }
 
-export function querySeriesList(db, { category, limit = 80, offset = 0, search = "" } = {}) {
+export function querySeriesList(db, { category, limit = 80, offset = 0, search = "", genre = "", year = "" } = {}) {
   const cat = String(category || "").replace(/\.json$/, "");
   const limitN = Number(limit) || 80;
   const offsetN = Number(offset) || 0;
@@ -221,14 +235,41 @@ export function querySeriesList(db, { category, limit = 80, offset = 0, search =
   // full set; the page is then sliced in JS. Searching only the first page
   // (the old behavior) made deep series (e.g. Sister Breeder, ranked ~1568/1569)
   // invisible to search.
+  // Genre/year filters match the series-level row (episode_num = 0), which
+  // holds the series' own genres and release date. Resolve the matching
+  // series_key list first (indexed, cheap), then constrain the stage-1
+  // GROUP BY query with IN(...) — a correlated EXISTS inside the GROUP BY
+  // query took ~72s on the live DB, so the two-step form keeps it fast.
+  const genreParam = String(genre || "").trim();
+  const yearParam = String(year || "").trim();
+  let filterSql = "";
+  const filterParams = [];
+  if (genreParam || yearParam) {
+    let keySql = "SELECT DISTINCT series_key FROM titles WHERE category = ? AND episode_num = 0";
+    const keyParams = [cat];
+    if (genreParam) {
+      keySql += " AND instr(lower(genres_json), lower(?)) > 0";
+      keyParams.push(`"${genreParam}"`);
+    }
+    if (yearParam) {
+      keySql += " AND (substr(released, 1, 4) = ? OR (released IN ('', NULL) AND release_info = ?))";
+      keyParams.push(yearParam, yearParam);
+    }
+    const keyRows = db.prepare(keySql).all(...keyParams);
+    const keys = keyRows.map((r) => r.series_key);
+    if (!keys.length) return [];
+    const ph = keys.map(() => "?").join(", ");
+    filterSql = ` AND t.series_key IN (${ph})`;
+    filterParams.push(...keys);
+  }
   let sql = `SELECT t.series_key AS series_key,
                COUNT(*) AS ep_count,
                MAX(t.posted_at) AS posted_at
        FROM titles t
-       WHERE t.category = ? AND t.series_key != ''
+       WHERE t.category = ? AND t.series_key != ''${filterSql}
        GROUP BY t.series_key
        ORDER BY posted_at DESC, t.series_key ASC`;
-  const params = [cat];
+  const params = [cat, ...filterParams];
   if (!searching) {
     sql += "\n       LIMIT ? OFFSET ?";
     params.push(limitN, offsetN);

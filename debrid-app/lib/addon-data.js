@@ -282,6 +282,8 @@ export function withPublicPosters(body, kind, origin = "") {
 const CATALOG_EXTRA = [
   { name: "search", isRequired: false },
   { name: "skip", isRequired: false },
+  { name: "genre", isRequired: false },
+  { name: "year", isRequired: false },
 ];
 
 export const BUNDLED_CATALOGS = [
@@ -313,6 +315,8 @@ export function parseCatalogExtra(extra) {
   return {
     search: (params.get("search") || "").trim(),
     skip: Number.isFinite(skip) && skip > 0 ? skip : 0,
+    genre: (params.get("genre") || "").trim(),
+    year: (params.get("year") || "").trim(),
   };
 }
 
@@ -471,14 +475,14 @@ export function bundledTitle(id) {
   return null;
 }
 
-export function bundledCatalog(catalogId, skip = 0, page = CATALOG_PAGE, search = "") {
+export function bundledCatalog(catalogId, skip = 0, page = CATALOG_PAGE, search = "", genre = "", year = "") {
   const key = resolveCatalogId(catalogId);
   const db = getTitlesDb();
   // hnt categories are series: one catalog entry per episode collection.
   if (db && key.startsWith("hentai")) {
     // skip is pushed into SQL OFFSET (the old .slice on the first `limit`
     // rows made every page after the first 80 series empty).
-    const series = querySeriesList(db, { category: key, limit: page, offset: skip, search });
+    const series = querySeriesList(db, { category: key, limit: page, offset: skip, search, genre, year });
     return {
       metas: series.map((s) => ({
         id: `hnt:${s.seriesKey}`,
@@ -490,9 +494,21 @@ export function bundledCatalog(catalogId, skip = 0, page = CATALOG_PAGE, search 
       })),
     };
   }
+  const genreParam = String(genre || "").trim();
+  const yearParam = String(year || "").trim();
+  const genreMatch = (item) =>
+    !genreParam || (item.genres || []).some((g) => String(g).toLowerCase() === genreParam.toLowerCase());
+  const yearMatch = (item) =>
+    !yearParam ||
+    String(item.releaseInfo || "").includes(yearParam) ||
+    String(item.released || "").startsWith(yearParam);
   const list = db
-    ? queryCatalog(db, { catalogId: key, skip, page, search })
-    : (loadBundledTitles()[key] || []).filter((item) => titleMatchesSearch(item, search)).slice(skip, skip + page);
+    ? queryCatalog(db, { catalogId: key, skip, page, search, genre, year })
+    : (loadBundledTitles()[key] || [])
+      .filter((item) => titleMatchesSearch(item, search))
+      .filter(genreMatch)
+      .filter(yearMatch)
+      .slice(skip, skip + page);
   return {
     metas: list.map((item) => {
       const preview = {
