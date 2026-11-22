@@ -178,7 +178,7 @@ test("ABF-389 uses the public MGStage cover when DMM is now-printing", () => {
   );
 });
 
-test("DLDSS-557 uses the public DMM mono cover when digital is now-printing", () => {
+test("DLDSS-557 uses the FourHoi cover when DMM is now-printing (no DMM fallback)", () => {
   const catalog = withPublicPosters(
     {
       metas: [
@@ -196,7 +196,7 @@ test("DLDSS-557 uses the public DMM mono cover when digital is now-printing", ()
   );
   assert.equal(
     catalog.metas[0].poster,
-    "https://pics.dmm.co.jp/mono/movie/adult/1dldss557/1dldss557ps.jpg",
+    "https://fourhoi.com/dldss-557/cover-n.jpg",
   );
 });
 

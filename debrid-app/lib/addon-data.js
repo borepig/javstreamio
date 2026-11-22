@@ -221,8 +221,8 @@ function applyPublicArt(item, kind, origin) {
   const pl = skipDmm ? "" : dmmPoster(item.id, "pl");
   const fourhoi = item.fourhoiMissing ? "" : fourhoiPoster(item.id);
   const mgstage = mgstagePoster(item.id);
-  const monoPs = dmmMonoPoster(item.id, "ps");
-  const monoPl = dmmMonoPoster(item.id, "pl");
+  const monoPs = skipDmm ? "" : dmmMonoPoster(item.id, "ps");
+  const monoPl = skipDmm ? "" : dmmMonoPoster(item.id, "pl");
   const proxied = forumPosterUrl(item, origin);
   if (kind === "catalog") {
     if (ps) next.poster = ps;
@@ -256,6 +256,7 @@ function applyPublicArt(item, kind, origin) {
 }
 
 // JAV: DMM digital if real, MGStage, DMM mono, fourhoi, then sehuatang /poster.
+// When dmm_missing (NOW PRINTING stub): skip all DMM (digital + mono) → MGStage, FourHoi, then sehuatang /poster.
 // Western/Others use sehuatang through /poster.
 export function withPublicPosters(body, kind, origin = "") {
   if (!body || typeof body !== "object") return body;
