@@ -174,11 +174,20 @@ export async function GET(req, { params }) {
       if (!paid && PAID_ONLY_CATEGORIES.includes(catalogId)) {
         return NextResponse.json({ metas: [] }, { headers: NO_STORE });
       }
-      const body = withPublicPosters(
-        bundledCatalog(catalogId, skip, paid ? undefined : FREE_CATALOG_SIZE, search, genre, year),
-        "catalog",
-        publicOrigin(req, url),
-      );
+      const catalog = bundledCatalog(catalogId, skip, paid ? undefined : FREE_CATALOG_SIZE, search, genre, year);
+      // TEMP DEBUG (0.5.65): trace the live genre/year filter bug.
+      console.log("[catalog-debug]", {
+        catalogId,
+        qGenre: url.searchParams.get("genre") || "",
+        qYear: url.searchParams.get("year") || "",
+        pathGenre,
+        pathYear,
+        search: search || "(none)",
+        skip,
+        paid,
+        metas: catalog.metas.length,
+      });
+      const body = withPublicPosters(catalog, "catalog", publicOrigin(req, url));
       return NextResponse.json(body, { headers: NO_STORE });
     }
     if (seg0 === "meta") {

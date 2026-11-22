@@ -1,8 +1,8 @@
 {
   "id": "community.javstremio",
-  "version": "0.5.64",
+  "version": "0.5.65",
   "name": "Stremio JAV Database Addon",
-  "description": "Stremio JAV Database Addon 0.5.64. Catalogs now support genre and year filters (Stremio Web filter UI). This is only a metadata scraper.",
+  "description": "Stremio JAV Database Addon 0.5.65. Catalogs support genre and year filters (Stremio Web filter UI); catalog debug tracing for the live genre filter. This is only a metadata scraper.",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
   "resources": [
     {
