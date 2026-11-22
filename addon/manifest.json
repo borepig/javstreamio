@@ -1,8 +1,8 @@
 {
   "id": "community.javstremio",
-  "version": "0.5.68",
+  "version": "0.5.69",
   "name": "Stremio JAV Database Addon",
-  "description": "Stremio JAV Database Addon 0.5.68. JavDB genre + cast enrichment (10,451 rows) merged into the live SQLite; catalogs keep genre and year filters with raw-query CJK decoding. This is only a metadata scraper.",
+  "description": "Stremio JAV Database Addon 0.5.69. This is only a metadata scraper.",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
   "resources": [
     {
