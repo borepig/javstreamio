@@ -531,7 +531,7 @@ def update_sqlite_title(dest: Path, title: dict) -> None:
 # titles filed under the broad "others" and "western" categories. The
 # "western" category also holds HK Cat III titles (hk: ids), so the
 # jav:-prefix guard keeps JavDB lookups off those.
-JAV_ENRICH_CATEGORIES = ("jav-censored", "jav-uncensored", "others", "western")
+JAV_ENRICH_CATEGORIES = ("jav-censored", "jav-uncensored")
 
 
 def _is_jav_enrich_target(row: dict) -> bool:
@@ -540,6 +540,14 @@ def _is_jav_enrich_target(row: dict) -> bool:
         and row.get("category") in JAV_ENRICH_CATEGORIES
         and str(row.get("id") or "").lower().startswith("jav:")
     )
+
+
+def _has_meta_info(row: dict) -> bool:
+    """True if the row already carries JavDB-sourced meta (cast), so a JavDB
+    re-search is redundant. name/description are present on ~100% of rows and
+    are not the differentiator; cast is the JavDB field that marks "already
+    enriched."""
+    return bool(row.get("cast") or [])
 
 
 def enrich_sqlite_rows(rows: list[dict], lookup, allow_network: bool = False) -> list[dict]:
@@ -653,6 +661,7 @@ def enrich_live_sqlite(
             for row in cached
             if _is_jav_enrich_target(row)
             and not (row.get("genres") or [])
+            and not _has_meta_info(row)
         ]
         missing.sort(key=lambda row: (row.get("posted_at") or "", row.get("id") or ""), reverse=True)
         if free_set:
