@@ -887,7 +887,7 @@ async function pikpak(apiKey, infoHash, magnet) {
   return { success: true, torrentId, fileId, cached: complete };
 }
 
-export async function resolvePikpakPlay(apiKey, { fileId, infoHash } = {}) {
+export async function resolvePikpakPlay(apiKey, { torrentId, fileId, infoHash } = {}) {
   const H = { Authorization: `Bearer ${apiKey}` };
   const hash = String(infoHash || "").toLowerCase();
   try {
@@ -929,15 +929,28 @@ export async function resolvePikpakPlay(apiKey, { fileId, infoHash } = {}) {
     };
 
     let fid = hasFileId(fileId) ? String(fileId) : "";
-    if (!fid && hash) {
+    if (!fid && (hash || torrentId)) {
       const tasks = await getJSON(`${PP_BASE}/drive/v1/tasks`, {
         headers: H,
         params: { type: "offline", limit: "200" },
       });
       const rows = (tasks.body && tasks.body.tasks) || [];
-      const hit =
-        rows.find((t) => String((t.params && t.params.url) || "").toLowerCase().includes(hash)) ||
-        rows.find((t) => String(t.file_id || "") === fid);
+      const complete = "PHASE_TYPE_COMPLETE";
+      // The stream URL carries the offline task's task.id as torrent_id (set by
+      // lookupDebridCache when a completed task exists). Prefer that exact task's
+      // file_id; otherwise match by hash, preferring a COMPLETED task — the list
+      // is dominated by PHASE_TYPE_ERROR tasks, so a naive first-match would pick
+      // an errored task and leave the video stuck on "Caching".
+      let hit = null;
+      if (torrentId) {
+        hit = rows.find((t) => String(t.id || "") === String(torrentId));
+      }
+      if (!hit && hash) {
+        const matches = rows.filter((t) =>
+          String((t.params && t.params.url) || "").toLowerCase().includes(hash),
+        );
+        hit = matches.find((t) => String(t.phase || "") === complete) || matches[0] || null;
+      }
       fid = hit ? String(hit.file_id || "") : "";
     }
     if (!fid) {
@@ -1030,9 +1043,15 @@ export async function lookupDebridCache(service, apiKey, infoHash, opts = {}) {
         params: { type: "offline", limit: "200" },
       });
       const rows = (r.body && r.body.tasks) || [];
-      const hit = rows.find((t) =>
+      // Match by the hash embedded in each task's params.url, but prefer a
+      // COMPLETED task: the list is dominated by PHASE_TYPE_ERROR entries, so
+      // a first-match pick would report the errored task and hide a video that
+      // is actually fully downloaded.
+      const matches = rows.filter((t) =>
         String((t.params && t.params.url) || "").toLowerCase().includes(hash),
       );
+      const hit =
+        matches.find((t) => String(t.phase || "") === "PHASE_TYPE_COMPLETE") || matches[0] || null;
       if (!hit) return { cached: false, fileId: "" };
       const complete = String(hit.phase || "") === "PHASE_TYPE_COMPLETE";
       return { cached: complete, fileId: String(hit.file_id || ""), torrentId: String(hit.id || "") };
