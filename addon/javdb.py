@@ -276,11 +276,22 @@ def javdb_meta(number: str, use_cache: bool = True, allow_network: bool = True) 
 
 
 def compose_description(rec: dict | None, fields: dict | None, fallback: str = "") -> str:
-    """Plot / official title first, then JavDB facts. Forum blurbs count as the summary."""
+    """Plot / official title first, then JavDB facts. Forum blurbs count as the summary.
+
+    JavDB sometimes serves the generic magnet-sharing boilerplate as the
+    summary ("An magnet links sharing website for adult movies, ..."). When that
+    boilerplate is detected it is dropped, and the forum synopsis (the actual
+    video description) becomes the primary plot line instead.
+    """
     rec = rec or {}
     fields = fields or {}
     parts: list[str] = []
-    summary = (fields.get("summary") or fields.get("title") or "").strip()
+    raw_summary = (fields.get("summary") or fields.get("title") or "").strip()
+    # The JavDB boilerplate is the magnet-sharing blurb, not the video synopsis.
+    if raw_summary and re.search(r"an magnet links sharing", raw_summary, re.I):
+        summary = ""
+    else:
+        summary = raw_summary
     forum = (rec.get("title") or "").strip()
     if summary:
         parts.append(summary)
@@ -393,6 +404,73 @@ def credit_names(*groups) -> list[str]:
     return names
 
 
+# JavDB is fetched with a locale=en session, so its 類別 (genres) come back in
+# English (e.g. "Roleplay", "Big tits"). The live titles.sqlite stores the
+# Chinese genre names (e.g. 角色扮演, 巨乳). This map translates the English
+# names onto the Chinese names that already exist in the DB so the stored rows
+# and the catalog filter chips stay consistent.
+EN_GENRE_TO_ZH = {
+    "Roleplay": "角色扮演",
+    "Girl": "美少女",
+    "Creampie": "中出",
+    "Big tits": "巨乳",
+    "Pantyhose": "連褲襪",
+    "Black pantyhose": "連褲襪",
+    "Fishnets": "絲襪",
+    "Stockings": "絲襪",
+    "Facial": "顏射",
+    "Cum in mouth": "口交",
+    "Blowjob": "口交",
+    "Uniform": "制服",
+    "School uniform": "制服",
+    "Wife": "已婚婦女",
+    "Affair": "出軌",
+    "Intrusion": "白天出軌",
+    "Gang Intrusion": "白天出軌",
+    "Tit Wank": "乳交",
+    "Chizyo": "乳交",
+    "Mature woman": "熟女",
+    "Squirting": "潮吹",
+    "Kiss": "接吻",
+    "Insult": "凌辱",
+    "Beautiful butt": "大屁股",
+    "Beautiful leg": "美腳",
+    "Group Sex": "多P",
+    "Gangbang": "多P",
+    "BDSM": "SM",
+    "Masochism guy": "SM",
+    "Tune": "調教",
+    "POV": "第一人稱攝影",
+    "School": "學校作品",
+    "Debut / Retires": "首次亮相",
+    "Kinship": "亂倫",
+    "Glasses": "眼鏡",
+    "Swimsuit": "泳裝",
+    "Spasms": "絕頂高潮",
+    "Massage": "按摩",
+    "Footjob": "足交",
+    "tall": "高挑",
+    "Hot spring": "溫泉",
+    "Virginity": "處女",
+    "Teacher": "女教師",
+    "Anime character": "動畫人物",
+    "Sportswear": "運動",
+    "Video recording": "紀錄片",
+    "Temptation": "騙色",
+    "Love potion": "藥物",
+}
+
+
+def translate_genres(genres: list[str] | str | None) -> list[str]:
+    """Map JavDB English genre names onto the Chinese names used in the DB.
+    Names without a mapping (e.g. OL, 4K, NTR, 多P, Roleplay) are kept as-is."""
+    if not genres:
+        return []
+    if isinstance(genres, str):
+        genres = [genres]
+    return [EN_GENRE_TO_ZH.get(g, g) for g in genres]
+
+
 def apply_fields(meta: dict, fields: dict | None, rec: dict | None = None) -> dict:
     """Copy JavDB / jav321 fields onto a Stremio Meta Object."""
     meta = dict(meta)
@@ -401,7 +479,7 @@ def apply_fields(meta: dict, fields: dict | None, rec: dict | None = None) -> di
     if cast:
         meta["cast"] = cast
     if fields.get("genres"):
-        meta["genres"] = fields["genres"]
+        meta["genres"] = translate_genres(fields["genres"])
     if fields.get("runtime"):
         meta["runtime"] = fields["runtime"]
     if fields.get("released"):

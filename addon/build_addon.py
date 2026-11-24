@@ -34,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.73"
+VERSION = "0.5.74"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -97,10 +97,14 @@ CATALOGS = (
 JAV_CENSORED_GENRES = [
     "單體作品", "中出", "巨乳", "已婚婦女", "熟女",
     "白天出軌", "蕩婦", "苗條", "戲劇", "口交",
+    "美少女電影", "無碼破解", "多P", "淫亂真實", "乳交",
+    "女上位", "潮吹", "出軌", "美乳", "數位馬賽克",
 ]
 JAV_UNCENSORED_GENRES = [
     "單體作品", "無碼破解", "中出", "巨乳", "已婚婦女",
     "苗條", "蕩婦", "白天出軌", "熟女", "多P",
+    "口交", "戲劇", "淫亂真實", "美少女電影", "數位馬賽克",
+    "女上位", "潮吹", "姐姐", "接吻", "顏射",
 ]
 JAV_CENSORED_YEARS = [str(y) for y in range(2026, 2004, -1)]  # 2026..2005
 JAV_UNCENSORED_YEARS = [str(y) for y in range(2026, 2005, -1)] + ["2003"]
