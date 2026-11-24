@@ -143,6 +143,79 @@ test("when no task matches the hash, one new offline task is added", async () =>
   assert.equal(res.url, "https://cdn.pikpak.example/video.mp4");
 });
 
+test("in-flight task is polled to completion, not re-downloaded on re-open", async () => {
+  const inFlight = [
+    {
+      id: "t-prog",
+      phase: "PHASE_TYPE_RUNNING",
+      file_id: "",
+      params: { url: magnetUrl(HASH) },
+    },
+  ];
+  const completed = [
+    {
+      id: "t-prog",
+      phase: "PHASE_TYPE_COMPLETE",
+      file_id: "FID-NEW",
+      params: { url: magnetUrl(HASH) },
+    },
+  ];
+  // Stateful: the first /drive/v1/tasks call reports the task in-flight (no
+  // file_id yet); later calls report it COMPLETED with a file_id. This is the
+  // scenario where a second open lands while the first download is still
+  // running — it must poll the single task, not add a duplicate.
+  let tasksCall = 0;
+  const calls = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = (url, init = {}) => {
+    const u = String(url);
+    calls.push({ method: init.method || "GET", url: u, body: init.body || null });
+    if (u.startsWith(`${PP}/drive/v1/tasks`)) {
+      const body = tasksCall === 0 ? tasksBody(inFlight) : tasksBody(completed);
+      tasksCall++;
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        text: () => Promise.resolve(JSON.stringify(body)),
+      });
+    }
+    if (u.startsWith(`${PP}/drive/v1/files/`)) {
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        text: () => Promise.resolve(JSON.stringify(FILE_DETAIL)),
+      });
+    }
+    if (u.includes("parent_id")) {
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        text: () => Promise.resolve(JSON.stringify(FOLDER_FILES)),
+      });
+    }
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      text: () => Promise.resolve(JSON.stringify({ error: { code: "NOT_FOUND" }})),
+    });
+  };
+  const res = await resolvePikpakPlay(KEY, { infoHash: HASH });
+  globalThis.fetch = original;
+  assert.equal(res.success, true);
+  assert.equal(res.url, "https://cdn.pikpak.example/video.mp4");
+  assert.equal(res.cached, true);
+  // The in-flight task was reused and polled to completion — no new offline
+  // download was added on the re-open.
+  const posts = calls.filter((c) => c.method === "POST");
+  assert.equal(posts.length, 0);
+  const listCalls = calls.filter((c) => c.url.includes("parent_id=FID-NEW"));
+  assert.equal(listCalls.length, 1);
+});
+
 test("lookupDebridCache(pikpak) reports cached only when a completed task exists", async () => {
   const withComplete = [
     {

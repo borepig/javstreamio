@@ -929,6 +929,8 @@ export async function resolvePikpakPlay(apiKey, { torrentId, fileId, infoHash } 
     };
 
     let fid = hasFileId(fileId) ? String(fileId) : "";
+    let existingTaskId = "";
+    let addedTask = false;
     if (!fid && (hash || torrentId)) {
       const tasks = await getJSON(`${PP_BASE}/drive/v1/tasks`, {
         headers: H,
@@ -951,19 +953,55 @@ export async function resolvePikpakPlay(apiKey, { torrentId, fileId, infoHash } 
         );
         hit = matches.find((t) => String(t.phase || "") === complete) || matches[0] || null;
       }
-      fid = hit ? String(hit.file_id || "") : "";
+      if (hit) {
+        fid = String(hit.file_id || "");
+        existingTaskId = String(hit.id || "");
+      }
     }
-    if (!fid) {
+    // Only create a new offline task when no existing task matches this hash.
+    // An in-flight task (no file_id yet) is polled to completion instead of
+    // spawning a duplicate download on every open.
+    if (!fid && !existingTaskId) {
       const ensured = await pikpak(apiKey, hash, magnetWithTrackers("", hash));
-      fid = ensured.success ? String(ensured.fileId || "") : "";
-      if (!fid) return { success: false, added: true, cached: false, error: "PikPak: could not find or add the file" };
+      if (ensured.success) {
+        addedTask = true;
+        fid = String(ensured.fileId || "");
+        existingTaskId = String(ensured.torrentId || "");
+      }
+      if (!fid && !existingTaskId) return { success: false, added: true, cached: false, error: "PikPak: could not find or add the file" };
     }
 
-    const found = await videoUrl(fid);
-    if (found) return { ...found, added: true, cached: true };
-    const waited = await poll(() => videoUrl(fid), 8, 700);
-    if (waited) return { ...waited, added: true, cached: true };
-    return { success: false, added: true, cached: false, error: "PikPak: file not ready yet — try again in a few seconds" };
+    // Poll an in-flight offline task until it completes and yields a file_id,
+    // so repeated opens reuse the single download rather than re-downloading.
+    const taskFileId = async (taskId) => {
+      for (let i = 0; i < 10; i++) {
+        const r = await getJSON(`${PP_BASE}/drive/v1/tasks`, { headers: H, params: { type: "offline", limit: "200" } });
+        const rows = (r.body && r.body.tasks) || [];
+        const t = rows.find((x) => String(x.id || "") === String(taskId));
+        if (t) {
+          const phase = String(t.phase || "");
+          if (phase === "PHASE_TYPE_COMPLETE" && t.file_id) return String(t.file_id);
+          if (phase === "PHASE_TYPE_ERROR") return null;
+        }
+        await new Promise((res) => setTimeout(res, 700));
+      }
+      return null;
+    };
+
+    const found = fid ? await videoUrl(fid) : null;
+    if (found) return { ...found, added: addedTask, cached: true };
+    if (fid) {
+      const waited = await poll(() => videoUrl(fid), 8, 700);
+      if (waited) return { ...waited, added: addedTask, cached: true };
+    }
+    if (!fid && existingTaskId) {
+      const fileId = await taskFileId(existingTaskId);
+      if (fileId) {
+        const waited = await poll(() => videoUrl(fileId), 8, 700);
+        if (waited) return { ...waited, added: addedTask, cached: true };
+      }
+    }
+    return { success: false, added: addedTask, cached: false, error: "PikPak: file not ready yet — try again in a few seconds" };
   } catch (e) {
     return { success: false, error: "PikPak error: " + e.message };
   }
