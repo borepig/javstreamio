@@ -34,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.72"
+VERSION = "0.5.73"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -77,13 +77,33 @@ PUBLIC_ART_HOSTS = ("pics.dmm.co.jp", "jdbstatic.com", "fourhoi.com", "image.mgs
 BLOCKED_ART_HOSTS = ("vercel.app", "tu.djhdhs.us", "w4kmzkm.com")
 CATALOGS = (
     ("jav-censored", "JAV Censored"),
+    ("jav-censored-year", "JAV Censored By Year"),
     ("jav-uncensored", "JAV Uncensored"),
+    ("jav-uncensored-year", "JAV Uncensored By Year"),
     ("western", "Western"),
     ("others", "Others"),
     ("hentai-censored", "Hentai Censored"),
     ("hentai-uncensored", "Hentai Uncensored"),
     # korean, chinese, hongkong stay paused pending the user's source vetting.
 )
+# Stremio client filter chips: the client only renders a genre filter when
+# the catalog carries an `options` list (addon-sdk manifest docs), and the
+# bare `year` extra name is NOT recognized by the client, so year filtering
+# is served by dedicated "-year" catalogs following the Cinemeta production
+# pattern (v3-cinemeta.strem.io): the client sends the selected year
+# through the `genre` param.
+# Genre options = top-10 genres per JAV category; year options = every
+# distinct release year in titles.sqlite (verified 2026-11-24).
+JAV_CENSORED_GENRES = [
+    "單體作品", "中出", "巨乳", "已婚婦女", "熟女",
+    "白天出軌", "蕩婦", "苗條", "戲劇", "口交",
+]
+JAV_UNCENSORED_GENRES = [
+    "單體作品", "無碼破解", "中出", "巨乳", "已婚婦女",
+    "苗條", "蕩婦", "白天出軌", "熟女", "多P",
+]
+JAV_CENSORED_YEARS = [str(y) for y in range(2026, 2004, -1)]  # 2026..2005
+JAV_UNCENSORED_YEARS = [str(y) for y in range(2026, 2005, -1)] + ["2003"]
 # Hnt (Sukebei/Nyaa) catalogs are served as Stremio series (TV-show model),
 # every other catalog stays a movie.
 HNT_CATALOG_IDS = {"hentai-censored", "hentai-uncensored"}
@@ -281,11 +301,59 @@ def record_name(rec: dict) -> str:
     return f"{rec.get('titleno', '')} {rec.get('title', '')}".strip()
 
 
-def catalog_extra() -> list[dict]:
-    return [
+def catalog_extra(catalog_id: str) -> list[dict]:
+    """Per-catalog `extra` definitions (Stremio client filter UI).
+
+    The client renders a genre filter only when the extra carries an
+    `options` list. Year catalogs follow the Cinemeta pattern: the genre
+    extra's options are release years, the selection is required, and the
+    client sends the chosen year through the `genre` param.
+    """
+    if catalog_id == "jav-censored-year":
+        return [
+            {"name": "genre", "isRequired": True, "options": JAV_CENSORED_YEARS, "optionsLimit": 1},
+            {"name": "skip", "isRequired": False},
+        ]
+    if catalog_id == "jav-uncensored-year":
+        return [
+            {"name": "genre", "isRequired": True, "options": JAV_UNCENSORED_YEARS, "optionsLimit": 1},
+            {"name": "skip", "isRequired": False},
+        ]
+    extra = [
         {"name": "search", "isRequired": False},
         {"name": "skip", "isRequired": False},
     ]
+    if catalog_id == "jav-censored":
+        extra.append({"name": "genre", "isRequired": False, "options": JAV_CENSORED_GENRES, "optionsLimit": 1})
+    elif catalog_id == "jav-uncensored":
+        extra.append({"name": "genre", "isRequired": False, "options": JAV_UNCENSORED_GENRES, "optionsLimit": 1})
+    else:
+        extra.append({"name": "genre", "isRequired": False})
+        extra.append({"name": "year", "isRequired": False})
+    return extra
+
+
+def catalog_genres(catalog_id: str) -> list[str] | None:
+    """The `genres` array the client shows for a catalog (Cinemeta pattern)."""
+    if catalog_id == "jav-censored":
+        return JAV_CENSORED_GENRES
+    if catalog_id == "jav-uncensored":
+        return JAV_UNCENSORED_GENRES
+    if catalog_id == "jav-censored-year":
+        return JAV_CENSORED_YEARS
+    if catalog_id == "jav-uncensored-year":
+        return JAV_UNCENSORED_YEARS
+    return None
+
+
+def catalog_category(catalog_id: str) -> str:
+    """Map a catalog id to its titles.sqlite category (year catalogs are
+    views over their base category)."""
+    if catalog_id == "jav-censored-year":
+        return "jav-censored"
+    if catalog_id == "jav-uncensored-year":
+        return "jav-uncensored"
+    return catalog_id
 
 
 def title_search_text(title: dict) -> str:
@@ -1620,15 +1688,21 @@ def main(use_javdb: bool = True) -> None:
         (ADDON_DIR / sub).mkdir(parents=True, exist_ok=True)
     TITLES_JSON.parent.mkdir(parents=True, exist_ok=True)
 
-    manifest_catalogs = [
-        {
+    manifest_catalogs: list[dict] = []
+    for catalog_id, name in CATALOGS:
+        entry = {
             "type": "series" if catalog_id in HNT_CATALOG_IDS else "movie",
             "id": catalog_id,
             "name": name,
-            "extra": catalog_extra(),
+            "extra": catalog_extra(catalog_id),
         }
-        for catalog_id, name in CATALOGS
-    ]
+        genres = catalog_genres(catalog_id)
+        if genres is not None:
+            entry["genres"] = genres
+        if catalog_id in ("jav-censored-year", "jav-uncensored-year"):
+            entry["extraSupported"] = ["genre", "skip"]
+            entry["extraRequired"] = ["genre"]
+        manifest_catalogs.append(entry)
     manifest = {
         "id": ADDON_ID,
         "version": VERSION,
@@ -1656,6 +1730,18 @@ def main(use_javdb: bool = True) -> None:
         # hnt catalogs are series — their static files are written by the
         # series pass below, not the movie pass.
         if catalog_id in HNT_CATALOG_IDS:
+            continue
+        # Year catalogs are views over their base category (Cinemeta
+        # pattern): the static file is a copy of the base catalog, and the
+        # year filter is applied by the debrid-app catalog handler via the
+        # `genre` query param (the client sends the selected year through
+        # the `genre` extra).
+        if catalog_id in ("jav-censored-year", "jav-uncensored-year"):
+            base = ADDON_DIR / "catalog" / "movie" / f"{catalog_category(catalog_id)}.json"
+            if base.exists():
+                (ADDON_DIR / "catalog" / "movie" / f"{catalog_id}.json").write_text(
+                    base.read_text(encoding="utf-8"), encoding="utf-8"
+                )
             continue
         previews = []
         for rec in grouped.get(catalog_id, []):

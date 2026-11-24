@@ -279,6 +279,32 @@ export function withPublicPosters(body, kind, origin = "") {
   return body;
 }
 
+// Filter-chip options computed from the live titles.sqlite (top-10 genres
+// per JAV category, every distinct release year). The Stremio client only
+// renders a genre filter when the catalog carries an `options` list, and
+// the bare `year` extra name is not recognized by the client, so year
+// filtering is provided by dedicated "-year" catalogs following the
+// Cinemeta pattern: the client sends the selected year through the
+// `genre` param, which the catalog handler treats as a year filter.
+const JAV_CENSORED_GENRES = [
+  "單體作品", "中出", "巨乳", "已婚婦女", "熟女",
+  "白天出軌", "蕩婦", "苗條", "戲劇", "口交",
+];
+const JAV_UNCENSORED_GENRES = [
+  "單體作品", "無碼破解", "中出", "巨乳", "已婚婦女",
+  "苗條", "蕩婦", "白天出軌", "熟女", "多P",
+];
+const JAV_CENSORED_YEARS = [
+  "2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019",
+  "2018", "2017", "2016", "2015", "2014", "2013", "2012", "2011",
+  "2010", "2009", "2008", "2007", "2006", "2005",
+];
+const JAV_UNCENSORED_YEARS = [
+  "2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019",
+  "2018", "2017", "2016", "2015", "2014", "2013", "2012", "2011",
+  "2010", "2009", "2008", "2007", "2006", "2003",
+];
+
 const CATALOG_EXTRA = [
   { name: "search", isRequired: false },
   { name: "skip", isRequired: false },
@@ -286,9 +312,69 @@ const CATALOG_EXTRA = [
   { name: "year", isRequired: false },
 ];
 
+export function catalogExtra(catalogId) {
+  const id = String(catalogId || "").replace(/\.json$/, "");
+  if (id === "jav-censored-year") {
+    return [
+      { name: "genre", isRequired: true, options: JAV_CENSORED_YEARS, optionsLimit: 1 },
+      { name: "skip", isRequired: false },
+    ];
+  }
+  if (id === "jav-uncensored-year") {
+    return [
+      { name: "genre", isRequired: true, options: JAV_UNCENSORED_YEARS, optionsLimit: 1 },
+      { name: "skip", isRequired: false },
+    ];
+  }
+  const extra = [
+    { name: "search", isRequired: false },
+    { name: "skip", isRequired: false },
+  ];
+  if (id === "jav-censored") {
+    extra.push({ name: "genre", isRequired: false, options: JAV_CENSORED_GENRES, optionsLimit: 1 });
+  } else if (id === "jav-uncensored") {
+    extra.push({ name: "genre", isRequired: false, options: JAV_UNCENSORED_GENRES, optionsLimit: 1 });
+  } else {
+    extra.push({ name: "genre", isRequired: false });
+    extra.push({ name: "year", isRequired: false });
+  }
+  return extra;
+}
+
+export function catalogGenres(catalogId) {
+  const id = String(catalogId || "").replace(/\.json$/, "");
+  switch (id) {
+    case "jav-censored": return JAV_CENSORED_GENRES;
+    case "jav-uncensored": return JAV_UNCENSORED_GENRES;
+    case "jav-censored-year": return JAV_CENSORED_YEARS;
+    case "jav-uncensored-year": return JAV_UNCENSORED_YEARS;
+    default: return undefined;
+  }
+}
+
 export const BUNDLED_CATALOGS = [
-  { type: "movie", id: "jav-censored", name: "JAV Censored", extra: CATALOG_EXTRA },
-  { type: "movie", id: "jav-uncensored", name: "JAV Uncensored", extra: CATALOG_EXTRA },
+  { type: "movie", id: "jav-censored", name: "JAV Censored", genres: JAV_CENSORED_GENRES, extra: catalogExtra("jav-censored") },
+  // Cinemeta-style year catalog: the genre extra's options are years; the
+  // client sends the selected year via the `genre` param.
+  {
+    type: "movie",
+    id: "jav-censored-year",
+    name: "JAV Censored By Year",
+    genres: JAV_CENSORED_YEARS,
+    extra: catalogExtra("jav-censored-year"),
+    extraSupported: ["genre", "skip"],
+    extraRequired: ["genre"],
+  },
+  { type: "movie", id: "jav-uncensored", name: "JAV Uncensored", genres: JAV_UNCENSORED_GENRES, extra: catalogExtra("jav-uncensored") },
+  {
+    type: "movie",
+    id: "jav-uncensored-year",
+    name: "JAV Uncensored By Year",
+    genres: JAV_UNCENSORED_YEARS,
+    extra: catalogExtra("jav-uncensored-year"),
+    extraSupported: ["genre", "skip"],
+    extraRequired: ["genre"],
+  },
   { type: "movie", id: "western", name: "Western", extra: CATALOG_EXTRA },
   { type: "movie", id: "others", name: "Others", extra: CATALOG_EXTRA },
   // Single Hentai catalog (hentai.tv source; replaces the censored/uncensored pair).
@@ -340,6 +426,10 @@ function loadBundledTitles() {
 export function resolveCatalogId(catalogId) {
   const id = String(catalogId || "").replace(/\.json$/, "");
   if (id === "jav103" || !id) return "jav-censored";
+  // Year catalogs are views over their base category (Cinemeta pattern):
+  // the year filter is applied by the catalog handler via the genre param.
+  if (id === "jav-censored-year") return "jav-censored";
+  if (id === "jav-uncensored-year") return "jav-uncensored";
   return id;
 }
 
@@ -477,12 +567,23 @@ export function bundledTitle(id) {
 
 export function bundledCatalog(catalogId, skip = 0, page = CATALOG_PAGE, search = "", genre = "", year = "") {
   const key = resolveCatalogId(catalogId);
+  const rawId = String(catalogId || "").replace(/\.json$/, "");
+  const genreParam = String(genre || "").trim();
+  const yearParam = String(year || "").trim();
+  // Cinemeta pattern: a year catalog sends the selected year through the
+  // `genre` extra, so treat a 4-digit genre value as a year filter.
+  const isYearCatalog = rawId === "jav-censored-year" || rawId === "jav-uncensored-year";
+  const treatGenreAsYear =
+    isYearCatalog ||
+    ((key === "jav-censored" || key === "jav-uncensored") && /^\d{4}$/.test(genreParam));
+  const qGenre = treatGenreAsYear ? "" : genreParam;
+  const qYear = treatGenreAsYear ? yearParam || genreParam : yearParam;
   const db = getTitlesDb();
   // hnt categories are series: one catalog entry per episode collection.
   if (db && key.startsWith("hentai")) {
     // skip is pushed into SQL OFFSET (the old .slice on the first `limit`
     // rows made every page after the first 80 series empty).
-    const series = querySeriesList(db, { category: key, limit: page, offset: skip, search, genre, year });
+    const series = querySeriesList(db, { category: key, limit: page, offset: skip, search, genre: qGenre, year: qYear });
     return {
       metas: series.map((s) => ({
         id: `hnt:${s.seriesKey}`,
@@ -494,16 +595,14 @@ export function bundledCatalog(catalogId, skip = 0, page = CATALOG_PAGE, search 
       })),
     };
   }
-  const genreParam = String(genre || "").trim();
-  const yearParam = String(year || "").trim();
   const genreMatch = (item) =>
-    !genreParam || (item.genres || []).some((g) => String(g).toLowerCase() === genreParam.toLowerCase());
+    !qGenre || (item.genres || []).some((g) => String(g).toLowerCase() === qGenre.toLowerCase());
   const yearMatch = (item) =>
-    !yearParam ||
-    String(item.releaseInfo || "").includes(yearParam) ||
-    String(item.released || "").startsWith(yearParam);
+    !qYear ||
+    String(item.releaseInfo || "").includes(qYear) ||
+    String(item.released || "").startsWith(qYear);
   const list = db
-    ? queryCatalog(db, { catalogId: key, skip, page, search, genre, year })
+    ? queryCatalog(db, { catalogId: key, skip, page, search, genre: qGenre, year: qYear })
     : (loadBundledTitles()[key] || [])
       .filter((item) => titleMatchesSearch(item, search))
       .filter(genreMatch)
@@ -517,6 +616,8 @@ export function bundledCatalog(catalogId, skip = 0, page = CATALOG_PAGE, search 
         name: item.name,
         releaseInfo: item.releaseInfo || "",
       };
+      // RFC3339 release date (stremio-core parses meta.released as DateTime).
+      if (item.released) preview.released = item.released;
       if (item.poster) preview.poster = item.poster;
       if (item.forumPoster) preview.forumPoster = item.forumPoster;
       if (item.dmmMissing) preview.dmmMissing = true;

@@ -195,10 +195,14 @@ class MetaResourceHelper(unittest.TestCase):
 
     def test_catalog_extra_includes_search(self):
         build = load_build_addon()
-        self.assertEqual(
-            [item["name"] for item in build.catalog_extra()],
-            ["search", "skip"],
-        )
+        # JAV base catalogs carry search/skip/genre (with options);
+        # year catalogs carry a required genre extra with year options.
+        names = [item["name"] for item in build.catalog_extra("jav-censored")]
+        self.assertEqual(names, ["search", "skip", "genre"])
+        year_names = [item["name"] for item in build.catalog_extra("jav-censored-year")]
+        self.assertEqual(year_names, ["genre", "skip"])
+        required = build.catalog_extra("jav-censored-year")
+        self.assertTrue(required[0]["isRequired"])
 
     def test_sqlite_catalog_is_searchable(self):
         import sqlite3

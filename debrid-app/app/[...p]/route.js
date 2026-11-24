@@ -218,7 +218,11 @@ export async function GET(req, { params }) {
       return NextResponse.json(withBundledCatalogs(m), { headers: NO_STORE });
     }
     if (seg0 === "catalog") {
-      const catalogId = resolveCatalogId(p[2] || "jav-censored");
+      // Keep the raw catalog id: year catalogs ("jav-censored-year") are
+      // views whose selected year arrives via the `genre` param (Cinemeta
+      // pattern); bundledCatalog uses the raw id to apply the year filter.
+      const rawCatalogId = String(p[2] || "jav-censored").replace(/\.json$/, "");
+      const catalogId = resolveCatalogId(rawCatalogId);
       const extra = String(p[3] || "").replace(/\.json$/, "");
       const {
         skip: pathSkip,
@@ -245,7 +249,7 @@ export async function GET(req, { params }) {
       if (!paid && PAID_ONLY_CATEGORIES.includes(catalogId)) {
         return NextResponse.json({ metas: [] }, { headers: NO_STORE });
       }
-      const catalog = bundledCatalog(catalogId, skip, paid ? undefined : FREE_CATALOG_SIZE, search, genre, year);
+      const catalog = bundledCatalog(rawCatalogId, skip, paid ? undefined : FREE_CATALOG_SIZE, search, genre, year);
       const body = withPublicPosters(catalog, "catalog", publicOrigin(req, url));
       return NextResponse.json(body, { headers: NO_STORE });
     }

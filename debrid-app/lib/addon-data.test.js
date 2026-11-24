@@ -12,6 +12,10 @@ import {
   isAllowedPosterUrl,
   parseCatalogExtra,
   bundledStream,
+  bundledCatalog,
+  catalogExtra,
+  catalogGenres,
+  resolveCatalogId,
 } from "./addon-data.js";
 import { openTitlesDb, resolveSqlitePath, queryCatalog, querySeriesList } from "./titles-db.js";
 import { ADDON_VERSION } from "./version.js";
@@ -295,7 +299,7 @@ test("western titles keep sehuatang covers via the poster proxy", () => {
   );
 });
 
-test("manifest exposes the four category catalogs", () => {
+test("manifest exposes the category catalogs with filter-chip options", () => {
   const manifest = withBundledCatalogs({ version: "0.4.5", catalogs: [{ id: "jav103", name: "old" }] });
   assert.equal(manifest.id, "community.javstremio");
   assert.equal(manifest.version, ADDON_VERSION);
@@ -305,10 +309,73 @@ test("manifest exposes the four category catalogs", () => {
     manifest.catalogs.map((item) => item.id),
     BUNDLED_CATALOGS.map((item) => item.id),
   );
-  for (const catalog of manifest.catalogs) {
-    assert.deepEqual(
-      catalog.extra.map((item) => item.name),
-      ["search", "skip", "genre", "year"],
+  const byId = new Map(BUNDLED_CATALOGS.map((c) => [c.id, c]));
+  // JAV base catalogs: the genre extra carries the top-10 genre options
+  // (computed from titles.sqlite) so the Stremio client renders chips.
+  const censored = byId.get("jav-censored");
+  assert.deepEqual(censored.extra.map((e) => e.name), ["search", "skip", "genre"]);
+  const censoredGenre = censored.extra.find((e) => e.name === "genre");
+  assert.equal(censoredGenre.options.length, 10);
+  assert.equal(censoredGenre.optionsLimit, 1);
+  assert.deepEqual(censored.genres, censoredGenre.options);
+  // Year catalogs follow the Cinemeta pattern: the genre extra's options are
+  // release years, and the selection is required.
+  const censoredYear = byId.get("jav-censored-year");
+  assert.deepEqual(censoredYear.extra.map((e) => e.name), ["genre", "skip"]);
+  const censoredYearExtra = censoredYear.extra.find((e) => e.name === "genre");
+  assert.equal(censoredYearExtra.isRequired, true);
+  assert.equal(censoredYearExtra.options.length, 22);
+  assert.deepEqual(censoredYear.extraSupported, ["genre", "skip"]);
+  assert.deepEqual(censoredYear.extraRequired, ["genre"]);
+  assert.deepEqual(censoredYear.genres, censoredYearExtra.options);
+  const uncensoredYear = byId.get("jav-uncensored-year");
+  assert.equal(uncensoredYear.extra.find((e) => e.name === "genre").options.length, 22);
+  // Non-JAV catalogs keep the bare search/skip/genre/year extras.
+  const western = byId.get("western");
+  assert.deepEqual(western.extra.map((e) => e.name), ["search", "skip", "genre", "year"]);
+});
+
+test("year catalogs resolve to their base category", () => {
+  assert.equal(resolveCatalogId("jav-censored-year"), "jav-censored");
+  assert.equal(resolveCatalogId("jav-uncensored-year"), "jav-uncensored");
+  assert.equal(resolveCatalogId("jav103"), "jav-censored");
+  assert.equal(resolveCatalogId("western"), "western");
+});
+
+test("catalogExtra and catalogGenres expose per-catalog filter options", () => {
+  assert.deepEqual(
+    catalogExtra("jav-censored").map((e) => e.name),
+    ["search", "skip", "genre"],
+  );
+  assert.deepEqual(catalogGenres("jav-censored"), catalogExtra("jav-censored").find((e) => e.name === "genre").options);
+  assert.deepEqual(
+    catalogExtra("jav-censored-year").map((e) => e.name),
+    ["genre", "skip"],
+  );
+  assert.deepEqual(catalogGenres("jav-censored-year"), catalogExtra("jav-censored-year").find((e) => e.name === "genre").options);
+  assert.equal(catalogGenres("western"), undefined);
+});
+
+test("bundledCatalog treats the genre param as a year for year catalogs", () => {
+  const file = resolveSqlitePath();
+  if (!file) return;
+  // Year catalog: the client sends the selected year via the `genre` param.
+  const yearResult = bundledCatalog("jav-censored-year", 0, 15, "", "2024", "");
+  assert.ok(yearResult.metas.length > 0, "expected 2024 titles in the censored year catalog");
+  for (const m of yearResult.metas) {
+    assert.ok(
+      String(m.releaseInfo || "").includes("2024") || String(m.released || "").startsWith("2024"),
+      `${m.id} must be a 2024 title`
+    );
+  }
+  const empty = bundledCatalog("jav-censored-year", 0, 15, "", "1999", "");
+  assert.equal(empty.metas.length, 0, "no 1999 censored titles expected");
+  // A 4-digit `genre` value on the base JAV catalog also acts as a year filter.
+  const asYear = bundledCatalog("jav-censored", 0, 3, "", "2024", "");
+  for (const m of asYear.metas) {
+    assert.ok(
+      String(m.releaseInfo || "").includes("2024") || String(m.released || "").startsWith("2024"),
+      `${m.id} must be a 2024 title`
     );
   }
 });

@@ -1,8 +1,8 @@
 {
   "id": "community.javstremio",
-  "version": "0.5.72",
+  "version": "0.5.73",
   "name": "Stremio JAV Database Addon",
-  "description": "Stremio JAV Database Addon 0.5.70. This is only a metadata scraper.",
+  "description": "Stremio JAV Database Addon 0.5.73. This is only a metadata scraper.",
   "logo": "https://www.stremio.com/website/stremio-logo-small.png",
   "resources": [
     {
@@ -62,12 +62,104 @@
         },
         {
           "name": "genre",
-          "isRequired": false
+          "isRequired": false,
+          "options": [
+            "單體作品",
+            "中出",
+            "巨乳",
+            "已婚婦女",
+            "熟女",
+            "白天出軌",
+            "蕩婦",
+            "苗條",
+            "戲劇",
+            "口交"
+          ],
+          "optionsLimit": 1
+        }
+      ],
+      "genres": [
+        "單體作品",
+        "中出",
+        "巨乳",
+        "已婚婦女",
+        "熟女",
+        "白天出軌",
+        "蕩婦",
+        "苗條",
+        "戲劇",
+        "口交"
+      ]
+    },
+    {
+      "type": "movie",
+      "id": "jav-censored-year",
+      "name": "JAV Censored By Year",
+      "extra": [
+        {
+          "name": "genre",
+          "isRequired": true,
+          "options": [
+            "2026",
+            "2025",
+            "2024",
+            "2023",
+            "2022",
+            "2021",
+            "2020",
+            "2019",
+            "2018",
+            "2017",
+            "2016",
+            "2015",
+            "2014",
+            "2013",
+            "2012",
+            "2011",
+            "2010",
+            "2009",
+            "2008",
+            "2007",
+            "2006",
+            "2005"
+          ],
+          "optionsLimit": 1
         },
         {
-          "name": "year",
+          "name": "skip",
           "isRequired": false
         }
+      ],
+      "genres": [
+        "2026",
+        "2025",
+        "2024",
+        "2023",
+        "2022",
+        "2021",
+        "2020",
+        "2019",
+        "2018",
+        "2017",
+        "2016",
+        "2015",
+        "2014",
+        "2013",
+        "2012",
+        "2011",
+        "2010",
+        "2009",
+        "2008",
+        "2007",
+        "2006",
+        "2005"
+      ],
+      "extraSupported": [
+        "genre",
+        "skip"
+      ],
+      "extraRequired": [
+        "genre"
       ]
     },
     {
@@ -85,12 +177,104 @@
         },
         {
           "name": "genre",
-          "isRequired": false
+          "isRequired": false,
+          "options": [
+            "單體作品",
+            "無碼破解",
+            "中出",
+            "巨乳",
+            "已婚婦女",
+            "苗條",
+            "蕩婦",
+            "白天出軌",
+            "熟女",
+            "多P"
+          ],
+          "optionsLimit": 1
+        }
+      ],
+      "genres": [
+        "單體作品",
+        "無碼破解",
+        "中出",
+        "巨乳",
+        "已婚婦女",
+        "苗條",
+        "蕩婦",
+        "白天出軌",
+        "熟女",
+        "多P"
+      ]
+    },
+    {
+      "type": "movie",
+      "id": "jav-uncensored-year",
+      "name": "JAV Uncensored By Year",
+      "extra": [
+        {
+          "name": "genre",
+          "isRequired": true,
+          "options": [
+            "2026",
+            "2025",
+            "2024",
+            "2023",
+            "2022",
+            "2021",
+            "2020",
+            "2019",
+            "2018",
+            "2017",
+            "2016",
+            "2015",
+            "2014",
+            "2013",
+            "2012",
+            "2011",
+            "2010",
+            "2009",
+            "2008",
+            "2007",
+            "2006",
+            "2003"
+          ],
+          "optionsLimit": 1
         },
         {
-          "name": "year",
+          "name": "skip",
           "isRequired": false
         }
+      ],
+      "genres": [
+        "2026",
+        "2025",
+        "2024",
+        "2023",
+        "2022",
+        "2021",
+        "2020",
+        "2019",
+        "2018",
+        "2017",
+        "2016",
+        "2015",
+        "2014",
+        "2013",
+        "2012",
+        "2011",
+        "2010",
+        "2009",
+        "2008",
+        "2007",
+        "2006",
+        "2003"
+      ],
+      "extraSupported": [
+        "genre",
+        "skip"
+      ],
+      "extraRequired": [
+        "genre"
       ]
     },
     {
