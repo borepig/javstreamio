@@ -34,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.71"
+VERSION = "0.5.72"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -656,12 +656,14 @@ def enrich_live_sqlite(
     fetched = 0
     filled = 0
     if allow_network:
+        # Broader target: every JAV title missing genres — including the
+        # ones that already have cast. The old rule (missing genres AND
+        # missing cast) skipped ~10,700 titles that had cast but no genres.
         missing = [
             row
             for row in cached
             if _is_jav_enrich_target(row)
             and not (row.get("genres") or [])
-            and not _has_meta_info(row)
         ]
         missing.sort(key=lambda row: (row.get("posted_at") or "", row.get("id") or ""), reverse=True)
         if free_set:
