@@ -202,6 +202,14 @@ function artHost(url) {
   }
 }
 
+// DMM digital/mono art lives on pics.dmm.co.jp. When the row is flagged
+// dmm_missing (the digital CID is a NOW PRINTING stub), the stored DMM
+// poster/background must be skipped so the MGStage / fourhoi / forum
+// fallbacks are used instead of the gray "NOW PRINTING" placeholder.
+function isDmmArtUrl(url) {
+  return artHost(url) === "pics.dmm.co.jp";
+}
+
 function forumPosterUrl(item, origin) {
   if (!origin || !item || !item.id) return "";
   const host = artHost(item.poster);
@@ -224,8 +232,12 @@ function applyPublicArt(item, kind, origin) {
   const monoPs = skipDmm ? "" : dmmMonoPoster(item.id, "ps");
   const monoPl = skipDmm ? "" : dmmMonoPoster(item.id, "pl");
   const proxied = forumPosterUrl(item, origin);
+  // A DB-stored DMM poster/background is only usable while the digital
+  // CID is not a NOW PRINTING stub (dmm_missing=1).
+  const useStoredPoster = isPublicArtUrl(item.poster) && !(skipDmm && isDmmArtUrl(item.poster));
+  const useStoredBg = isPublicArtUrl(item.background) && !(skipDmm && isDmmArtUrl(item.background));
   if (kind === "catalog") {
-    if (isPublicArtUrl(item.poster)) next.poster = item.poster;
+    if (useStoredPoster) next.poster = item.poster;
     else if (ps) next.poster = ps;
     else if (mgstage) next.poster = mgstage;
     else if (monoPs) next.poster = monoPs;
@@ -238,14 +250,14 @@ function applyPublicArt(item, kind, origin) {
     delete next.fourhoiMissing;
     return next;
   }
-  if (isPublicArtUrl(item.poster)) next.poster = item.poster;
+  if (useStoredPoster) next.poster = item.poster;
   else if (ps) next.poster = ps;
   else if (mgstage) next.poster = mgstage;
   else if (monoPs) next.poster = monoPs;
   else if (fourhoi) next.poster = fourhoi;
   else if (proxied) next.poster = proxied;
   else if (!isPublicArtUrl(next.poster)) delete next.poster;
-  if (isPublicArtUrl(item.background)) next.background = item.background;
+  if (useStoredBg) next.background = item.background;
   else if (pl) next.background = pl;
   else if (mgstage) next.background = mgstage;
   else if (monoPl) next.background = monoPl;

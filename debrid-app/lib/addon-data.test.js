@@ -278,6 +278,45 @@ test("fourhoi misses still use the sehuatang poster proxy", () => {
   );
 });
 
+test("NOW PRINTING rows: stored DMM poster/background are skipped (FSDSS)", () => {
+  // Regression: the DB stores the DMM digital URL in poster/background for
+  // NOW PRINTING titles (gray "NOW PRINTING" stub). With dmm_missing=1 the
+  // stored DMM art must be skipped so the fourhoi cover is used instead.
+  const catalog = withPublicPosters(
+    {
+      metas: [
+        {
+          id: "jav:FSDSS-007",
+          type: "movie",
+          name: "FSDSS-007",
+          poster: "https://pics.dmm.co.jp/digital/video/fsdss00007/fsdss00007ps.jpg",
+          dmmMissing: true,
+        },
+      ],
+    },
+    "catalog",
+    "https://javstreamio.ddns.net",
+  );
+  assert.equal(catalog.metas[0].poster, "https://fourhoi.com/fsdss-007/cover-n.jpg");
+
+  const meta = withPublicPosters(
+    {
+      meta: {
+        id: "jav:FSDSS-007",
+        type: "movie",
+        name: "FSDSS-007",
+        poster: "https://pics.dmm.co.jp/digital/video/fsdss00007/fsdss00007ps.jpg",
+        background: "https://pics.dmm.co.jp/digital/video/fsdss00007/fsdss00007pl.jpg",
+        dmmMissing: true,
+      },
+    },
+    "meta",
+    "https://javstreamio.ddns.net",
+  );
+  assert.equal(meta.meta.poster, "https://fourhoi.com/fsdss-007/cover-n.jpg");
+  assert.equal(meta.meta.background, "https://fourhoi.com/fsdss-007/cover-n.jpg");
+});
+
 test("western titles keep sehuatang covers via the poster proxy", () => {
   const catalog = withPublicPosters(
     {
