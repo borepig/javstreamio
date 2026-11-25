@@ -31,6 +31,11 @@ sudo pm2 stop javstreamio-debrid 2>/dev/null || true
 sleep 2
 sudo pkill -f "next-server" 2>/dev/null || true
 
+# `git pull` replaces data/titles.sqlite (new inode) but leaves the old
+# -wal/-shm sidecars, which SQLite would read alongside the main DB file.
+# Remove them while the app is stopped; pm2 start below relaunches it.
+sudo rm -f data/titles.sqlite-wal data/titles.sqlite-shm 2>/dev/null || true
+
 # node_modules is root-owned (created by the root user-data bootstrap), so the
 # install + build run as root. Wipe first so an interrupted/OOM-killed install
 # (mixed ownership) can't trip `npm ci`. (Plain `sudo npm` is what worked; the
@@ -50,7 +55,7 @@ sudo pm2 save
 sudo systemctl reload nginx
 
 if [ -n "$DOMAIN" ]; then
-  echo "redeployed: https://${DOMAIN}/manifest.json (version 0.5.10)"
+  echo "redeployed: https://${DOMAIN}/manifest.json (version 0.5.76)"
 else
-  echo "redeployed: http://<public-ip>/manifest.json (version 0.5.10)"
+  echo "redeployed: http://<public-ip>/manifest.json (version 0.5.76)"
 fi

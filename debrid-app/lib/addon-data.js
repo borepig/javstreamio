@@ -225,7 +225,8 @@ function applyPublicArt(item, kind, origin) {
   const monoPl = skipDmm ? "" : dmmMonoPoster(item.id, "pl");
   const proxied = forumPosterUrl(item, origin);
   if (kind === "catalog") {
-    if (ps) next.poster = ps;
+    if (isPublicArtUrl(item.poster)) next.poster = item.poster;
+    else if (ps) next.poster = ps;
     else if (mgstage) next.poster = mgstage;
     else if (monoPs) next.poster = monoPs;
     else if (fourhoi) next.poster = fourhoi;
@@ -237,13 +238,15 @@ function applyPublicArt(item, kind, origin) {
     delete next.fourhoiMissing;
     return next;
   }
-  if (ps) next.poster = ps;
+  if (isPublicArtUrl(item.poster)) next.poster = item.poster;
+  else if (ps) next.poster = ps;
   else if (mgstage) next.poster = mgstage;
   else if (monoPs) next.poster = monoPs;
   else if (fourhoi) next.poster = fourhoi;
   else if (proxied) next.poster = proxied;
   else if (!isPublicArtUrl(next.poster)) delete next.poster;
-  if (pl) next.background = pl;
+  if (isPublicArtUrl(item.background)) next.background = item.background;
+  else if (pl) next.background = pl;
   else if (mgstage) next.background = mgstage;
   else if (monoPl) next.background = monoPl;
   else if (fourhoi) next.background = fourhoi;
@@ -255,8 +258,10 @@ function applyPublicArt(item, kind, origin) {
   return next;
 }
 
-// JAV: DMM digital if real, MGStage, DMM mono, fourhoi, then sehuatang /poster.
-// When dmm_missing (NOW PRINTING stub): skip all DMM (digital + mono) → MGStage, FourHoi, then sehuatang /poster.
+// JAV: DB-stored poster/background (DMM mono / MGStage / fourhoi, probed
+// at build time) wins; generated DMM digital URLs are only a fallback when
+// the DB row has no public poster. When dmm_missing (NOW PRINTING stub):
+// skip all DMM (digital + mono) → MGStage, FourHoi, then sehuatang /poster.
 // Western/Others use sehuatang through /poster.
 export function withPublicPosters(body, kind, origin = "") {
   if (!body || typeof body !== "object") return body;
