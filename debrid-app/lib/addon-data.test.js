@@ -349,12 +349,12 @@ test("manifest exposes the category catalogs with filter-chip options", () => {
     BUNDLED_CATALOGS.map((item) => item.id),
   );
   const byId = new Map(BUNDLED_CATALOGS.map((c) => [c.id, c]));
-  // JAV base catalogs: the genre extra carries the top-10 genre options
+  // JAV base catalogs: the genre extra carries the top-30 genre options
   // (computed from titles.sqlite) so the Stremio client renders chips.
   const censored = byId.get("jav-censored");
   assert.deepEqual(censored.extra.map((e) => e.name), ["search", "skip", "genre"]);
   const censoredGenre = censored.extra.find((e) => e.name === "genre");
-  assert.equal(censoredGenre.options.length, 10);
+  assert.equal(censoredGenre.options.length, 30);
   assert.equal(censoredGenre.optionsLimit, 1);
   assert.deepEqual(censored.genres, censoredGenre.options);
   // Year catalogs follow the Cinemeta pattern: the genre extra's options are
