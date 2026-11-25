@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   fetchAddon,
   fetchRemotePoster,
+  fourhoiPoster,
   normalizeMetaBody,
   withPublicPosters,
   withBundledCatalogs,
@@ -295,8 +296,13 @@ export async function GET(req, { params }) {
         item = queryTitle(db, id);
       }
       if (!item) item = bundledTitle(id);
+      // JAV rows whose stored forum poster / DMM URL is dead or missing fall
+      // back to the fourhoi cover, fetched server-side with no Referer
+      // (fourhoi.com 403s on any Referer; no Referer → 200).
+      const isJav = /^jav:/.test(id);
+      const fourhoiUrl = isJav ? fourhoiPoster(id) : "";
       let src = (item && (item.forumPoster || item.poster)) || "";
-      if (!src) {
+      if (!src && !fourhoiUrl) {
         try {
           const metaBody = normalizeMetaBody(await fetchAddon(`meta/${type}/${id}`));
           src = (metaBody && metaBody.meta && (metaBody.meta.forumPoster || metaBody.meta.poster)) || "";
@@ -305,13 +311,22 @@ export async function GET(req, { params }) {
           throw e;
         }
       }
-      if (!src) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      if (!src && !fourhoiUrl) return NextResponse.json({ error: "Not found" }, { status: 404 });
       // hk: rows carry forum preview images on random CDN hosts; allow any
       // https host because the proxy fetches them server-side.
       let img;
-      try {
-        img = await fetchRemotePoster(src, /^hk:/.test(id));
-      } catch (e) {
+      if (src) {
+        try {
+          img = await fetchRemotePoster(src, /^hk:/.test(id));
+        } catch {
+          // Dead forum-preview hosts (404/403): try the fourhoi cover for
+          // JAV titles before giving up.
+        }
+      }
+      if (!img && fourhoiUrl) {
+        img = await fetchRemotePoster(fourhoiUrl);
+      }
+      if (!img) {
         // Dead forum-preview hosts (uploadhouse.com / pic2607v.cc 404):
         // serve the generated SVG title card instead of 502.
         if (/^hk:/.test(id) && item && item.name) {
@@ -324,7 +339,7 @@ export async function GET(req, { params }) {
             },
           });
         }
-        throw e;
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
       const buf = await img.arrayBuffer();
       return new NextResponse(buf, {

@@ -86,6 +86,9 @@ const POSTER_HOSTS = [
   // AvGood detail-page posters (avgood.com/remote/pic/...) are publicly
   // fetchable — HK Cat III magnets + posters come from AvGood search.
   "avgood.com",
+  // JAV fourhoi covers: the /poster proxy fetches them server-side with
+  // browser UA and NO Referer (any Referer → 403 from fourhoi.com).
+  "fourhoi.com",
   // HK Cat III poster fill (hk_cat3_posters.py): movie-DB og:image CDNs
   // (TMDB rawHtml og:image, IMDB media CDN).
   "media.themoviedb.org",
@@ -227,7 +230,16 @@ function applyPublicArt(item, kind, origin) {
   const skipDmm = Boolean(item.dmmMissing);
   const ps = skipDmm ? "" : dmmPoster(item.id, "ps");
   const pl = skipDmm ? "" : dmmPoster(item.id, "pl");
-  const fourhoi = item.fourhoiMissing ? "" : fourhoiPoster(item.id);
+  // fourhoi.com 403s any request carrying a Referer, and the Stremio
+  // client's image fetches send one, so the cover is proxied through
+  // /poster (server-side fetch sends no Referer → 200). Callers without
+  // an origin (unit tests) keep the direct fourhoi URL.
+  const fourhoiDirect = fourhoiPoster(item.id);
+  const fourhoi = item.fourhoiMissing || !fourhoiDirect
+    ? ""
+    : origin
+      ? `${origin}${posterPathFor(item.type || "movie", item.id)}`
+      : fourhoiDirect;
   const mgstage = mgstagePoster(item.id);
   const monoPs = skipDmm ? "" : dmmMonoPoster(item.id, "ps");
   const monoPl = skipDmm ? "" : dmmMonoPoster(item.id, "pl");
@@ -817,6 +829,11 @@ function posterRefererFor(src) {
     ) {
       return "https://movie.douban.com/";
     }
+    // fourhoi.com 403s any request carrying a Referer (no Referer → 200).
+    // Fetch the cover with browser UA and no Referer header at all.
+    if (host === "fourhoi.com" || host.endsWith(".fourhoi.com")) {
+      return "";
+    }
   } catch {
     return POSTER_REFERER;
   }
@@ -829,14 +846,15 @@ export async function fetchRemotePoster(src, allowAnyHttps = false) {
     err.status = 400;
     throw err;
   }
-  const res = await fetch(src, {
-    headers: {
-      "User-Agent": POSTER_UA,
-      Referer: posterRefererFor(src),
-      Accept: "image/jpeg,image/png,image/*;q=0.5",
-    },
-    redirect: "follow",
-  });
+  const referer = posterRefererFor(src);
+  const headers = {
+    "User-Agent": POSTER_UA,
+    Accept: "image/jpeg,image/png,image/*;q=0.5",
+  };
+  // Omit the Referer header entirely for hosts that 403 on any Referer
+  // (fourhoi.com) instead of sending an empty one.
+  if (referer) headers.Referer = referer;
+  const res = await fetch(src, { headers, redirect: "follow" });
   if (!res.ok) {
     const err = new Error(`Poster fetch failed: HTTP ${res.status}`);
     err.status = res.status;

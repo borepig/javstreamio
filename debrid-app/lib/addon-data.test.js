@@ -182,7 +182,11 @@ test("ABF-389 uses the public MGStage cover when DMM is now-printing", () => {
   );
 });
 
-test("DLDSS-557 uses the FourHoi cover when DMM is now-printing (no DMM fallback)", () => {
+test("DLDSS-557 uses the FourHoi cover (proxied) when DMM is now-printing", () => {
+  // fourhoi.com 403s on any Referer, and the Stremio client sends one with
+  // every image fetch — so catalog/meta responses must carry the /poster
+  // proxy URL (server-side fetch sends no Referer) instead of the direct
+  // fourhoi URL.
   const catalog = withPublicPosters(
     {
       metas: [
@@ -200,11 +204,11 @@ test("DLDSS-557 uses the FourHoi cover when DMM is now-printing (no DMM fallback
   );
   assert.equal(
     catalog.metas[0].poster,
-    "https://fourhoi.com/dldss-557/cover-n.jpg",
+    "https://javstreamio-debrid.vercel.app/poster/movie/jav%3ADLDSS-557",
   );
 });
 
-test("non-Prestige DMM stubs still use fourhoi", () => {
+test("non-Prestige DMM stubs still use fourhoi (proxied)", () => {
   const catalog = withPublicPosters(
     {
       metas: [
@@ -219,7 +223,10 @@ test("non-Prestige DMM stubs still use fourhoi", () => {
     "catalog",
     "https://javstreamio-debrid.vercel.app",
   );
-  assert.equal(catalog.metas[0].poster, "https://fourhoi.com/aiav-039/cover-n.jpg");
+  assert.equal(
+    catalog.metas[0].poster,
+    "https://javstreamio-debrid.vercel.app/poster/movie/jav%3AAIAV-039",
+  );
 });
 
 test("DMM stubs use fourhoi before the sehuatang poster proxy", () => {
@@ -238,7 +245,10 @@ test("DMM stubs use fourhoi before the sehuatang poster proxy", () => {
     "catalog",
     "https://javstreamio-debrid.vercel.app",
   );
-  assert.equal(catalog.metas[0].poster, "https://fourhoi.com/nact-147/cover-n.jpg");
+  assert.equal(
+    catalog.metas[0].poster,
+    "https://javstreamio-debrid.vercel.app/poster/movie/jav%3ANACT-147",
+  );
   const meta = withPublicPosters(
     {
       meta: {
@@ -252,7 +262,7 @@ test("DMM stubs use fourhoi before the sehuatang poster proxy", () => {
     "meta",
     "https://javstreamio-debrid.vercel.app",
   );
-  assert.equal(meta.meta.background, "https://fourhoi.com/nact-147/cover-n.jpg");
+  assert.equal(meta.meta.background, "https://javstreamio-debrid.vercel.app/poster/movie/jav%3ANACT-147");
 });
 
 test("fourhoi misses still use the sehuatang poster proxy", () => {
@@ -297,7 +307,10 @@ test("NOW PRINTING rows: stored DMM poster/background are skipped (FSDSS)", () =
     "catalog",
     "https://javstreamio.ddns.net",
   );
-  assert.equal(catalog.metas[0].poster, "https://fourhoi.com/fsdss-007/cover-n.jpg");
+  assert.equal(
+    catalog.metas[0].poster,
+    "https://javstreamio.ddns.net/poster/movie/jav%3AFSDSS-007",
+  );
 
   const meta = withPublicPosters(
     {
@@ -313,8 +326,14 @@ test("NOW PRINTING rows: stored DMM poster/background are skipped (FSDSS)", () =
     "meta",
     "https://javstreamio.ddns.net",
   );
-  assert.equal(meta.meta.poster, "https://fourhoi.com/fsdss-007/cover-n.jpg");
-  assert.equal(meta.meta.background, "https://fourhoi.com/fsdss-007/cover-n.jpg");
+  assert.equal(
+    meta.meta.poster,
+    "https://javstreamio.ddns.net/poster/movie/jav%3AFSDSS-007",
+  );
+  assert.equal(
+    meta.meta.background,
+    "https://javstreamio.ddns.net/poster/movie/jav%3AFSDSS-007",
+  );
 });
 
 test("western titles keep sehuatang covers via the poster proxy", () => {
