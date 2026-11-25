@@ -55,7 +55,7 @@ sudo pm2 save
 sudo systemctl reload nginx
 
 if [ -n "$DOMAIN" ]; then
-  echo "redeployed: https://${DOMAIN}/manifest.json (version 0.5.85)"
+  echo "redeployed: https://${DOMAIN}/manifest.json (version 0.5.86)"
 else
-  echo "redeployed: http://<public-ip>/manifest.json (version 0.5.85)"
+  echo "redeployed: http://<public-ip>/manifest.json (version 0.5.86)"
 fi

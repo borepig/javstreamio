@@ -1,3 +1,3 @@
 export const ADDON_ID = "community.javstremio";
 export const ADDON_NAME = "Stremio JAV Database Addon";
-export const ADDON_VERSION = "0.5.85";
+export const ADDON_VERSION = "0.5.86";
