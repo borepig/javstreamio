@@ -160,7 +160,15 @@ def _parse_detail(html: str) -> dict:
         elif label == "類別":
             fields["genres"] = [a.get_text(strip=True) for a in value.select("a")] or [value.get_text(" ", strip=True)]
         elif label == "演員":
-            fields["cast"] = [a.get_text(strip=True) for a in value.select("a")] or [value.get_text(" ", strip=True)]
+            links = [a.get_text(strip=True) for a in value.select("a")]
+            if links:
+                fields["cast"] = [n for n in links if n]
+            else:
+                # No per-name links: JavDB renders the cast as one space-joined
+                # plain-text span. Split on whitespace so each actress becomes a
+                # distinct name (a "・" inside a name is kept, not split on).
+                raw = value.get_text(" ", strip=True)
+                fields["cast"] = [n for n in re.split(r"\s+", raw) if n]
         elif label == "片商":
             fields["maker"] = value.get_text(" ", strip=True)
         elif label == "發行":
@@ -387,7 +395,10 @@ def credit_names(*groups) -> list[str]:
     seen: set[str] = set()
     for group in groups:
         if isinstance(group, str):
-            parts = re.split(r"[/、,，]+", group)
+            # Names may be joined by 、 , or whitespace (JavDB renders multi-actress
+            # casts as one space-joined string). Split on all of those so each
+            # actress becomes a distinct credit.
+            parts = re.split(r"[/、,，\s]+", group)
         elif isinstance(group, list):
             parts = group
         else:
@@ -458,6 +469,89 @@ EN_GENRE_TO_ZH = {
     "Video recording": "紀錄片",
     "Temptation": "騙色",
     "Love potion": "藥物",
+    # Stored English genres found in the live DB (JavDB locale=en tags).
+    # Translated to Traditional Chinese so the meta detail page shows Chinese
+    # genres and the catalog filter chips (Chinese options) stay consistent.
+    "Chinese Subtitle": "中文字幕",
+    "Short hair": "短髮",
+    "Sex Only": "床戲",
+    "Kimono": "和服",
+    "Toilet": "廁所",
+    "Maid": "女僕",
+    "Sex Worker": "性工作者",
+    "Nurse": "護士",
+    "Knee socks": "膝上襪",
+    "Deep throat": "深喉",
+    "Soapland": "香皂",
+    "Couple": "情侶",
+    "Sex beside husband": "夫の前で",
+    "Bunny girl": "兔女郎",
+    "Prison": "監獄",
+    "Bathing place": "入浴",
+    "Small tits": "小胸",
+    "Idol": "偶像",
+    "Library": "圖書館",
+    "Outdoor": "戶外",
+    "Chikan": "痴漢",
+    "Store": "商店",
+    "Crapulence": "過剰",
+    "Piss": "撒尿",
+    "Car": "汽車",
+    "Bondage": "縛り",
+    "Anal sex": "肛交",
+    "Tram": "路面電車",
+    "Hypnosis": "催眠",
+    "Missed last train": "末班電車",
+    "Hairless pussy": "無毛",
+    "Avenge": "復仇",
+    "Swimming pool": "泳池",
+    "Kemonomimi": "獣耳",
+    "Rainy Day": "雨天",
+    "Gym Room": "健身房",
+    "Cheongsam": "旗袍",
+    "Female Anchor": "女主播",
+    "10 times a day": "一日十回",
+    "Solowork": "獨唱",
+    "Thanksgiving": "感恩節",
+    "Quickie": "快速性行為",
+    "Childhood sweetheart": "青梅竹馬",
+    "Flexible body": "柔軟",
+    "Private Cam": "私人攝影機",
+    "Leakage": "洩漏",
+    "Doctor": "醫師",
+    "Lesbian": "百合",
+    "Housewife": "家庭主婦",
+    "Team Manager": "團隊經理",
+    "Suntan": "曬黑",
+    "Widow": "寡婦",
+    "Dainty": "苗條",
+    "Breast Milk": "母乳",
+    "Detective": "偵探",
+    "Black": "黑皮膚",
+    "Private teacher": "家庭教師",
+    "Tattoo": "紋身",
+    "Wedding dress": "婚紗",
+    "For women": "女性專用",
+    "Age difference": "年齡差",
+    "Flight attendant": "空姐",
+    "Variety Show": "綜藝節目",
+    "Married": "已婚",
+    "Torture": "拷問",
+    "Time stop": "時間停止",
+    "Ugly man": "醜男",
+    "Festival": "節日",
+    "Cuckold": "戴綠帽",
+    "Big Butt": "大屁股",
+    "Debut Production": "出道作",
+    "Orgasm": "高潮",
+    "Slender": "苗條",
+    "Subordinates / Colleagues": "部下/同事",
+    "Gal": "辣妹",
+    "Prostitutes": "應酬女",
+    "schoolgirls": "女學生",
+    "Sister": "姐妹",
+    "Cowgirl": "牛仔女郎",
+    "Giant": "大物",
 }
 
 
