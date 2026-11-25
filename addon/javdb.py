@@ -143,8 +143,38 @@ def _normalize_runtime(raw: str) -> str:
     return f"{m.group(1)}m" if m else ""
 
 
+# JavDB serves the detail-page panel-block labels in the session language. The
+# enrich session uses locale=en, so labels come back in English ("ID", "Released
+# Date", "Duration", "Maker", "Rating", "Tags", "Actor(s)"). Match both the
+# zh-TW and en label variants so fields are captured regardless of which
+# language the page is served in.
+_PANEL_LABEL_TO_FIELD = {
+    "日期": "released",
+    "Released Date": "released",
+    "時長": "runtime",
+    "Duration": "runtime",
+    "類別": "genres",
+    "Tags": "genres",
+    "演員": "cast",
+    "Actor(s)": "cast",
+    "片商": "maker",
+    "Maker": "maker",
+    "發行": "distributor",
+    "Distributor": "distributor",
+    "系列": "series",
+    "Series": "series",
+    "評分": "rating",
+    "Rating": "rating",
+    "番號": "number",
+    "ID": "number",
+    "導演": "director",
+    "監督": "director",
+    "Director": "director",
+}
+
+
 def _parse_detail(html: str) -> dict:
-    """Parse JavDB detail page panel-blocks into a field dict."""
+    """Parse JavDB detail page panel-blocks into a field dict (zh-TW + en labels)."""
     soup = BeautifulSoup(html, "html.parser")
     fields = {}
     for div in soup.select("div.panel-block"):
@@ -152,38 +182,40 @@ def _parse_detail(html: str) -> dict:
         value = div.find("span", class_="value")
         if not (strong and value):
             continue
-        label = strong.get_text(strip=True).rstrip(":：")
-        if label == "日期":
+        label = strong.get_text(strip=True).rstrip(":：").strip()
+        field = _PANEL_LABEL_TO_FIELD.get(label)
+        if not field:
+            continue
+        raw = value.get_text(" ", strip=True)
+        if field == "released":
             fields["released"] = value.get_text(strip=True)
-        elif label == "時長":
-            fields["runtime"] = _normalize_runtime(value.get_text(" ", strip=True))
-        elif label == "類別":
-            fields["genres"] = [a.get_text(strip=True) for a in value.select("a")] or [value.get_text(" ", strip=True)]
-        elif label == "演員":
+        elif field == "runtime":
+            fields["runtime"] = _normalize_runtime(raw)
+        elif field == "genres":
+            # Genre tags are anchor links; fall back to a space-split plain
+            # text span if JavDB renders them without per-tag links.
             links = [a.get_text(strip=True) for a in value.select("a")]
-            if links:
-                fields["cast"] = [n for n in links if n]
-            else:
-                # No per-name links: JavDB renders the cast as one space-joined
-                # plain-text span. Split on whitespace so each actress becomes a
-                # distinct name (a "・" inside a name is kept, not split on).
-                raw = value.get_text(" ", strip=True)
-                fields["cast"] = [n for n in re.split(r"\s+", raw) if n]
-        elif label == "片商":
-            fields["maker"] = value.get_text(" ", strip=True)
-        elif label == "發行":
-            fields["distributor"] = value.get_text(" ", strip=True)
-        elif label == "系列":
-            fields["series"] = value.get_text(" ", strip=True)
-        elif label == "評分":
-            m = re.search(r"(\d+(?:\.\d+)?)", value.get_text(" ", strip=True))
+            fields["genres"] = [n for n in links if n] or [n for n in re.split(r"\s+", raw) if n]
+        elif field == "cast":
+            # Actress names are anchor links; fall back to a space-split plain
+            # text span (a "・" inside a name is kept, not split on).
+            links = [a.get_text(strip=True) for a in value.select("a")]
+            fields["cast"] = [n for n in links if n] or [n for n in re.split(r"\s+", raw) if n]
+        elif field == "maker":
+            fields["maker"] = raw
+        elif field == "distributor":
+            fields["distributor"] = raw
+        elif field == "series":
+            fields["series"] = raw
+        elif field == "rating":
+            m = re.search(r"(\d+(?:\.\d+)?)", raw)
             if m:
                 fields["rating"] = m.group(1)
-        elif label == "番號":
+        elif field == "number":
             fields["number"] = value.get_text(strip=True)
-        elif label in ("導演", "監督"):
-            names = [a.get_text(strip=True) for a in value.select("a")] or [value.get_text(" ", strip=True)]
-            fields["director"] = [n for n in names if n]
+        elif field == "director":
+            links = [a.get_text(strip=True) for a in value.select("a")]
+            fields["director"] = [n for n in links if n] or ([raw] if raw else [])
     title = _parse_title(soup)
     if title:
         fields["title"] = title
@@ -552,6 +584,15 @@ EN_GENRE_TO_ZH = {
     "Sister": "姐妹",
     "Cowgirl": "牛仔女郎",
     "Giant": "大物",
+    "Breasts": "巨乳",
+    "School Girls": "女學生",
+    "Beautiful Girl Movie": "美少女電影",
+    "Tits": "巨乳",
+    "Slut": "蕩婦",
+    "Yukata": "和服",
+    "Older Sister": "姐姐",
+    "Documentary": "紀錄片",
+    "3p, 4p": "多P",
 }
 
 
