@@ -51,6 +51,7 @@ CAT_DIRS = {
     "jav-censored": "javcensored",
     "jav-uncensored": "javuncensored",
     "japan-photo": "japancat3",
+    "western": "westerncat3",
 }
 
 
@@ -133,7 +134,7 @@ def crop_to_916(src, dst):
 def iter_rows(db, cats, limit):
     rows = []
     for cat in cats:
-        if cat in ("jav-censored", "jav-uncensored"):
+        if cat in ("jav-censored", "jav-uncensored", "western"):
             rows += db.execute(
                 "SELECT id, poster FROM titles WHERE category=? AND poster LIKE ? ORDER BY posted_at DESC",
                 (cat, "%image.mgstage.com%")).fetchall()
@@ -142,6 +143,13 @@ def iter_rows(db, cats, limit):
             for pfx in ("JUKF", "YUME", "YSN", "YAG", "WFS", "ABF", "NASH"):
                 rows += db.execute(
                     "SELECT id, poster FROM titles WHERE category=? AND id LIKE ? AND poster LIKE '%pics.dmm.co.jp%' "
+                    "ORDER BY posted_at DESC",
+                    (cat, f"jav:{pfx}%")).fetchall()
+            # JavDB jdbstatic covers (landscape 800x537) stored by
+            # jav_nowprinting_fix.py — these need the 9:16 crop too.
+            for pfx in ("JUKF", "YUME", "YSN", "YAG", "WFS", "ABF", "NASH"):
+                rows += db.execute(
+                    "SELECT id, poster FROM titles WHERE category=? AND id LIKE ? AND poster LIKE '%jdbstatic.com%' "
                     "ORDER BY posted_at DESC",
                     (cat, f"jav:{pfx}%")).fetchall()
         elif cat == "japan-photo":
@@ -159,7 +167,7 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--delay", type=float, default=0.2)
-    ap.add_argument("--cats", default="japan-photo,jav-censored,jav-uncensored")
+    ap.add_argument("--cats", default="japan-photo,jav-censored,jav-uncensored,western")
     args = ap.parse_args()
     cats = [c for c in args.cats.split(",") if c in CAT_DIRS]
     db = sqlite3.connect(DB)
@@ -173,12 +181,18 @@ def main() -> int:
         live_url = f"{LIVE_BASE}/{cat_dir}/{row_id}.jpg"
         if os.path.exists(dst):
             if not args.dry_run:
-                db.execute("UPDATE titles SET poster=? WHERE id=?", (live_url, row_id))
+                db.execute("UPDATE titles SET poster=?, background=? WHERE id=?",
+                           (live_url, live_url, row_id))
                 db.commit()
             kept += 1
             print(f"[poster_916] {i+1}/{len(rows)} {row_id}: re-applied DB write (JPG on disk)")
             continue
-        data, err = fetch(poster)
+        # jdbstatic 403s from the home IP (Cloudflare); the live /poster
+        # proxy fetches server-side on EC2, so fetch the image through it.
+        fetch_url = poster
+        if host_of(poster) == "c0.jdbstatic.com":
+            fetch_url = f"https://javstremio.ddns.net/poster/movie/{row_id}"
+        data, err = fetch(fetch_url)
         if data is None:
             failed += 1
             print(f"[poster_916] {i+1}/{len(rows)} {row_id}: fetch failed: {err[:80]}")
@@ -194,7 +208,8 @@ def main() -> int:
             os.remove(part)
         if ok:
             if not args.dry_run:
-                db.execute("UPDATE titles SET poster=? WHERE id=?", (live_url, row_id))
+                db.execute("UPDATE titles SET poster=?, background=? WHERE id=?",
+                           (live_url, live_url, row_id))
                 db.commit()
             sz = jpeg_size(data) or png_size(data)
             if sz and sz[0] > sz[1]:
