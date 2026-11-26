@@ -463,6 +463,7 @@ export async function GET(req, { params }) {
       const debridOk = true;
       let cached = false;
       let torrentId = "";
+      let fileId = "";
       let resolvedUrl = "";
       if (service && token && infoHash) {
         const look = await withTimeout(
@@ -472,6 +473,7 @@ export async function GET(req, { params }) {
         );
         cached = Boolean(look && look.cached);
         torrentId = (look && look.torrentId) || "";
+        fileId = (look && look.fileId) || "";
         const svc = String(service || "").toLowerCase().replace(/[\s-]+/g, "");
         if (svc.includes("realdebrid") && look && look.links && look.links.length) {
           resolvedUrl = await withTimeout(unlockRdLinks(token, look.links), 4500, "");
@@ -486,6 +488,7 @@ export async function GET(req, { params }) {
             token,
             infoHash,
             torrentId,
+            fileId,
             titleCode: rowCode,
             sourceName: name,
             sourceDescription: title,

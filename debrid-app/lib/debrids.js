@@ -864,6 +864,19 @@ export async function resolveDebridLinkPlay(apiKey, { torrentId, infoHash } = {}
   }
 }
 
+// PikPak task records store the creation request verbatim: `params.url` may
+// be a plain string (older records) or the object `{ url }` (current API
+// shape — the create POST sends `url: { url: magnet }`). The naive
+// `String(params.url)` coerces the object to "[object Object]", so the hash
+// match fails and every open spawns a brand-new offline task (a new folder
+// on the drive). Extract the actual URL in both shapes.
+function pikpakTaskUrl(t) {
+  const u = t && t.params && t.params.url;
+  if (typeof u === "string") return u;
+  if (u && typeof u === "object") return String(u.url || "");
+  return "";
+}
+
 async function pikpak(apiKey, infoHash, magnet) {
   const H = { Authorization: `Bearer ${apiKey}` };
   const hash = String(infoHash || "").toLowerCase();
@@ -948,9 +961,7 @@ export async function resolvePikpakPlay(apiKey, { torrentId, fileId, infoHash } 
         hit = rows.find((t) => String(t.id || "") === String(torrentId));
       }
       if (!hit && hash) {
-        const matches = rows.filter((t) =>
-          String((t.params && t.params.url) || "").toLowerCase().includes(hash),
-        );
+        const matches = rows.filter((t) => pikpakTaskUrl(t).toLowerCase().includes(hash));
         hit = matches.find((t) => String(t.phase || "") === complete) || matches[0] || null;
       }
       if (hit) {
@@ -1085,9 +1096,7 @@ export async function lookupDebridCache(service, apiKey, infoHash, opts = {}) {
       // COMPLETED task: the list is dominated by PHASE_TYPE_ERROR entries, so
       // a first-match pick would report the errored task and hide a video that
       // is actually fully downloaded.
-      const matches = rows.filter((t) =>
-        String((t.params && t.params.url) || "").toLowerCase().includes(hash),
-      );
+      const matches = rows.filter((t) => pikpakTaskUrl(t).toLowerCase().includes(hash));
       const hit =
         matches.find((t) => String(t.phase || "") === "PHASE_TYPE_COMPLETE") || matches[0] || null;
       if (!hit) return { cached: false, fileId: "" };

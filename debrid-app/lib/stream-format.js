@@ -210,6 +210,7 @@ export function buildAddonStreams({
   token,
   infoHash,
   torrentId,
+  fileId,
   titleCode,
   sourceName,
   sourceDescription,
@@ -222,7 +223,7 @@ export function buildAddonStreams({
   const debridUrl =
     resolvedUrl ||
     (includeDebrid && service && token && infoHash
-      ? playStreamUrl(origin, { service, token, infoHash, torrentId, cached, titleCode })
+      ? playStreamUrl(origin, { service, token, infoHash, torrentId, fileId, cached, titleCode })
       : "");
   return buildStreamList({
     service,

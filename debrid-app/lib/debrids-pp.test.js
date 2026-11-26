@@ -216,6 +216,48 @@ test("in-flight task is polled to completion, not re-downloaded on re-open", asy
   assert.equal(listCalls.length, 1);
 });
 
+test("live API shape: params.url object { url } still matches — no duplicate task added", async () => {
+  const tasks = [
+    {
+      id: "t-done",
+      phase: "PHASE_TYPE_COMPLETE",
+      file_id: "FID-DONE",
+      params: { url: { url: magnetUrl(HASH) }, upload_type: "UPLOAD_TYPE_URL" },
+    },
+  ];
+  const { calls, restore } = mockFetch([
+    { url: `${PP}/drive/v1/tasks`, body: tasksBody(tasks) },
+    { url: `${PP}/drive/v1/files/`, body: FILE_DETAIL },
+    { url: `${PP}/drive/v1/files?parent_id`, body: FOLDER_FILES },
+  ]);
+  const res = await resolvePikpakPlay(KEY, { infoHash: HASH });
+  restore();
+  const posts = calls.filter((c) => c.method === "POST");
+  assert.equal(posts.length, 0);
+  assert.equal(res.success, true);
+  assert.equal(res.cached, true);
+  assert.equal(res.url, "https://cdn.pikpak.example/video.mp4");
+});
+
+test("lookupDebridCache(pikpak) matches object-shaped params.url", async () => {
+  const tasks = [
+    {
+      id: "t-done",
+      phase: "PHASE_TYPE_COMPLETE",
+      file_id: "FID-DONE",
+      params: { url: { url: magnetUrl(HASH) } },
+    },
+  ];
+  const { restore } = mockFetch([
+    { url: `${PP}/drive/v1/tasks`, body: tasksBody(tasks) },
+  ]);
+  const hit = await lookupDebridCache("pikpak", KEY, HASH);
+  restore();
+  assert.equal(hit.cached, true);
+  assert.equal(hit.fileId, "FID-DONE");
+  assert.equal(hit.torrentId, "t-done");
+});
+
 test("lookupDebridCache(pikpak) reports cached only when a completed task exists", async () => {
   const withComplete = [
     {
