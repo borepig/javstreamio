@@ -137,6 +137,13 @@ def iter_rows(db, cats, limit):
             rows += db.execute(
                 "SELECT id, poster FROM titles WHERE category=? AND poster LIKE ? ORDER BY posted_at DESC",
                 (cat, "%image.mgstage.com%")).fetchall()
+            # DMM posters for the label prefixes the user reported (2026-11-27)
+            # showing landscape "NOW PRINTING" / wide posters.
+            for pfx in ("JUKF", "YUME", "YSN", "YAG", "WFS", "ABF", "NASH"):
+                rows += db.execute(
+                    "SELECT id, poster FROM titles WHERE category=? AND id LIKE ? AND poster LIKE '%pics.dmm.co.jp%' "
+                    "ORDER BY posted_at DESC",
+                    (cat, f"jav:{pfx}%")).fetchall()
         elif cat == "japan-photo":
             rows += db.execute(
                 "SELECT id, poster FROM titles WHERE category='japan-photo' "
