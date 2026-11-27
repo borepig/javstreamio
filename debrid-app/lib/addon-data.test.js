@@ -383,6 +383,22 @@ test("DLDSS and ORG use a jacket crop instead of the tiny or missing poster", ()
   );
   assert.equal(jura.metas[0].poster, "https://javstremio.ddns.net/poster/movie/jav%3AJURA-212");
   assert.equal(needsJacketCrop({ id: "jav:JRZE-320" }), true);
+  assert.equal(needsJacketCrop({ id: "jav:MXGS-1454" }), true);
+  const mxgs = withPublicPosters(
+    {
+      metas: [
+        {
+          id: "jav:MXGS-1454",
+          type: "movie",
+          name: "MXGS-1454",
+          poster: "https://pics.dmm.co.jp/digital/video/mxgs01454/mxgs01454ps.jpg",
+        },
+      ],
+    },
+    "catalog",
+    "https://javstremio.ddns.net",
+  );
+  assert.equal(mxgs.metas[0].poster, "https://javstremio.ddns.net/poster/movie/jav%3AMXGS-1454");
 });
 
 test("jacket prefix with a real DMM poster keeps that poster", () => {

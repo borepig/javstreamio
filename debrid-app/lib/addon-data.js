@@ -160,7 +160,7 @@ const FORCE_JACKET = new Set([
   "MILK", "ORG", "AIAV",
   "DLDSS", "HEZ", "ABP", "DPHN", "AWAW", "FSDSS", "AWT", "SERO",
   "KNAM", "HZGD", "CHUC", "HDKA", "IENF", "MGOLD", "NMSL",
-  "JURA", "JRZE",
+  "JURA", "JRZE", "MXGS",
 ]);
 
 // Retail mono CID maker token, from sehuatang's DMM preview URL.
