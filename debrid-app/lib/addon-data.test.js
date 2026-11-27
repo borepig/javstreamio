@@ -140,7 +140,7 @@ test("bundled ABF-389 uses the public MGStage cover", async () => {
   );
   assert.equal(
     catalog.metas[0].poster,
-    "https://image.mgstage.com/images/prestige/abf/389/pb_e_abf-389.jpg",
+    "https://javstreamio-debrid.vercel.app/poster/movie/jav%3AABF-389",
   );
 });
 
@@ -160,7 +160,7 @@ test("bundled western titles keep sehuatang covers", async () => {
   );
 });
 
-test("ABF-389 uses the public MGStage cover when DMM is now-printing", () => {
+test("ABF-389 crops the jacket instead of using the landscape MGStage scan", () => {
   const catalog = withPublicPosters(
     {
       metas: [
@@ -178,7 +178,7 @@ test("ABF-389 uses the public MGStage cover when DMM is now-printing", () => {
   );
   assert.equal(
     catalog.metas[0].poster,
-    "https://image.mgstage.com/images/prestige/abf/389/pb_e_abf-389.jpg",
+    "https://javstreamio-debrid.vercel.app/poster/movie/jav%3AABF-389",
   );
 });
 
@@ -262,7 +262,11 @@ test("DMM stubs use fourhoi before the sehuatang poster proxy", () => {
     "meta",
     "https://javstreamio-debrid.vercel.app",
   );
-  assert.equal(meta.meta.background, "https://javstreamio-debrid.vercel.app/poster/movie/jav%3ANACT-147");
+  assert.equal(meta.meta.poster, "https://javstreamio-debrid.vercel.app/poster/movie/jav%3ANACT-147");
+  assert.equal(
+    meta.meta.background,
+    "https://javstreamio-debrid.vercel.app/poster/movie/jav%3ANACT-147?fanart=1",
+  );
 });
 
 test("fourhoi misses still use the sehuatang poster proxy", () => {
@@ -285,6 +289,67 @@ test("fourhoi misses still use the sehuatang poster proxy", () => {
   assert.equal(
     catalog.metas[0].poster,
     "https://javstreamio-debrid.vercel.app/poster/movie/jav%3AORG-017",
+  );
+});
+
+test("jacket prefixes use a right-side fanart crop as the poster", () => {
+  const meta = withPublicPosters(
+    {
+      meta: {
+        id: "jav:SILK-052",
+        type: "movie",
+        name: "SILK-052",
+        poster: "https://pics.dmm.co.jp/digital/video/silk00052/silk00052ps.jpg",
+        background: "https://pics.dmm.co.jp/digital/video/silk00052/silk00052pl.jpg",
+        dmmMissing: true,
+      },
+    },
+    "meta",
+    "https://javstremio.ddns.net",
+  );
+  assert.equal(meta.meta.poster, "https://javstremio.ddns.net/poster/movie/jav%3ASILK-052");
+  assert.equal(
+    meta.meta.background,
+    "https://javstremio.ddns.net/poster/movie/jav%3ASILK-052?fanart=1",
+  );
+
+  const cropped = withPublicPosters(
+    {
+      metas: [
+        {
+          id: "jav:ABF-385",
+          type: "movie",
+          name: "ABF-385",
+          poster: "https://javstremio.ddns.net/posters/javcensored/jav:ABF-385.jpg",
+          dmmMissing: true,
+        },
+      ],
+    },
+    "catalog",
+    "https://javstremio.ddns.net",
+  );
+  assert.equal(cropped.metas[0].poster, "https://javstremio.ddns.net/poster/movie/jav%3AABF-385");
+});
+
+test("jacket prefix with a real DMM poster keeps that poster", () => {
+  const catalog = withPublicPosters(
+    {
+      metas: [
+        {
+          id: "jav:NSPS-829",
+          type: "movie",
+          name: "NSPS-829",
+          poster: "https://pics.dmm.co.jp/digital/video/nsps00829/nsps00829ps.jpg",
+          background: "https://pics.dmm.co.jp/digital/video/nsps00829/nsps00829pl.jpg",
+        },
+      ],
+    },
+    "catalog",
+    "https://javstremio.ddns.net",
+  );
+  assert.equal(
+    catalog.metas[0].poster,
+    "https://pics.dmm.co.jp/digital/video/nsps00829/nsps00829ps.jpg",
   );
 });
 

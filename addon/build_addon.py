@@ -34,7 +34,7 @@ TITLES_JSON = ROOT / "debrid-app" / "data" / "titles.json"
 TITLES_SQLITE = ROOT / "debrid-app" / "data" / "titles.sqlite"
 CATALOG_ID = "jav103"  # legacy alias of jav-censored
 ADDON_ID = "community.javstremio"
-VERSION = "0.5.95"
+VERSION = "0.5.96"
 CATALOG_LIMIT = 200
 # Free tier (debrid-app/lib/titles-db.js) serves the newest FREE_CATALOG_SIZE
 # titles per category; the JavDB free-set enrichment fetches exactly those.
@@ -422,7 +422,7 @@ def title_to_sqlite_row(title: dict) -> tuple:
         1 if title.get("fourhoiMissing") else 0,
         json.dumps(title.get("cast") or [], ensure_ascii=False),
         json.dumps(title.get("genres") or [], ensure_ascii=False),
-        title.get("director") or "",
+        _director_text(title.get("director")),
         title.get("imdbRating") or "",
         title.get("infoHash") or "",
         title.get("magnet") or "",
@@ -834,18 +834,26 @@ def scrape_new_to_sqlite(
                 title["posted_at"] = rec.get("posted_at") or title.get("released") or ""
                 with jsonl.open("a", encoding="utf-8") as handle:
                     handle.write(json.dumps(rec, ensure_ascii=False) + "\n")
-                conn.execute(
-                    """
-                    INSERT OR REPLACE INTO titles (
-                      id, category, name, description, release_info, released, runtime,
-                      poster, background, forum_poster, dmm_missing, fourhoi_missing,
-                      cast_json, genres_json, director, imdb_rating, info_hash, magnet,
-                      posted_at, search_text, meta_rank
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    title_to_sqlite_row(title),
-                )
-                conn.commit()
+                try:
+                    conn.execute(
+                        """
+                        INSERT OR REPLACE INTO titles (
+                          id, category, name, description, release_info, released, runtime,
+                          poster, background, forum_poster, dmm_missing, fourhoi_missing,
+                          cast_json, genres_json, director, imdb_rating, info_hash, magnet,
+                          posted_at, search_text, meta_rank
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        title_to_sqlite_row(title),
+                    )
+                    conn.commit()
+                except sqlite3.Error as exc:
+                    # One bad row must not abort the daily scrape. Leave the id
+                    # out of `existing` so the next run retries it, and count the
+                    # page as not caught-up so later pages still get read.
+                    print(f"sqlite insert failed for {meta_id}: {exc}", file=sys.stderr)
+                    new_in_page += 1
+                    continue
                 existing.add(meta_id)
                 added += 1
                 new_in_page += 1

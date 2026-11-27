@@ -85,6 +85,29 @@ class MetaResourceHelper(unittest.TestCase):
         )
         self.assertEqual(wrapped["meta"]["released"], "2026-05-06T00:00:00.000Z")
 
+    def test_sqlite_row_stores_director_list_as_text(self):
+        # JavDB sets director to a list. SQLite parameter 15 is the director
+        # column; binding a list aborts the whole daily scrape.
+        import sqlite3
+
+        build = load_build_addon()
+        row = build.title_to_sqlite_row({
+            "id": "jav:SILK-052",
+            "category": "jav-censored",
+            "name": "SILK-052",
+            "director": ["山田太郎", "佐藤花"],
+            "cast": ["Actress"],
+            "genres": ["Drama"],
+        })
+        self.assertIsInstance(row[14], str)
+        self.assertEqual(row[14], "山田太郎 / 佐藤花")
+        con = sqlite3.connect(":memory:")
+        con.execute("CREATE TABLE t (" + ",".join(f"c{i}" for i in range(len(row))) + ")")
+        con.execute(
+            "INSERT INTO t VALUES (" + ",".join("?" * len(row)) + ")",
+            row,
+        )
+
     def test_dmm_poster_from_title_number(self):
         build = load_build_addon()
         self.assertEqual(

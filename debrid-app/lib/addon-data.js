@@ -89,6 +89,9 @@ const POSTER_HOSTS = [
   // JAV fourhoi covers: the /poster proxy fetches them server-side with
   // browser UA and NO Referer (any Referer → 403 from fourhoi.com).
   "fourhoi.com",
+  // Jacket right-half crops are fetched server-side (DMM pl + MGStage pb_e).
+  "pics.dmm.co.jp",
+  "image.mgstage.com",
   // HK Cat III poster fill (hk_cat3_posters.py): movie-DB og:image CDNs
   // (TMDB rawHtml og:image, IMDB media CDN).
   "media.themoviedb.org",
@@ -145,6 +148,40 @@ export function fourhoiPoster(idOrTitle) {
 }
 
 const PRESTIGE_PREFIX = /^(abf|abp|abs|aka|blo|chn|dic|dom|edd|mega|ppt|sga|tre|wpc|yrh)$/i;
+
+// Series whose DMM poster is the gray NOW PRINTING stub, so the catalog was
+// showing the landscape DVD jacket (fanart) as the poster. The front cover
+// is the right half of that jacket.
+const JACKET_PREFIXES = new Set([
+  "JUKF", "SILK", "MEKO", "HODV", "SKMJ", "SDNM", "RCTD", "ABF",
+  "NACT", "DRPT", "HMGL", "GVG", "YUME", "YSN", "YAG", "WFS",
+  "MILK", "ORG", "NSPS", "AIAV",
+]);
+
+export function jacketCodePrefix(idOrTitle) {
+  const raw = String(idOrTitle || "").replace(/^jav:/i, "").trim();
+  const match = raw.match(/^([A-Za-z]{2,})[-_]/);
+  return match ? match[1].toUpperCase() : "";
+}
+
+export function isJacketPrefix(idOrTitle) {
+  return JACKET_PREFIXES.has(jacketCodePrefix(idOrTitle));
+}
+
+export function jacketArtSources(item) {
+  if (!item) return [];
+  const urls = [];
+  if (!item.fourhoiMissing) {
+    const four = fourhoiPoster(item.id);
+    if (four) urls.push(four);
+  }
+  const mg = mgstagePoster(item.id);
+  if (mg) urls.push(mg);
+  if (item.forumPoster) urls.push(item.forumPoster);
+  const pl = dmmPoster(item.id, "pl");
+  if (pl) urls.push(pl);
+  return urls;
+}
 
 export function mgstagePoster(idOrTitle) {
   const raw = String(idOrTitle || "").replace(/^jav:/i, "").trim();
@@ -228,6 +265,20 @@ function applyPublicArt(item, kind, origin) {
   if (!item) return item;
   const next = { ...item };
   const skipDmm = Boolean(item.dmmMissing);
+  const storedPoster = String(item.poster || "");
+  const generatedCrop = /\/posters\/jav(?:censored|uncensored)\//i.test(storedPoster);
+  // NOW PRINTING rows (and the earlier centre-crop stand-ins) have no portrait
+  // poster. Serve a right-half crop of the jacket, and keep the full scan as fanart.
+  if (origin && isJacketPrefix(item.id) && (skipDmm || generatedCrop)) {
+    const crop = `${origin}${posterPathFor(item.type || "movie", item.id)}`;
+    next.poster = crop;
+    if (kind !== "catalog") next.background = `${crop}?fanart=1`;
+    else delete next.background;
+    delete next.forumPoster;
+    delete next.dmmMissing;
+    delete next.fourhoiMissing;
+    return next;
+  }
   const ps = skipDmm ? "" : dmmPoster(item.id, "ps");
   const pl = skipDmm ? "" : dmmPoster(item.id, "pl");
   // fourhoi.com 403s any request carrying a Referer, and the Stremio
@@ -832,6 +883,11 @@ function posterRefererFor(src) {
     // fourhoi.com 403s any request carrying a Referer (no Referer → 200).
     // Fetch the cover with browser UA and no Referer header at all.
     if (host === "fourhoi.com" || host.endsWith(".fourhoi.com")) {
+      return "";
+    }
+    // DMM and MGStage jackets 200 with no Referer. A sehuatang Referer is
+    // not required and can 403 the image.
+    if (host === "pics.dmm.co.jp" || host === "image.mgstage.com") {
       return "";
     }
   } catch {

@@ -3,6 +3,8 @@ import {
   fetchAddon,
   fetchRemotePoster,
   fourhoiPoster,
+  isJacketPrefix,
+  jacketArtSources,
   normalizeMetaBody,
   withPublicPosters,
   withBundledCatalogs,
@@ -13,6 +15,10 @@ import {
   resolveCatalogId,
   parseCatalogExtra,
 } from "../../lib/addon-data.js";
+import { resolveJacketImage } from "../../lib/jacket-poster.js";
+import { mkdir, readFile, writeFile } from "fs/promises";
+import os from "os";
+import path from "path";
 import { lookupDebridCache, resolveDebrid, resolvePlay, unlockRdLinks, rdShouldServeCachingClip } from "../../lib/debrids.js";
 import { buildAddonStreams, includeDebridRow, STREAM_CACHE_HINTS } from "../../lib/stream-format.js";
 import { proxyM3u8, proxySegment, rewritePlaylist } from "../../lib/lulustream.js";
@@ -185,6 +191,43 @@ function decodeRawQueryParam(name, url) {
   return "";
 }
 
+const JACKET_CACHE = path.join(os.tmpdir(), "javstreamio-jacket");
+
+async function jacketPosterResponse(id, item, fanart) {
+  const safe = String(id).replace(/[^A-Za-z0-9._-]+/g, "_");
+  const file = path.join(JACKET_CACHE, `${safe}.${fanart ? "fanart" : "poster"}.jpg`);
+  let body = null;
+  try {
+    body = await readFile(file);
+  } catch {
+    body = null;
+  }
+  if (!body) {
+    const sources = jacketArtSources(item || { id });
+    body = await resolveJacketImage(
+      sources,
+      async (src) => {
+        const img = await fetchRemotePoster(src);
+        return Buffer.from(await img.arrayBuffer());
+      },
+      { fanart },
+    );
+    if (body) {
+      await mkdir(JACKET_CACHE, { recursive: true });
+      await writeFile(file, body).catch(() => {});
+    }
+  }
+  if (!body) return null;
+  return new NextResponse(body, {
+    headers: {
+      "Content-Type": "image/jpeg",
+      "Cache-Control": "public, max-age=86400, s-maxage=86400",
+      "Access-Control-Allow-Origin": "*",
+      "Cross-Origin-Resource-Policy": "cross-origin",
+    },
+  });
+}
+
 // Catch-all serving the Stremio addon protocol. `app/page.js` still owns "/", so this
 // handles /manifest.json, /catalog/..., /meta/... (proxied from GitHub raw) and a dynamic
 // /stream/... that resolves the torrent through the user's debrid service + key.
@@ -281,6 +324,7 @@ export async function GET(req, { params }) {
       const type = p[1] || "movie";
       const id = decodeURIComponent((p[2] || "").replace(/\.(jpe?g|png|webp)$/i, ""));
       if (!id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      const fanart = url.searchParams.get("fanart") === "1";
       // hnt refs are series/episode ids, not row ids — resolve them through
       // the titles DB before falling back to the bundled/static lookup.
       let item = null;
@@ -296,6 +340,10 @@ export async function GET(req, { params }) {
         item = queryTitle(db, id);
       }
       if (!item) item = bundledTitle(id);
+      if (isJacketPrefix(id)) {
+        const jacket = await jacketPosterResponse(id, item, fanart);
+        if (jacket) return jacket;
+      }
       // JAV rows whose stored forum poster / DMM URL is dead or missing fall
       // back to the fourhoi cover, fetched server-side with no Referer
       // (fourhoi.com 403s on any Referer; no Referer → 200).
