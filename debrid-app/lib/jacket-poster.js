@@ -31,7 +31,12 @@ export function jpegSize(buf) {
 }
 
 export function isPrintingStub(byteLength, width, height) {
-  return byteLength > 0 && byteLength < 40000 && height >= width;
+  if (!(byteLength > 0 && byteLength < 40000 && height >= width)) return false;
+  // Gray NOW PRINTING cards only. A real shop thumbnail (about 100x140)
+  // is small too, and must not be discarded.
+  const tinyCard = width >= 140 && width <= 170 && height >= 180 && height <= 220 && byteLength < 8000;
+  const sheet = width >= 540 && width <= 640 && height >= 740 && height <= 860 && byteLength < 25000;
+  return tinyCard || sheet;
 }
 
 // Forum preview sheets (about 1900x1200) are screenshot grids, not DVD jackets.

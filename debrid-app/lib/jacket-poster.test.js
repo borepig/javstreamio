@@ -53,7 +53,9 @@ test("isScreenshotGrid rejects forum preview sheets and keeps DVD jackets", () =
 
 test("isPrintingStub matches the small gray NOW PRINTING jpeg", () => {
   assert.equal(isPrintingStub(19378, 590, 800), true);
+  assert.equal(isPrintingStub(3424, 147, 200), true);
   assert.equal(isPrintingStub(121397, 800, 538), false);
+  assert.equal(isPrintingStub(7355, 100, 140), false);
 });
 
 test("resolveJacketImage skips the printing stub and crops the landscape fanart", async () => {
