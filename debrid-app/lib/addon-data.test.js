@@ -592,7 +592,21 @@ test("manifest exposes the category catalogs with filter-chip options", () => {
   assert.match(manifest.description, new RegExp(ADDON_VERSION.replace(/\./g, "\\.")));
   assert.deepEqual(
     manifest.catalogs.map((item) => item.id),
-    BUNDLED_CATALOGS.map((item) => item.id),
+    [
+      "jav-uncensored",
+      "jav-uncensored-year",
+      "jav-censored",
+      "jav-censored-year",
+      "japan-photo",
+      "hentai",
+      "western",
+      "hongkong",
+      "korea",
+      "japan",
+      "others",
+      "france",
+      "cat3-others",
+    ],
   );
   const byId = new Map(BUNDLED_CATALOGS.map((c) => [c.id, c]));
   // JAV base catalogs: the genre extra carries the top-30 genre options

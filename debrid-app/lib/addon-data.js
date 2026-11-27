@@ -621,6 +621,16 @@ export function catalogGenres(catalogId) {
 }
 
 export const BUNDLED_CATALOGS = [
+  { type: "movie", id: "jav-uncensored", name: "JAV Uncensored", genres: JAV_UNCENSORED_GENRES, extra: catalogExtra("jav-uncensored") },
+  {
+    type: "movie",
+    id: "jav-uncensored-year",
+    name: "JAV Uncensored By Year",
+    genres: JAV_UNCENSORED_YEARS,
+    extra: catalogExtra("jav-uncensored-year"),
+    extraSupported: ["genre", "skip"],
+    extraRequired: ["genre"],
+  },
   { type: "movie", id: "jav-censored", name: "JAV Censored", genres: JAV_CENSORED_GENRES, extra: catalogExtra("jav-censored") },
   // Cinemeta-style year catalog: the genre extra's options are years; the
   // client sends the selected year via the `genre` param.
@@ -633,28 +643,18 @@ export const BUNDLED_CATALOGS = [
     extraSupported: ["genre", "skip"],
     extraRequired: ["genre"],
   },
-  { type: "movie", id: "jav-uncensored", name: "JAV Uncensored", genres: JAV_UNCENSORED_GENRES, extra: catalogExtra("jav-uncensored") },
-  {
-    type: "movie",
-    id: "jav-uncensored-year",
-    name: "JAV Uncensored By Year",
-    genres: JAV_UNCENSORED_YEARS,
-    extra: catalogExtra("jav-uncensored-year"),
-    extraSupported: ["genre", "skip"],
-    extraRequired: ["genre"],
-  },
-  { type: "movie", id: "western", name: "Western", extra: CATALOG_EXTRA },
-  { type: "movie", id: "others", name: "Others", extra: CATALOG_EXTRA },
+  { type: "movie", id: "japan-photo", name: "Japan Photo", extra: CATALOG_EXTRA },
   // Single Hentai catalog (hentai.tv source; replaces the censored/uncensored pair).
   { type: "series", id: "hentai", name: "Hentai", extra: CATALOG_EXTRA },
+  { type: "movie", id: "western", name: "Western", extra: CATALOG_EXTRA },
   // HK Category III (Wikipedia meta + SearXNG magnet search; Cantonese original audio priority).
   { type: "movie", id: "hongkong", name: "HK Cat III", extra: CATALOG_EXTRA },
   // sehuatang forum-107 per-country split (2026-11-15): each row is tagged
   // by subcategory; 'western' above already serves JAV western + hk US 三级/四级.
   { type: "movie", id: "korea", name: "Korea Cat III", extra: CATALOG_EXTRA },
   { type: "movie", id: "japan", name: "Japan Cat III", extra: CATALOG_EXTRA },
+  { type: "movie", id: "others", name: "Others", extra: CATALOG_EXTRA },
   { type: "movie", id: "france", name: "France Cat III", extra: CATALOG_EXTRA },
-  { type: "movie", id: "japan-photo", name: "Japan Photo", extra: CATALOG_EXTRA },
   { type: "movie", id: "cat3-others", name: "Cat III Others", extra: CATALOG_EXTRA },
   // korean, chinese stay paused while their metadata sources are
   // re-vetted; re-add them here + in titles-db PAID_ONLY_CATEGORIES when redone.
