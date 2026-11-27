@@ -7,6 +7,8 @@ import {
   fourhoiCoverUrls,
   javdbCoverUrls,
   gravureCode,
+  gravureMakerPoster,
+  gravureKnownCover,
   mgstagePoster,
   monoMakerPoster,
   jacketArtSources,
@@ -374,8 +376,28 @@ test("Japan Photo gravure codes use a right-side jacket crop instead of the DMM 
   assert.equal(needsJacketCrop(item), true);
   assert.equal(needsJacketCrop({ ...item, category: "japan", name: "REBD-634 Riko" }), false);
   const sources = jacketArtSources(item);
-  assert.equal(sources[0], "https://fourhoi.com/rebdb-343/cover-n.jpg");
+  assert.equal(
+    sources[0],
+    "https://pics.dmm.co.jp/digital/video/h_346rebdb00343/h_346rebdb00343pl.jpg",
+  );
+  assert.equal(sources[1], "https://fourhoi.com/rebdb-343/cover-n.jpg");
   assert.equal(sources.includes(item.poster), false);
+  assert.equal(
+    gravureMakerPoster("R-656 天使-桃乃木かな"),
+    "https://pics.dmm.co.jp/digital/video/h_1143r00656/h_1143r00656pl.jpg",
+  );
+  assert.equal(
+    gravureMakerPoster("MW-003 富永綾"),
+    "https://pics.dmm.co.jp/digital/video/h_1265mw00003/h_1265mw00003pl.jpg",
+  );
+  assert.equal(
+    gravureKnownCover("PROU-027 梅田ののか"),
+    "https://c0.jdbstatic.com/covers/w1/W1b68.jpg",
+  );
+  assert.equal(
+    jacketArtSources({ ...item, name: "PROU-027 梅田ののか" })[0],
+    "https://c0.jdbstatic.com/covers/w1/W1b68.jpg",
+  );
   assert.equal(sources.includes(item.background), false);
 
   const catalog = withPublicPosters(

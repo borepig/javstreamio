@@ -88,6 +88,8 @@ const POSTER_HOSTS = [
   // AvGood detail-page posters (avgood.com/remote/pic/...) are publicly
   // fetchable — HK Cat III magnets + posters come from AvGood search.
   "avgood.com",
+  // Gravure shop thumbnails (SCAS and similar labels with no DMM jacket).
+  "at-mania.com",
   // JAV fourhoi covers: the /poster proxy fetches them server-side with
   // browser UA and NO Referer (any Referer → 403 from fourhoi.com).
   "fourhoi.com",
@@ -238,6 +240,53 @@ export function javdbCoverUrls(name) {
   );
 }
 
+// FANZA delivery maker token. The plain `rebdb00022` path is the NOW PRINTING
+// stub; the real jacket is `h_346rebdb00022`.
+const GRAVURE_MAKER = {
+  rebd: "h_346",
+  rebdb: "h_346",
+  gshrb: "h_346",
+  sprbd: "h_706",
+  etemb: "h_706",
+  prbyb: "h_706",
+  mw: "h_1265",
+  r: "h_1143",
+};
+
+// Covers that are not on the maker path. Keyed by the slug forms coverSlugs() emits.
+const GRAVURE_COVER = {
+  "prou-027": "https://c0.jdbstatic.com/covers/w1/W1b68.jpg",
+  "cand-01006": "https://c0.jdbstatic.com/covers/7y/7ywGP.jpg",
+  "cand-1006": "https://c0.jdbstatic.com/covers/7y/7ywGP.jpg",
+  "omyr-006": "https://c0.jdbstatic.com/covers/ym/yMQZ.jpg",
+  "omyr-6": "https://c0.jdbstatic.com/covers/ym/yMQZ.jpg",
+  "rebd-106": "https://c0.jdbstatic.com/covers/ve/veMvb.jpg",
+  "scas-0001": "https://www.at-mania.com/image/DVD/small/vola14/scas0001.jpg",
+  "scas-001": "https://www.at-mania.com/image/DVD/small/vola14/scas0001.jpg",
+  "scas-01": "https://www.at-mania.com/image/DVD/small/vola14/scas0001.jpg",
+  "scas-1": "https://www.at-mania.com/image/DVD/small/vola14/scas0001.jpg",
+  "scas-0011": "https://www.at-mania.com/image/DVD/small/vola17/scas0011.jpg",
+  "scas-011": "https://www.at-mania.com/image/DVD/small/vola17/scas0011.jpg",
+  "scas-11": "https://www.at-mania.com/image/DVD/small/vola17/scas0011.jpg",
+};
+
+export function gravureMakerPoster(name) {
+  const code = gravureCode(name);
+  if (!code) return "";
+  const maker = GRAVURE_MAKER[code.prefix];
+  if (!maker) return "";
+  const num = String(Number(code.digits)).padStart(5, "0");
+  const cid = `${maker}${code.prefix}${num}`;
+  return `https://pics.dmm.co.jp/digital/video/${cid}/${cid}pl.jpg`;
+}
+
+export function gravureKnownCover(name) {
+  for (const slug of coverSlugs(name)) {
+    if (GRAVURE_COVER[slug]) return GRAVURE_COVER[slug];
+  }
+  return "";
+}
+
 export function monoMakerPoster(idOrTitle, size = "pl") {
   const raw = String(idOrTitle || "").replace(/^jav:/i, "").trim();
   const match = raw.match(/^([A-Za-z]{2,})-(\d+)$/);
@@ -265,13 +314,15 @@ export function jacketArtSources(item) {
     if (url && !urls.includes(url)) urls.push(url);
   };
   if (item.category === "japan-photo") {
+    push(gravureKnownCover(item.name));
+    push(gravureMakerPoster(item.name));
     if (!item.fourhoiMissing) {
       for (const url of fourhoiCoverUrls(item.name)) push(url);
     }
-    for (const url of javdbCoverUrls(item.name)) push(url);
     if (item.background && !isDmmArtUrl(item.background)) push(item.background);
     if (item.poster && !isDmmArtUrl(item.poster)) push(item.poster);
     if (item.forumPoster) push(item.forumPoster);
+    for (const url of javdbCoverUrls(item.name)) push(url);
     return urls;
   }
   if (!item.fourhoiMissing) push(fourhoiPoster(item.id));
@@ -993,6 +1044,9 @@ function posterRefererFor(src) {
     }
     if (host === "jdbstatic.com" || host.endsWith(".jdbstatic.com")) {
       return "https://javdb.com/";
+    }
+    if (host === "at-mania.com" || host.endsWith(".at-mania.com")) {
+      return "https://www.at-mania.com/";
     }
   } catch {
     return POSTER_REFERER;
