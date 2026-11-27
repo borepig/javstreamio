@@ -70,6 +70,28 @@ test("searchText folds codes so WAAA 629 matches WAAA-629", () => {
   assert.match(text, /田中/);
 });
 
+test("japan-photo is ordered by movie number, newest first", () => {
+  const db = memoryDb();
+  const insert = db.prepare(`
+    INSERT INTO titles (id, category, name, posted_at, search_text)
+    VALUES (?, 'japan-photo', ?, ?, '')
+  `);
+  // Older code posted later on the forum. Number order must still win.
+  insert.run("hk:cat3-old", "REBD-472 Noa", "2026-11-20");
+  insert.run("hk:cat3-new", "REBD-473 Karen", "2020-01-01");
+  insert.run("hk:cat3-top", "REBD-902 Akane", "");
+  insert.run("hk:cat3-shop", "TSBS-81022 間宮夕貴", "2026-11-01");
+  insert.run("hk:cat3-plain", "銀白色的青春", "2026-11-16");
+  const ids = queryCatalog(db, { catalogId: "japan-photo", page: 10 }).map((row) => row.id);
+  assert.deepEqual(ids, [
+    "hk:cat3-top",
+    "hk:cat3-new",
+    "hk:cat3-old",
+    "hk:cat3-shop",
+    "hk:cat3-plain",
+  ]);
+});
+
 test("queryCatalog puts metadata titles first, bare titles last", () => {
   const db = memoryDb();
   const first = queryCatalog(db, { catalogId: "jav-censored", skip: 0, page: 2 });

@@ -146,7 +146,18 @@ export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "", 
     sql += " AND (substr(released, 1, 4) = ? OR (released IN ('', NULL) AND release_info = ?))";
     params.push(yearParam, yearParam);
   }
-  sql += ` ORDER BY ${META_RANK}, posted_at DESC, id DESC LIMIT ? OFFSET ?`;
+  // Japan Photo numbers increase as the title gets newer (REBD-473 before
+  // REBD-472). Forum posted_at does not follow that. 1–999 covers the
+  // REbecca / OAE sequence; 4–5 digit shop codes (TSBS-81022) follow it,
+  // and titles with no code stay last.
+  const order = category === "japan-photo"
+    ? `CASE WHEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) BETWEEN 1 AND 999
+            THEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) ELSE -1 END DESC,
+       CASE WHEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) > 999
+            THEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) ELSE -1 END DESC,
+       posted_at DESC, id DESC`
+    : `${META_RANK}, posted_at DESC, id DESC`;
+  sql += ` ORDER BY ${order} LIMIT ? OFFSET ?`;
   params.push(Number(page) || 80, Number(skip) || 0);
   return db.prepare(sql).all(...params).map(mapTitleRow);
 }
