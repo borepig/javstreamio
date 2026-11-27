@@ -364,6 +364,25 @@ test("DLDSS and ORG use a jacket crop instead of the tiny or missing poster", ()
   assert.equal(sources[0], monoMakerPoster("jav:ORG-017"));
   assert.equal(needsJacketCrop({ id: "jav:HEZ-913", dmmMissing: true }), true);
   assert.equal(needsJacketCrop({ id: "jav:WAAA-629" }), false);
+
+  // Probe left dmm_missing=0, but the digital CID is the gray NOW PRINTING stub.
+  const jura = withPublicPosters(
+    {
+      metas: [
+        {
+          id: "jav:JURA-212",
+          type: "movie",
+          name: "JURA-212",
+          poster: "https://pics.dmm.co.jp/digital/video/jura00212/jura00212ps.jpg",
+          background: "https://pics.dmm.co.jp/digital/video/jura00212/jura00212pl.jpg",
+        },
+      ],
+    },
+    "catalog",
+    "https://javstremio.ddns.net",
+  );
+  assert.equal(jura.metas[0].poster, "https://javstremio.ddns.net/poster/movie/jav%3AJURA-212");
+  assert.equal(needsJacketCrop({ id: "jav:JRZE-320" }), true);
 });
 
 test("jacket prefix with a real DMM poster keeps that poster", () => {
@@ -580,6 +599,31 @@ test("querySeriesList filters hnt series by genre and year", () => {
   // filters must not throw and must return a valid (possibly empty) page.
   assert.ok(Array.isArray(byGenre) && Array.isArray(byYear));
   void all;
+});
+
+test("current sehuatang mirror is allowed so western covers proxy", () => {
+  assert.equal(
+    isAllowedPosterUrl("https://tu.zq1by.com/tupian/forum/202611/27/051159czyl9yll8fofcd6c.jpg"),
+    true,
+  );
+  const catalog = withPublicPosters(
+    {
+      metas: [
+        {
+          id: "jav:Vixen.26.11.13.Christy.White.And.Avrora.Meey",
+          type: "movie",
+          name: "Vixen",
+          forumPoster: "https://tu.zq1by.com/tupian/forum/202611/27/051159czyl9yll8fofcd6c.jpg",
+        },
+      ],
+    },
+    "catalog",
+    "https://javstremio.ddns.net",
+  );
+  assert.equal(
+    catalog.metas[0].poster,
+    "https://javstremio.ddns.net/poster/movie/jav%3AVixen.26.11.13.Christy.White.And.Avrora.Meey",
+  );
 });
 
 test("hanime-cdn posters are public art and allowed for the poster proxy", () => {

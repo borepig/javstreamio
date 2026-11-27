@@ -70,9 +70,11 @@ export function normalizeMetaBody(body) {
 const POSTER_HOSTS = [
   "tu.djhdhs.us",
   // Sehuatang forum-preview mirror domain (sehuatang forum images rotate
-  // across tu.djhdhs.us / tu.w4kmzkm.com); the /poster proxy fetches with
-  // the sehuatang.org Referer, so mirror hosts belong on the allowlist.
+  // across tu.djhdhs.us / tu.w4kmzkm.com / tu.zq1by.com); the /poster proxy
+  // fetches with the sehuatang.org Referer, so mirror hosts belong on the
+  // allowlist. Western covers live only on these mirrors.
   "tu.w4kmzkm.com",
+  "tu.zq1by.com",
   "jdbstatic.com",
   "hanime-cdn.com",
   "raw.githubusercontent.com",
@@ -158,6 +160,7 @@ const FORCE_JACKET = new Set([
   "MILK", "ORG", "AIAV",
   "DLDSS", "HEZ", "ABP", "DPHN", "AWAW", "FSDSS", "AWT", "SERO",
   "KNAM", "HZGD", "CHUC", "HDKA", "IENF", "MGOLD", "NMSL",
+  "JURA", "JRZE",
 ]);
 
 // Retail mono CID maker token, from sehuatang's DMM preview URL.
