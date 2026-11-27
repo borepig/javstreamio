@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import jpeg from "jpeg-js";
-import { cropJpegRightHalf, isPrintingStub, resolveJacketImage } from "./jacket-poster.js";
+import { cropJpegRightHalf, isPrintingStub, isScreenshotGrid, resolveJacketImage } from "./jacket-poster.js";
 
 function solidJpeg(width, height, rgba) {
   const data = Buffer.alloc(width * height * 4);
@@ -44,6 +44,11 @@ test("cropJpegRightHalf keeps the right half of a landscape jacket", () => {
 test("cropJpegRightHalf leaves a portrait poster untouched", () => {
   const portrait = solidJpeg(4, 6, [10, 20, 30, 255]);
   assert.equal(cropJpegRightHalf(portrait), null);
+});
+
+test("isScreenshotGrid rejects forum preview sheets and keeps DVD jackets", () => {
+  assert.equal(isScreenshotGrid(1914, 1188), true);
+  assert.equal(isScreenshotGrid(800, 538), false);
 });
 
 test("isPrintingStub matches the small gray NOW PRINTING jpeg", () => {

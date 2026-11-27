@@ -5,6 +5,9 @@ import {
   dmmMonoPoster,
   fourhoiPoster,
   mgstagePoster,
+  monoMakerPoster,
+  jacketArtSources,
+  needsJacketCrop,
   withPublicPosters,
   withBundledCatalogs,
   BUNDLED_CATALOGS,
@@ -331,6 +334,38 @@ test("jacket prefixes use a right-side fanart crop as the poster", () => {
   assert.equal(cropped.metas[0].poster, "https://javstremio.ddns.net/poster/movie/jav%3AABF-385");
 });
 
+test("DLDSS and ORG use a jacket crop instead of the tiny or missing poster", () => {
+  const dldss = withPublicPosters(
+    {
+      metas: [
+        {
+          id: "jav:DLDSS-584",
+          type: "movie",
+          name: "DLDSS-584",
+          poster: "https://pics.dmm.co.jp/mono/movie/adult/1dldss584/1dldss584ps.jpg",
+        },
+      ],
+    },
+    "catalog",
+    "https://javstremio.ddns.net",
+  );
+  assert.equal(dldss.metas[0].poster, "https://javstremio.ddns.net/poster/movie/jav%3ADLDSS-584");
+
+  assert.equal(
+    monoMakerPoster("jav:ORG-017"),
+    "https://pics.dmm.co.jp/mono/movie/adult/h_771org017/h_771org017pl.jpg",
+  );
+  const sources = jacketArtSources({
+    id: "jav:ORG-017",
+    fourhoiMissing: true,
+    forumPoster: "https://tu.djhdhs.us/org-screens.jpg",
+    dmmMissing: true,
+  });
+  assert.equal(sources[0], monoMakerPoster("jav:ORG-017"));
+  assert.equal(needsJacketCrop({ id: "jav:HEZ-913", dmmMissing: true }), true);
+  assert.equal(needsJacketCrop({ id: "jav:WAAA-629" }), false);
+});
+
 test("jacket prefix with a real DMM poster keeps that poster", () => {
   const catalog = withPublicPosters(
     {
@@ -397,7 +432,7 @@ test("NOW PRINTING rows: stored DMM poster/background are skipped (FSDSS)", () =
   );
   assert.equal(
     meta.meta.background,
-    "https://javstreamio.ddns.net/poster/movie/jav%3AFSDSS-007",
+    "https://javstreamio.ddns.net/poster/movie/jav%3AFSDSS-007?fanart=1",
   );
 });
 

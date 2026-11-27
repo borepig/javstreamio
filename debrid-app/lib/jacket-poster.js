@@ -34,6 +34,11 @@ export function isPrintingStub(byteLength, width, height) {
   return byteLength > 0 && byteLength < 40000 && height >= width;
 }
 
+// Forum preview sheets (about 1900x1200) are screenshot grids, not DVD jackets.
+export function isScreenshotGrid(width, height) {
+  return width >= 1400 || height >= 900;
+}
+
 export function cropJpegRightHalf(buf) {
   const dim = jpegSize(buf);
   if (!dim || dim.width <= dim.height) return null;
@@ -71,6 +76,7 @@ export async function resolveJacketImage(sources, fetchImage, { fanart = false }
     if (!Buffer.isBuffer(buf)) buf = Buffer.from(buf);
     const dim = jpegSize(buf);
     if (!dim) continue;
+    if (isScreenshotGrid(dim.width, dim.height)) continue;
     if (isPrintingStub(buf.length, dim.width, dim.height)) continue;
     if (dim.width > dim.height) {
       if (fanart) return buf;

@@ -3,7 +3,7 @@ import {
   fetchAddon,
   fetchRemotePoster,
   fourhoiPoster,
-  isJacketPrefix,
+  needsJacketCrop,
   jacketArtSources,
   normalizeMetaBody,
   withPublicPosters,
@@ -195,7 +195,7 @@ const JACKET_CACHE = path.join(os.tmpdir(), "javstreamio-jacket");
 
 async function jacketPosterResponse(id, item, fanart) {
   const safe = String(id).replace(/[^A-Za-z0-9._-]+/g, "_");
-  const file = path.join(JACKET_CACHE, `${safe}.${fanart ? "fanart" : "poster"}.jpg`);
+  const file = path.join(JACKET_CACHE, `${safe}.${fanart ? "fanart" : "poster"}.v2.jpg`);
   let body = null;
   try {
     body = await readFile(file);
@@ -340,7 +340,7 @@ export async function GET(req, { params }) {
         item = queryTitle(db, id);
       }
       if (!item) item = bundledTitle(id);
-      if (isJacketPrefix(id)) {
+      if (needsJacketCrop(item || { id })) {
         const jacket = await jacketPosterResponse(id, item, fanart);
         if (jacket) return jacket;
       }

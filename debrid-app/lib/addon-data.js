@@ -149,14 +149,25 @@ export function fourhoiPoster(idOrTitle) {
 
 const PRESTIGE_PREFIX = /^(abf|abp|abs|aka|blo|chn|dic|dom|edd|mega|ppt|sga|tre|wpc|yrh)$/i;
 
-// Series whose DMM poster is the gray NOW PRINTING stub, so the catalog was
-// showing the landscape DVD jacket (fanart) as the poster. The front cover
-// is the right half of that jacket.
-const JACKET_PREFIXES = new Set([
+// These labels have no usable DMM digital poster. Crop the DVD jacket even
+// when the row is not flagged dmm_missing (DLDSS's stored poster is a tiny
+// mono ps; ABP's is the old centre crop).
+const FORCE_JACKET = new Set([
   "JUKF", "SILK", "MEKO", "HODV", "SKMJ", "SDNM", "RCTD", "ABF",
   "NACT", "DRPT", "HMGL", "GVG", "YUME", "YSN", "YAG", "WFS",
-  "MILK", "ORG", "NSPS", "AIAV",
+  "MILK", "ORG", "AIAV",
+  "DLDSS", "HEZ", "ABP", "DPHN", "AWAW", "FSDSS", "AWT", "SERO",
+  "KNAM", "HZGD", "CHUC", "HDKA", "IENF", "MGOLD", "NMSL",
 ]);
+
+// Retail mono CID maker token, from sehuatang's DMM preview URL.
+// fourhoi has no cover for several of these.
+const MONO_MAKER = {
+  ORG: "h_771",
+  HDKA: "h_237",
+  SERO: "h_422",
+  ABP: "118",
+};
 
 export function jacketCodePrefix(idOrTitle) {
   const raw = String(idOrTitle || "").replace(/^jav:/i, "").trim();
@@ -164,22 +175,37 @@ export function jacketCodePrefix(idOrTitle) {
   return match ? match[1].toUpperCase() : "";
 }
 
-export function isJacketPrefix(idOrTitle) {
-  return JACKET_PREFIXES.has(jacketCodePrefix(idOrTitle));
+export function monoMakerPoster(idOrTitle, size = "pl") {
+  const raw = String(idOrTitle || "").replace(/^jav:/i, "").trim();
+  const match = raw.match(/^([A-Za-z]{2,})-(\d+)$/);
+  if (!match) return "";
+  const maker = MONO_MAKER[match[1].toUpperCase()];
+  if (!maker) return "";
+  const cid = `${maker}${match[1].toLowerCase()}${match[2]}`;
+  const suffix = size === "ps" ? "ps" : "pl";
+  return `https://pics.dmm.co.jp/mono/movie/adult/${cid}/${cid}${suffix}.jpg`;
+}
+
+export function needsJacketCrop(item) {
+  const id = String((item && item.id) || "");
+  if (!/^jav:[A-Za-z]{2,}-?\d+$/i.test(id)) return false;
+  if (item && item.dmmMissing) return true;
+  if (/\/posters\/jav(?:censored|uncensored)\//i.test(String((item && item.poster) || ""))) return true;
+  return FORCE_JACKET.has(jacketCodePrefix(id));
 }
 
 export function jacketArtSources(item) {
   if (!item) return [];
   const urls = [];
-  if (!item.fourhoiMissing) {
-    const four = fourhoiPoster(item.id);
-    if (four) urls.push(four);
-  }
-  const mg = mgstagePoster(item.id);
-  if (mg) urls.push(mg);
-  if (item.forumPoster) urls.push(item.forumPoster);
-  const pl = dmmPoster(item.id, "pl");
-  if (pl) urls.push(pl);
+  const push = (url) => {
+    if (url && !urls.includes(url)) urls.push(url);
+  };
+  if (!item.fourhoiMissing) push(fourhoiPoster(item.id));
+  push(mgstagePoster(item.id));
+  push(monoMakerPoster(item.id, "pl"));
+  push(dmmMonoPoster(item.id, "pl"));
+  if (item.forumPoster) push(item.forumPoster);
+  push(dmmPoster(item.id, "pl"));
   return urls;
 }
 
@@ -265,11 +291,9 @@ function applyPublicArt(item, kind, origin) {
   if (!item) return item;
   const next = { ...item };
   const skipDmm = Boolean(item.dmmMissing);
-  const storedPoster = String(item.poster || "");
-  const generatedCrop = /\/posters\/jav(?:censored|uncensored)\//i.test(storedPoster);
-  // NOW PRINTING rows (and the earlier centre-crop stand-ins) have no portrait
-  // poster. Serve a right-half crop of the jacket, and keep the full scan as fanart.
-  if (origin && isJacketPrefix(item.id) && (skipDmm || generatedCrop)) {
+  // NOW PRINTING rows, centre-crop stand-ins, and the labels whose only art
+  // is the wide DVD jacket. Poster is the right half; fanart stays the full scan.
+  if (origin && needsJacketCrop(item)) {
     const crop = `${origin}${posterPathFor(item.type || "movie", item.id)}`;
     next.poster = crop;
     if (kind !== "catalog") next.background = `${crop}?fanart=1`;
