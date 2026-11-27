@@ -4,6 +4,9 @@ import {
   dmmPoster,
   dmmMonoPoster,
   fourhoiPoster,
+  fourhoiCoverUrls,
+  javdbCoverUrls,
+  gravureCode,
   mgstagePoster,
   monoMakerPoster,
   jacketArtSources,
@@ -332,6 +335,61 @@ test("jacket prefixes use a right-side fanart crop as the poster", () => {
     "https://javstremio.ddns.net",
   );
   assert.equal(cropped.metas[0].poster, "https://javstremio.ddns.net/poster/movie/jav%3AABF-385");
+});
+
+test("Japan Photo gravure codes use a right-side jacket crop instead of the DMM stub", () => {
+  assert.deepEqual(gravureCode("REBDB-343 Yukina Virgin snow"), {
+    prefix: "rebdb",
+    digits: "343",
+    suffix: "",
+  });
+  assert.deepEqual(gravureCode("KIDM-658B 星野美優"), {
+    prefix: "kidm",
+    digits: "658",
+    suffix: "b",
+  });
+  assert.equal(fourhoiCoverUrls("REBDB-343 Yukina")[0], "https://fourhoi.com/rebdb-343/cover-n.jpg");
+  assert.deepEqual(fourhoiCoverUrls("SZKK-0027 地下偶像"), [
+    "https://fourhoi.com/szkk-0027/cover-n.jpg",
+    "https://fourhoi.com/szkk-027/cover-n.jpg",
+    "https://fourhoi.com/szkk-27/cover-n.jpg",
+  ]);
+  assert.equal(fourhoiCoverUrls("PPTGB-010 放課後")[0], "https://fourhoi.com/pptgb-010/cover-n.jpg");
+  assert.equal(fourhoiCoverUrls("R-656 天使")[0], "https://fourhoi.com/r-656/cover-n.jpg");
+  assert.equal(fourhoiCoverUrls("KIDM-658B Milk Girl")[0], "https://fourhoi.com/kidm-658b/cover-n.jpg");
+  assert.equal(
+    javdbCoverUrls("REBDB-343 Yukina")[0],
+    "https://c0.jdbstatic.com/covers/re/rebdb-343.jpg",
+  );
+  assert.deepEqual(javdbCoverUrls("R-656 天使"), []);
+
+  const item = {
+    id: "hk:cat3-1",
+    type: "movie",
+    category: "japan-photo",
+    name: "REBDB-343 Yukina Virgin snow",
+    poster: "https://pics.dmm.co.jp/digital/video/rebdb00343/rebdb00343ps.jpg",
+    background: "https://pics.dmm.co.jp/digital/video/rebdb00343/rebdb00343pl.jpg",
+  };
+  assert.equal(needsJacketCrop(item), true);
+  assert.equal(needsJacketCrop({ ...item, category: "japan", name: "REBD-634 Riko" }), false);
+  const sources = jacketArtSources(item);
+  assert.equal(sources[0], "https://fourhoi.com/rebdb-343/cover-n.jpg");
+  assert.equal(sources.includes(item.poster), false);
+  assert.equal(sources.includes(item.background), false);
+
+  const catalog = withPublicPosters(
+    { metas: [item] },
+    "catalog",
+    "https://javstremio.ddns.net",
+  );
+  assert.equal(catalog.metas[0].poster, "https://javstremio.ddns.net/poster/movie/hk%3Acat3-1");
+  assert.equal(catalog.metas[0].background, undefined);
+  assert.equal(catalog.metas[0].category, undefined);
+
+  const meta = withPublicPosters({ meta: item }, "meta", "https://javstremio.ddns.net");
+  assert.equal(meta.meta.poster, "https://javstremio.ddns.net/poster/movie/hk%3Acat3-1");
+  assert.equal(meta.meta.background, "https://javstremio.ddns.net/poster/movie/hk%3Acat3-1?fanart=1");
 });
 
 test("DLDSS and ORG use a jacket crop instead of the tiny or missing poster", () => {

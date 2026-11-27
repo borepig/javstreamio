@@ -178,6 +178,66 @@ export function jacketCodePrefix(idOrTitle) {
   return match ? match[1].toUpperCase() : "";
 }
 
+// Japan Photo gravure codes (REBDB-343, SZKK-0027, R-656, KIDM-658B).
+// DMM digital/video for these labels is the gray NOW PRINTING stub.
+// The real art is a landscape jacket: back cover on the left, front on the right.
+const GRAVURE_CODE = /(?:^|[\[\s])([A-Za-z]{1,10})-+(\d+)([A-Za-z])?/;
+
+export function gravureCode(name) {
+  const match = String(name || "").match(GRAVURE_CODE);
+  if (!match) return null;
+  return {
+    prefix: match[1].toLowerCase(),
+    digits: match[2],
+    suffix: (match[3] || "").toLowerCase(),
+  };
+}
+
+function numericForms(digits) {
+  const forms = [];
+  const add = (value) => {
+    if (value && !forms.includes(value)) forms.push(value);
+  };
+  let cur = String(digits);
+  add(cur);
+  while (cur.startsWith("0") && cur.length > 1 && forms.length < 4) {
+    cur = cur.slice(1);
+    add(cur);
+  }
+  const stripped = String(Number(digits));
+  if (/^\d+$/.test(stripped) && stripped.length < 3) add(stripped.padStart(3, "0"));
+  return forms;
+}
+
+function coverSlugs(name) {
+  const code = gravureCode(name);
+  if (!code) return [];
+  const forms = numericForms(code.digits);
+  const slugs = [];
+  const add = (num) => {
+    const slug = `${code.prefix}-${num}`;
+    if (!slugs.includes(slug)) slugs.push(slug);
+  };
+  if (code.suffix) {
+    for (const form of forms) add(form + code.suffix);
+  }
+  for (const form of forms) add(form);
+  return slugs;
+}
+
+export function fourhoiCoverUrls(name) {
+  return coverSlugs(name).map((slug) => `https://fourhoi.com/${slug}/cover-n.jpg`);
+}
+
+export function javdbCoverUrls(name) {
+  const code = gravureCode(name);
+  if (!code || code.prefix.length < 2) return [];
+  const folder = code.prefix.slice(0, 2);
+  return coverSlugs(name).map(
+    (slug) => `https://c0.jdbstatic.com/covers/${folder}/${slug}.jpg`,
+  );
+}
+
 export function monoMakerPoster(idOrTitle, size = "pl") {
   const raw = String(idOrTitle || "").replace(/^jav:/i, "").trim();
   const match = raw.match(/^([A-Za-z]{2,})-(\d+)$/);
@@ -190,6 +250,7 @@ export function monoMakerPoster(idOrTitle, size = "pl") {
 }
 
 export function needsJacketCrop(item) {
+  if (item && item.category === "japan-photo" && gravureCode(item.name)) return true;
   const id = String((item && item.id) || "");
   if (!/^jav:[A-Za-z]{2,}-?\d+$/i.test(id)) return false;
   if (item && item.dmmMissing) return true;
@@ -203,6 +264,16 @@ export function jacketArtSources(item) {
   const push = (url) => {
     if (url && !urls.includes(url)) urls.push(url);
   };
+  if (item.category === "japan-photo") {
+    if (!item.fourhoiMissing) {
+      for (const url of fourhoiCoverUrls(item.name)) push(url);
+    }
+    for (const url of javdbCoverUrls(item.name)) push(url);
+    if (item.background && !isDmmArtUrl(item.background)) push(item.background);
+    if (item.poster && !isDmmArtUrl(item.poster)) push(item.poster);
+    if (item.forumPoster) push(item.forumPoster);
+    return urls;
+  }
   if (!item.fourhoiMissing) push(fourhoiPoster(item.id));
   push(mgstagePoster(item.id));
   push(monoMakerPoster(item.id, "pl"));
@@ -293,6 +364,7 @@ function forumPosterUrl(item, origin) {
 function applyPublicArt(item, kind, origin) {
   if (!item) return item;
   const next = { ...item };
+  delete next.category;
   const skipDmm = Boolean(item.dmmMissing);
   // NOW PRINTING rows, centre-crop stand-ins, and the labels whose only art
   // is the wide DVD jacket. Poster is the right half; fanart stays the full scan.
@@ -735,6 +807,7 @@ export function bundledCatalog(catalogId, skip = 0, page = CATALOG_PAGE, search 
       if (item.released) preview.released = item.released;
       if (item.poster) preview.poster = item.poster;
       if (item.forumPoster) preview.forumPoster = item.forumPoster;
+      if (item.category) preview.category = item.category;
       if (item.dmmMissing) preview.dmmMissing = true;
       if (item.fourhoiMissing) preview.fourhoiMissing = true;
       return preview;
@@ -817,6 +890,7 @@ export function bundledMeta(id) {
   };
   if (item.poster) meta.poster = item.poster;
   if (item.forumPoster) meta.forumPoster = item.forumPoster;
+  if (item.category) meta.category = item.category;
   if (item.dmmMissing) meta.dmmMissing = true;
   if (item.fourhoiMissing) meta.fourhoiMissing = true;
   if (item.background) meta.background = item.background;
@@ -916,6 +990,9 @@ function posterRefererFor(src) {
     // not required and can 403 the image.
     if (host === "pics.dmm.co.jp" || host === "image.mgstage.com") {
       return "";
+    }
+    if (host === "jdbstatic.com" || host.endsWith(".jdbstatic.com")) {
+      return "https://javdb.com/";
     }
   } catch {
     return POSTER_REFERER;
