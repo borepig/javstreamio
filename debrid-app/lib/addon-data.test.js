@@ -398,6 +398,18 @@ test("Japan Photo gravure codes use a right-side jacket crop instead of the DMM 
     jacketArtSources({ ...item, name: "PROU-027 梅田ののか" })[0],
     "https://c0.jdbstatic.com/covers/w1/W1b68.jpg",
   );
+  assert.equal(
+    jacketArtSources({ ...item, name: "2018年11月2日 最新 maraa-026 A*" })[0],
+    "https://c0.jdbstatic.com/covers/pk/pkxXB.jpg",
+  );
+  assert.equal(
+    jacketArtSources({ ...item, name: "AP-020B 大槻ひびき" })[0],
+    "https://c0.jdbstatic.com/covers/8v/8V4OW.jpg",
+  );
+  assert.equal(
+    jacketArtSources({ ...item, name: "BTHA-024B 尾上若葉" })[0],
+    "https://c0.jdbstatic.com/covers/dk/DKqkp.jpg",
+  );
   assert.equal(sources.includes(item.background), false);
 
   const catalog = withPublicPosters(

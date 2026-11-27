@@ -195,7 +195,7 @@ const JACKET_CACHE = path.join(os.tmpdir(), "javstreamio-jacket");
 
 async function jacketPosterResponse(id, item, fanart) {
   const safe = String(id).replace(/[^A-Za-z0-9._-]+/g, "_");
-  const file = path.join(JACKET_CACHE, `${safe}.${fanart ? "fanart" : "poster"}.v3.jpg`);
+  const file = path.join(JACKET_CACHE, `${safe}.${fanart ? "fanart" : "poster"}.v4.jpg`);
   let body = null;
   try {
     body = await readFile(file);
