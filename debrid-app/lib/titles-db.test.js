@@ -105,6 +105,18 @@ test("japan lists sehuatang covers before generated cards", () => {
   assert.deepEqual(ids, ["hk:cat3-newer", "hk:cat3-real", "hk:cat3-ai"]);
 });
 
+test("korea lists sehuatang covers before generated cards", () => {
+  const db = memoryDb();
+  const insert = db.prepare(`
+    INSERT INTO titles (id, category, name, poster, forum_poster, posted_at, search_text)
+    VALUES (?, 'korea', ?, ?, ?, ?, '')
+  `);
+  insert.run("hk:cat3-ai", "生成", "https://javstremio.ddns.net/posters/hkcat3/hk:cat3-ai.jpg", "", "2026-11-20");
+  insert.run("hk:cat3-real", "下女", "https://b23.pid505st.cc/a.png", "https://b23.pid505st.cc/a.png", "2026-06-01");
+  const ids = queryCatalog(db, { catalogId: "korea", page: 10 }).map((row) => row.id);
+  assert.deepEqual(ids, ["hk:cat3-real", "hk:cat3-ai"]);
+});
+
 test("queryCatalog puts metadata titles first, bare titles last", () => {
   const db = memoryDb();
   const first = queryCatalog(db, { catalogId: "jav-censored", skip: 0, page: 2 });

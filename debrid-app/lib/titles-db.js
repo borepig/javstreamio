@@ -270,8 +270,8 @@ export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "", 
       .slice(start, start + limit)
       .map(mapTitleRow);
   }
-  // Japan Cat III: sehuatang covers first, generated cards after them.
-  if (category === "japan") {
+  // Japan and Korea Cat III: sehuatang covers first, generated cards after them.
+  if (category === "japan" || category === "korea") {
     const start = Number(skip) || 0;
     const limit = Number(page) || 80;
     const hasForum = (row) => /^https?:\/\//i.test(String(row.forum_poster || ""));

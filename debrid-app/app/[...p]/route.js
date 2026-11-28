@@ -433,9 +433,9 @@ export async function GET(req, { params }) {
         if (jacket) return jacket;
       }
       // Cat III covers. Hong Kong tries a looked-up cover before the
-      // sehuatang image. Japan uses the sehuatang image, then a retail
-      // jacket, then the generated file. A QR card or a dead host is a miss.
-      if (item && (item.category === "hongkong" || item.category === "japan")) {
+      // sehuatang image. Japan and Korea use the sehuatang image, then a
+      // retail jacket, then the generated file. A QR card or a dead host is a miss.
+      if (item && (item.category === "hongkong" || item.category === "japan" || item.category === "korea")) {
         const serveStored = async () => {
           if (!item.poster || /javstremio\.ddns\.net/i.test(item.poster)) return null;
           try {
@@ -459,7 +459,7 @@ export async function GET(req, { params }) {
           const forum = await cachedForumPoster(item.forumPoster);
           if (forum) return imageResponse(forum, sniffImageType(forum) || "image/jpeg");
         }
-        if (item.category === "japan") {
+        if (item.category === "japan" || item.category === "korea") {
           const stored = await serveStored();
           if (stored) return stored;
         }

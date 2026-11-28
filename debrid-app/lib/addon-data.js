@@ -499,11 +499,11 @@ function applyPublicArt(item, kind, origin) {
     delete next.fourhoiMissing;
     return next;
   }
-  // Japan Cat III: the sehuatang post image. The /poster route serves the
-  // generated card only when that image is missing.
+  // Japan and Korea Cat III: the sehuatang post image. The /poster route
+  // serves the generated card only when that image is missing.
   if (
     origin &&
-    item.category === "japan" &&
+    (item.category === "japan" || item.category === "korea") &&
     /^https?:\/\//i.test(String(item.forumPoster || ""))
   ) {
     next.poster = hongkongPosterProxy(item, origin, false);

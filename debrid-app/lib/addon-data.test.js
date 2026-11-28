@@ -812,6 +812,25 @@ test("Japan Cat III uses the sehuatang poster and keeps the generated card when 
   assert.equal(bare.metas[0].poster, item.poster);
 });
 
+test("Korea Cat III uses the sehuatang poster and keeps the generated card when there is none", () => {
+  const item = {
+    id: "hk:cat3-8",
+    type: "movie",
+    category: "korea",
+    name: "下女",
+    poster: "https://javstremio.ddns.net/posters/hkcat3/hk:cat3-8.jpg",
+    forumPoster: "https://b23.pid505st.cc/i/poster.png",
+  };
+  const catalog = withPublicPosters({ metas: [item] }, "catalog", "https://javstremio.ddns.net");
+  assert.match(catalog.metas[0].poster, /^https:\/\/javstremio\.ddns\.net\/poster\/movie\/hk%3Acat3-8\?v=[0-9a-z]+$/);
+  const bare = withPublicPosters(
+    { metas: [{ ...item, forumPoster: "" }] },
+    "catalog",
+    "https://javstremio.ddns.net",
+  );
+  assert.equal(bare.metas[0].poster, item.poster);
+});
+
 test("douban posters are public art and allowed for the poster proxy", () => {
   const douban = "https://img3.doubanio.com/view/photo/s_ratio_poster/public/p2911053327.jpg";
   assert.equal(isPublicArtUrl(douban), true);
