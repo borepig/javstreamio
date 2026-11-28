@@ -183,6 +183,11 @@ export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "", 
        CASE WHEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) > 999
             THEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) ELSE -1 END DESC,
        posted_at DESC, id DESC`
+    : category === "hongkong"
+    ? `CASE WHEN cast_json IS NOT NULL AND cast_json NOT IN ('', '[]', 'null') THEN 0 ELSE 1 END,
+       CASE WHEN substr(released, 1, 4) >= '1960' AND substr(released, 1, 4) <= '2018'
+            THEN substr(released, 1, 4) ELSE '' END DESC,
+       posted_at DESC, id DESC`
     : `${META_RANK}, posted_at DESC, id DESC`;
   sql += ` ORDER BY ${order} LIMIT ? OFFSET ?`;
   params.push(Number(page) || 80, Number(skip) || 0);

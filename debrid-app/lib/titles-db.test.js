@@ -107,6 +107,23 @@ test("queryCatalog puts metadata titles first, bare titles last", () => {
   assert.deepEqual(western.map((row) => row.id), ["jav:thread-1"]);
 });
 
+test("hongkong lists titles with a cast first, newest year first", () => {
+  const db = memoryDb();
+  db.exec(`
+    INSERT INTO titles (id, category, name, cast_json, released, posted_at, search_text)
+    VALUES
+      ('hk:cat3-old', 'hongkong', '爱奴', '["何莉莉"]', '1972-01-01T00:00:00.000Z', '2026-11-01', ''),
+      ('hk:cat3-new', 'hongkong', '肉蒲团', '["叶山豪"]', '2011-01-01T00:00:00.000Z', '2020-01-01', ''),
+      ('hk:cat3-mid', 'hongkong', '花街狂奔', '["方中信"]', '1992-01-01T00:00:00.000Z', '2026-11-16', ''),
+      ('hk:cat3-cast', 'hongkong', '无年份', '["翁虹"]', '', '2026-11-20', ''),
+      ('hk:cat3-bare', 'hongkong', '未找到', '[]', '', '2026-11-18', '')
+  `);
+  assert.deepEqual(
+    queryCatalog(db, { catalogId: "hongkong", page: 10 }).map((row) => row.id),
+    ["hk:cat3-new", "hk:cat3-mid", "hk:cat3-old", "hk:cat3-cast", "hk:cat3-bare"],
+  );
+});
+
 test("hongkong shows the film year instead of the 2026 forum year", () => {
   const db = memoryDb();
   db.exec(`
