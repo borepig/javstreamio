@@ -764,11 +764,11 @@ test("HK Cat III uses the sehuatang poster and keeps the generated card when the
     forumPoster: "https://b23.pid505st.cc/i/poster.png",
   };
   const catalog = withPublicPosters({ metas: [item] }, "catalog", "https://javstremio.ddns.net");
-  assert.equal(catalog.metas[0].poster, "https://javstremio.ddns.net/poster/movie/hk%3Acat3-1");
+  assert.match(catalog.metas[0].poster, /^https:\/\/javstremio\.ddns\.net\/poster\/movie\/hk%3Acat3-1\?v=[0-9a-z]+$/);
   assert.equal(catalog.metas[0].forumPoster, undefined);
   const meta = withPublicPosters({ meta: { ...item } }, "meta", "https://javstremio.ddns.net");
-  assert.equal(meta.meta.poster, "https://javstremio.ddns.net/poster/movie/hk%3Acat3-1");
-  assert.equal(meta.meta.background, "https://javstremio.ddns.net/poster/movie/hk%3Acat3-1");
+  assert.match(meta.meta.poster, /^https:\/\/javstremio\.ddns\.net\/poster\/movie\/hk%3Acat3-1\?v=[0-9a-z]+$/);
+  assert.match(meta.meta.background, /^https:\/\/javstremio\.ddns\.net\/poster\/movie\/hk%3Acat3-1\?v=[0-9a-z]+&fanart=1$/);
   const bare = withPublicPosters(
     { metas: [{ ...item, forumPoster: "" }] },
     "catalog",
@@ -786,7 +786,7 @@ test("HK Cat III uses the sehuatang poster and keeps the generated card when the
     "catalog",
     "https://javstremio.ddns.net",
   );
-  assert.equal(lookedUp.metas[0].poster, "https://javstremio.ddns.net/poster/movie/hk%3Acat3-1");
+  assert.match(lookedUp.metas[0].poster, /^https:\/\/javstremio\.ddns\.net\/poster\/movie\/hk%3Acat3-1\?v=[0-9a-z]+$/);
 });
 
 test("douban posters are public art and allowed for the poster proxy", () => {

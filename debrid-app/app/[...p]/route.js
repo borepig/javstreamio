@@ -432,13 +432,9 @@ export async function GET(req, { params }) {
         const jacket = await jacketPosterResponse(id, item, fanart);
         if (jacket) return jacket;
       }
-      // HK Cat III: real sehuatang image, then the looked-up cover, then
+      // HK Cat III: the looked-up cover, then a real sehuatang image, then
       // the generated file. A QR card or a dead host is not a poster.
       if (item && item.category === "hongkong") {
-        if (/^https:\/\//i.test(String(item.forumPoster || ""))) {
-          const forum = await cachedForumPoster(item.forumPoster);
-          if (forum) return imageResponse(forum, sniffImageType(forum) || "image/jpeg");
-        }
         if (item.poster && !/javstremio\.ddns\.net/i.test(item.poster)) {
           try {
             const remote = await fetchRemotePoster(item.poster);
@@ -449,8 +445,12 @@ export async function GET(req, { params }) {
               return imageResponse(buf, kind);
             }
           } catch {
-            /* generated file below */
+            /* forum image or generated file below */
           }
+        }
+        if (/^https:\/\//i.test(String(item.forumPoster || ""))) {
+          const forum = await cachedForumPoster(item.forumPoster);
+          if (forum) return imageResponse(forum, sniffImageType(forum) || "image/jpeg");
         }
         const own = await readOwnPoster(item.poster);
         if (own) return imageResponse(own, sniffImageType(own) || "image/jpeg");

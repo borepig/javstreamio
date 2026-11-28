@@ -99,6 +99,7 @@ const POSTER_HOSTS = [
   // HK Cat III poster fill (hk_cat3_posters.py): movie-DB og:image CDNs
   // (TMDB rawHtml og:image, IMDB media CDN).
   "media.themoviedb.org",
+  "themoviedb.org",
   "m.media-amazon.com",
   // Image-search covers for HK Cat III (Baidu Baike, HK cinema stills, 1905).
   "bcebos.com",
@@ -124,6 +125,22 @@ export function isAllowedPosterUrl(src) {
 
 export function posterPathFor(type, id) {
   return `/poster/${type}/${encodeURIComponent(id)}`;
+}
+
+// The /poster address stays the same when a generated card is replaced by a
+// real cover, and Stremio keeps the cached card for a day. Tie the address
+// to the stored image so the client has to fetch again.
+function posterVersion(item) {
+  const src = `${item.poster || ""}|${item.forumPoster || ""}`;
+  let hash = 0;
+  for (let i = 0; i < src.length; i++) hash = (Math.imul(hash, 33) + src.charCodeAt(i)) >>> 0;
+  return hash.toString(36);
+}
+
+function hongkongPosterProxy(item, origin, fanart) {
+  const version = posterVersion(item);
+  const query = fanart ? `?v=${version}&fanart=1` : `?v=${version}`;
+  return `${origin}${posterPathFor(item.type || "movie", item.id)}${query}`;
 }
 
 export function dmmPoster(idOrTitle, size = "pl") {
@@ -465,8 +482,8 @@ function applyPublicArt(item, kind, origin) {
     delete next.fourhoiMissing;
     return next;
   }
-  // HK Cat III: sehuatang first, then a Douban/TMDB cover. The /poster
-  // route serves the generated card only when both of those are missing.
+  // HK Cat III: a looked-up cover, then sehuatang. The /poster route
+  // serves the generated card only when both of those are missing.
   const hkRemotePoster = /doubanio\.com|img\.douban\.com|themoviedb\.org|media-amazon\.com|wikimedia\.org|bcebos\.com|hkcinema\.cn|wikiwand\.com|m1905\.cn|jingdianmovie\.com/i
     .test(String(item.poster || ""));
   if (
@@ -474,9 +491,8 @@ function applyPublicArt(item, kind, origin) {
     item.category === "hongkong" &&
     (/^https:\/\//i.test(String(item.forumPoster || "")) || hkRemotePoster)
   ) {
-    const proxied = `${origin}${posterPathFor(item.type || "movie", item.id)}`;
-    next.poster = proxied;
-    if (kind !== "catalog") next.background = proxied;
+    next.poster = hongkongPosterProxy(item, origin, false);
+    if (kind !== "catalog") next.background = hongkongPosterProxy(item, origin, true);
     else delete next.background;
     delete next.forumPoster;
     delete next.dmmMissing;
