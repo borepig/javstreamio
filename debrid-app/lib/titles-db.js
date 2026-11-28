@@ -148,6 +148,70 @@ export function fileBytes(name) {
   return best;
 }
 
+// Hosts that still returned a real sehuatang cover when checked from the
+// live server (longest side at least 250px, not the 291×324 QR card).
+const PROPER_POSTER_HOSTS = new Set([
+  "65.media.tumblr.com",
+  "66.media.tumblr.com",
+  "b23.10xpmg.com",
+  "b23.pic2607a.cc",
+  "b23.pic2607v.cc",
+  "b23.pid505st.cc",
+  "dmtinc.cl",
+  "ecx.images-amazon.com",
+  "i.niupic.com",
+  "i1002.photobucket.com",
+  "image-1.verycd.com",
+  "image-4.verycd.com",
+  "image-6.verycd.com",
+  "image-7.verycd.com",
+  "img03.taobaocdn.com",
+  "img114.imageshimage.com",
+  "img116.imageshimage.com",
+  "img117.imageshimage.com",
+  "img13.pplive.com",
+  "img159.imageshimage.com",
+  "img160.imageshimage.com",
+  "img161.imageshimage.com",
+  "img162.imageshimage.com",
+  "img162.picshick.com",
+  "img163.imageshimage.com",
+  "img165.imagetwist.com",
+  "img27.imageshimage.com",
+  "img28.picshick.com",
+  "img29.imageshimage.com",
+  "img30.imageshimage.com",
+  "img30.imagexport.com",
+  "img32.imagetwist.com",
+  "img61.imagetwist.com",
+  "img63.imageshimage.com",
+  "img64.imageshimage.com",
+  "img65.imageshimage.com",
+  "img66.imageshimage.com",
+  "img67.imageshimage.com",
+  "p1.ssl.qhmsg.com",
+  "pic.baike.soso.com",
+  "rarelust.com",
+  "s1.ax1x.com",
+  "s19.postimg.cc",
+  "s6d3.turboimg.net",
+  "thumbsnap.com",
+  "upic.me",
+  "upload.cc",
+  "www.imgccc.com",
+  "www.mediafire.com",
+  "www.postimage.org",
+]);
+
+function properCat3Poster(row) {
+  try {
+    const host = new URL(String(row.forum_poster || "")).hostname.toLowerCase();
+    return PROPER_POSTER_HOSTS.has(host);
+  } catch {
+    return false;
+  }
+}
+
 function realHongkongPoster(row) {
   const poster = String(row.poster || "");
   return poster.startsWith("http") && !/javstremio\.ddns\.net/i.test(poster);
@@ -270,14 +334,15 @@ export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "", 
       .slice(start, start + limit)
       .map(mapTitleRow);
   }
-  // Japan and Korea Cat III: sehuatang covers first, generated cards after them.
+  // Japan and Korea Cat III: a post image that still loads comes first.
+  // A stored link is not enough — uploadhouse, the 291×324 QR hosts, and
+  // the generated card all sort after the covers that still open.
   if (category === "japan" || category === "korea") {
     const start = Number(skip) || 0;
     const limit = Number(page) || 80;
-    const hasForum = (row) => /^https?:\/\//i.test(String(row.forum_poster || ""));
     return db.prepare(sql).all(...params)
       .sort((a, b) => {
-        const group = (hasForum(a) ? 0 : 1) - (hasForum(b) ? 0 : 1);
+        const group = (properCat3Poster(a) ? 0 : 1) - (properCat3Poster(b) ? 0 : 1);
         if (group) return group;
         if ((a.posted_at || "") !== (b.posted_at || "")) return (a.posted_at || "") < (b.posted_at || "") ? 1 : -1;
         return String(a.id) < String(b.id) ? 1 : -1;

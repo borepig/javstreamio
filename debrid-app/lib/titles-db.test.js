@@ -99,10 +99,11 @@ test("japan lists sehuatang covers before generated cards", () => {
     VALUES (?, 'japan', ?, ?, ?, ?, '')
   `);
   insert.run("hk:cat3-ai", "生成", "https://javstremio.ddns.net/posters/japancat3/hk:cat3-ai.jpg", "", "2026-11-20");
+  insert.run("hk:cat3-dead", "花俏处女", "https://javstremio.ddns.net/posters/japancat3/hk:cat3-dead.jpg", "https://img6.uploadhouse.com/a.jpg", "2026-11-28");
   insert.run("hk:cat3-real", "夜又临", "https://javstremio.ddns.net/posters/japancat3/hk:cat3-real.jpg", "https://www.imgccc.com/a.jpg", "2026-06-01");
   insert.run("hk:cat3-newer", "纯真时代", "https://javstremio.ddns.net/posters/japancat3/hk:cat3-newer.jpg", "https://b23.pid505st.cc/a.png", "2026-11-01");
   const ids = queryCatalog(db, { catalogId: "japan", page: 10 }).map((row) => row.id);
-  assert.deepEqual(ids, ["hk:cat3-newer", "hk:cat3-real", "hk:cat3-ai"]);
+  assert.deepEqual(ids, ["hk:cat3-newer", "hk:cat3-real", "hk:cat3-dead", "hk:cat3-ai"]);
 });
 
 test("korea lists sehuatang covers before generated cards", () => {
@@ -112,9 +113,10 @@ test("korea lists sehuatang covers before generated cards", () => {
     VALUES (?, 'korea', ?, ?, ?, ?, '')
   `);
   insert.run("hk:cat3-ai", "生成", "https://javstremio.ddns.net/posters/hkcat3/hk:cat3-ai.jpg", "", "2026-11-20");
+  insert.run("hk:cat3-dead", "新员工", "https://javstremio.ddns.net/posters/hkcat3/hk:cat3-dead.jpg", "https://b23.07pbc.cc/a.jpg", "2026-11-28");
   insert.run("hk:cat3-real", "下女", "https://b23.pid505st.cc/a.png", "https://b23.pid505st.cc/a.png", "2026-06-01");
   const ids = queryCatalog(db, { catalogId: "korea", page: 10 }).map((row) => row.id);
-  assert.deepEqual(ids, ["hk:cat3-real", "hk:cat3-ai"]);
+  assert.deepEqual(ids, ["hk:cat3-real", "hk:cat3-dead", "hk:cat3-ai"]);
 });
 
 test("queryCatalog puts metadata titles first, bare titles last", () => {
