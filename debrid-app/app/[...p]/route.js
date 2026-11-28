@@ -432,10 +432,12 @@ export async function GET(req, { params }) {
         const jacket = await jacketPosterResponse(id, item, fanart);
         if (jacket) return jacket;
       }
-      // HK Cat III: the looked-up cover, then a real sehuatang image, then
-      // the generated file. A QR card or a dead host is not a poster.
-      if (item && item.category === "hongkong") {
-        if (item.poster && !/javstremio\.ddns\.net/i.test(item.poster)) {
+      // Cat III covers. Hong Kong tries a looked-up cover before the
+      // sehuatang image. Japan uses the sehuatang image, then a retail
+      // jacket, then the generated file. A QR card or a dead host is a miss.
+      if (item && (item.category === "hongkong" || item.category === "japan")) {
+        const serveStored = async () => {
+          if (!item.poster || /javstremio\.ddns\.net/i.test(item.poster)) return null;
           try {
             const remote = await fetchRemotePoster(item.poster);
             const buf = Buffer.from(await remote.arrayBuffer());
@@ -445,17 +447,27 @@ export async function GET(req, { params }) {
               return imageResponse(buf, kind);
             }
           } catch {
-            /* forum image or generated file below */
+            /* next source */
           }
+          return null;
+        };
+        if (item.category === "hongkong") {
+          const stored = await serveStored();
+          if (stored) return stored;
         }
-        if (/^https:\/\//i.test(String(item.forumPoster || ""))) {
+        if (/^https?:\/\//i.test(String(item.forumPoster || ""))) {
           const forum = await cachedForumPoster(item.forumPoster);
           if (forum) return imageResponse(forum, sniffImageType(forum) || "image/jpeg");
         }
+        if (item.category === "japan") {
+          const stored = await serveStored();
+          if (stored) return stored;
+        }
         const own = await readOwnPoster(item.poster);
         if (own) return imageResponse(own, sniffImageType(own) || "image/jpeg");
+        const dir = item.category === "japan" ? "japancat3" : "hkcat3";
         try {
-          const file = await readFile(path.join(process.cwd(), "public", "posters", "hkcat3", `${id}.jpg`));
+          const file = await readFile(path.join(process.cwd(), "public", "posters", dir, `${id}.jpg`));
           return imageResponse(file, sniffImageType(file) || "image/jpeg");
         } catch {
           /* svg below */

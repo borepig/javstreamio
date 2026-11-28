@@ -270,6 +270,21 @@ export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "", 
       .slice(start, start + limit)
       .map(mapTitleRow);
   }
+  // Japan Cat III: sehuatang covers first, generated cards after them.
+  if (category === "japan") {
+    const start = Number(skip) || 0;
+    const limit = Number(page) || 80;
+    const hasForum = (row) => /^https?:\/\//i.test(String(row.forum_poster || ""));
+    return db.prepare(sql).all(...params)
+      .sort((a, b) => {
+        const group = (hasForum(a) ? 0 : 1) - (hasForum(b) ? 0 : 1);
+        if (group) return group;
+        if ((a.posted_at || "") !== (b.posted_at || "")) return (a.posted_at || "") < (b.posted_at || "") ? 1 : -1;
+        return String(a.id) < String(b.id) ? 1 : -1;
+      })
+      .slice(start, start + limit)
+      .map(mapTitleRow);
+  }
   const order = category === "japan-photo"
     ? `CASE WHEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) BETWEEN 1 AND 999
             THEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) ELSE -1 END DESC,

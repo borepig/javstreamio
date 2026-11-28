@@ -92,6 +92,19 @@ test("japan-photo is ordered by movie number, newest first", () => {
   ]);
 });
 
+test("japan lists sehuatang covers before generated cards", () => {
+  const db = memoryDb();
+  const insert = db.prepare(`
+    INSERT INTO titles (id, category, name, poster, forum_poster, posted_at, search_text)
+    VALUES (?, 'japan', ?, ?, ?, ?, '')
+  `);
+  insert.run("hk:cat3-ai", "生成", "https://javstremio.ddns.net/posters/japancat3/hk:cat3-ai.jpg", "", "2026-11-20");
+  insert.run("hk:cat3-real", "夜又临", "https://javstremio.ddns.net/posters/japancat3/hk:cat3-real.jpg", "https://www.imgccc.com/a.jpg", "2026-06-01");
+  insert.run("hk:cat3-newer", "纯真时代", "https://javstremio.ddns.net/posters/japancat3/hk:cat3-newer.jpg", "https://b23.pid505st.cc/a.png", "2026-11-01");
+  const ids = queryCatalog(db, { catalogId: "japan", page: 10 }).map((row) => row.id);
+  assert.deepEqual(ids, ["hk:cat3-newer", "hk:cat3-real", "hk:cat3-ai"]);
+});
+
 test("queryCatalog puts metadata titles first, bare titles last", () => {
   const db = memoryDb();
   const first = queryCatalog(db, { catalogId: "jav-censored", skip: 0, page: 2 });

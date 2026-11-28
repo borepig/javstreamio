@@ -499,6 +499,21 @@ function applyPublicArt(item, kind, origin) {
     delete next.fourhoiMissing;
     return next;
   }
+  // Japan Cat III: the sehuatang post image. The /poster route serves the
+  // generated card only when that image is missing.
+  if (
+    origin &&
+    item.category === "japan" &&
+    /^https?:\/\//i.test(String(item.forumPoster || ""))
+  ) {
+    next.poster = hongkongPosterProxy(item, origin, false);
+    if (kind !== "catalog") next.background = hongkongPosterProxy(item, origin, true);
+    else delete next.background;
+    delete next.forumPoster;
+    delete next.dmmMissing;
+    delete next.fourhoiMissing;
+    return next;
+  }
   const ps = skipDmm ? "" : dmmPoster(item.id, "ps");
   const pl = skipDmm ? "" : dmmPoster(item.id, "pl");
   // fourhoi.com 403s any request carrying a Referer, and the Stremio
