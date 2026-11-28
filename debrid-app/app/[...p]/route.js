@@ -432,13 +432,34 @@ export async function GET(req, { params }) {
         const jacket = await jacketPosterResponse(id, item, fanart);
         if (jacket) return jacket;
       }
-      // HK Cat III: sehuatang attachment first. A dead host or the 1024xp
-      // QR card falls back to the generated poster on disk.
-      if (item && item.category === "hongkong" && /^https:\/\//i.test(String(item.forumPoster || ""))) {
-        const forum = await cachedForumPoster(item.forumPoster);
-        if (forum) return imageResponse(forum, sniffImageType(forum) || "image/jpeg");
+      // HK Cat III: real sehuatang image, then the looked-up cover, then
+      // the generated file. A QR card or a dead host is not a poster.
+      if (item && item.category === "hongkong") {
+        if (/^https:\/\//i.test(String(item.forumPoster || ""))) {
+          const forum = await cachedForumPoster(item.forumPoster);
+          if (forum) return imageResponse(forum, sniffImageType(forum) || "image/jpeg");
+        }
+        if (item.poster && !/javstremio\.ddns\.net/i.test(item.poster)) {
+          try {
+            const remote = await fetchRemotePoster(item.poster);
+            const buf = Buffer.from(await remote.arrayBuffer());
+            const kind = sniffImageType(buf);
+            const dim = kind === "image/jpeg" ? jpegSize(buf) : null;
+            if (kind && buf.length > 4000 && !(dim && isForumPlaceholder(buf.length, dim.width, dim.height))) {
+              return imageResponse(buf, kind);
+            }
+          } catch {
+            /* generated file below */
+          }
+        }
         const own = await readOwnPoster(item.poster);
         if (own) return imageResponse(own, sniffImageType(own) || "image/jpeg");
+        try {
+          const file = await readFile(path.join(process.cwd(), "public", "posters", "hkcat3", `${id}.jpg`));
+          return imageResponse(file, sniffImageType(file) || "image/jpeg");
+        } catch {
+          /* svg below */
+        }
       }
       // JAV rows whose stored forum poster / DMM URL is dead or missing fall
       // back to the fourhoi cover, fetched server-side with no Referer

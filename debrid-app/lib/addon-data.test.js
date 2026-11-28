@@ -775,6 +775,18 @@ test("HK Cat III uses the sehuatang poster and keeps the generated card when the
     "https://javstremio.ddns.net",
   );
   assert.equal(bare.metas[0].poster, item.poster);
+  const lookedUp = withPublicPosters(
+    {
+      metas: [{
+        ...item,
+        forumPoster: "",
+        poster: "https://img3.doubanio.com/view/photo/l_ratio_poster/public/p1.jpg",
+      }],
+    },
+    "catalog",
+    "https://javstremio.ddns.net",
+  );
+  assert.equal(lookedUp.metas[0].poster, "https://javstremio.ddns.net/poster/movie/hk%3Acat3-1");
 });
 
 test("douban posters are public art and allowed for the poster proxy", () => {

@@ -459,14 +459,14 @@ function applyPublicArt(item, kind, origin) {
     delete next.fourhoiMissing;
     return next;
   }
-  // HK Cat III: the sehuatang attachment is the real poster. The generated
-  // card on our host is only the fallback when that attachment is missing.
-  // The /poster route fetches the forum image and serves the generated file
-  // when the host is dead or returns the 1024xp QR card.
+  // HK Cat III: sehuatang first, then a Douban/TMDB cover. The /poster
+  // route serves the generated card only when both of those are missing.
+  const hkRemotePoster = /doubanio\.com|img\.douban\.com|themoviedb\.org|media-amazon\.com|wikimedia\.org/i
+    .test(String(item.poster || ""));
   if (
     origin &&
     item.category === "hongkong" &&
-    /^https:\/\//i.test(String(item.forumPoster || ""))
+    (/^https:\/\//i.test(String(item.forumPoster || "")) || hkRemotePoster)
   ) {
     const proxied = `${origin}${posterPathFor(item.type || "movie", item.id)}`;
     next.poster = proxied;
