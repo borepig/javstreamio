@@ -459,6 +459,24 @@ function applyPublicArt(item, kind, origin) {
     delete next.fourhoiMissing;
     return next;
   }
+  // HK Cat III: the sehuatang attachment is the real poster. The generated
+  // card on our host is only the fallback when that attachment is missing.
+  // The /poster route fetches the forum image and serves the generated file
+  // when the host is dead or returns the 1024xp QR card.
+  if (
+    origin &&
+    item.category === "hongkong" &&
+    /^https:\/\//i.test(String(item.forumPoster || ""))
+  ) {
+    const proxied = `${origin}${posterPathFor(item.type || "movie", item.id)}`;
+    next.poster = proxied;
+    if (kind !== "catalog") next.background = proxied;
+    else delete next.background;
+    delete next.forumPoster;
+    delete next.dmmMissing;
+    delete next.fourhoiMissing;
+    return next;
+  }
   const ps = skipDmm ? "" : dmmPoster(item.id, "ps");
   const pl = skipDmm ? "" : dmmPoster(item.id, "pl");
   // fourhoi.com 403s any request carrying a Referer, and the Stremio

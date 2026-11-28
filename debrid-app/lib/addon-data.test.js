@@ -753,6 +753,30 @@ test("hanime-cdn posters are public art and allowed for the poster proxy", () =>
   assert.equal(isAllowedPosterUrl("https://hanime-cdn.com/covers/series-cover.jpg"), true);
 });
 
+test("HK Cat III uses the sehuatang poster and keeps the generated card when there is none", () => {
+  const item = {
+    id: "hk:cat3-1",
+    type: "movie",
+    category: "hongkong",
+    name: "玉蒲团",
+    poster: "https://javstremio.ddns.net/posters/hkcat3/hk:cat3-1.jpg",
+    background: "https://javstremio.ddns.net/posters/hkcat3/hk:cat3-1.jpg",
+    forumPoster: "https://b23.pid505st.cc/i/poster.png",
+  };
+  const catalog = withPublicPosters({ metas: [item] }, "catalog", "https://javstremio.ddns.net");
+  assert.equal(catalog.metas[0].poster, "https://javstremio.ddns.net/poster/movie/hk%3Acat3-1");
+  assert.equal(catalog.metas[0].forumPoster, undefined);
+  const meta = withPublicPosters({ meta: { ...item } }, "meta", "https://javstremio.ddns.net");
+  assert.equal(meta.meta.poster, "https://javstremio.ddns.net/poster/movie/hk%3Acat3-1");
+  assert.equal(meta.meta.background, "https://javstremio.ddns.net/poster/movie/hk%3Acat3-1");
+  const bare = withPublicPosters(
+    { metas: [{ ...item, forumPoster: "" }] },
+    "catalog",
+    "https://javstremio.ddns.net",
+  );
+  assert.equal(bare.metas[0].poster, item.poster);
+});
+
 test("douban posters are public art and allowed for the poster proxy", () => {
   const douban = "https://img3.doubanio.com/view/photo/s_ratio_poster/public/p2911053327.jpg";
   assert.equal(isPublicArtUrl(douban), true);

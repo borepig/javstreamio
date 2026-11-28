@@ -30,6 +30,12 @@ export function jpegSize(buf) {
   return null;
 }
 
+// Dead sehuatang image hosts answer 200 with this QR card (1024xp.com)
+// instead of the forum cover. Same bytes on every host.
+export function isForumPlaceholder(byteLength, width, height) {
+  return byteLength === 47630 && width === 291 && height === 324;
+}
+
 export function isPrintingStub(byteLength, width, height) {
   if (!(byteLength > 0 && byteLength < 40000 && height >= width)) return false;
   // Gray NOW PRINTING cards only. A real shop thumbnail (about 100x140)

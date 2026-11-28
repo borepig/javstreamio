@@ -15,7 +15,8 @@ import {
   resolveCatalogId,
   parseCatalogExtra,
 } from "../../lib/addon-data.js";
-import { resolveJacketImage } from "../../lib/jacket-poster.js";
+import { isForumPlaceholder, jpegSize, resolveJacketImage } from "../../lib/jacket-poster.js";
+import { createHash } from "crypto";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import os from "os";
 import path from "path";
@@ -192,6 +193,93 @@ function decodeRawQueryParam(name, url) {
 }
 
 const JACKET_CACHE = path.join(os.tmpdir(), "javstreamio-jacket");
+const HK_FORUM_CACHE = path.join(os.tmpdir(), "javstreamio-hkforum");
+
+function imageResponse(body, type) {
+  return new NextResponse(body, {
+    headers: {
+      "Content-Type": type || "image/jpeg",
+      "Cache-Control": "public, max-age=86400, s-maxage=86400",
+      "Access-Control-Allow-Origin": "*",
+      "Cross-Origin-Resource-Policy": "cross-origin",
+    },
+  });
+}
+
+function sniffImageType(buf) {
+  if (buf && buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50) return "image/png";
+  if (buf && buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8) return "image/jpeg";
+  if (buf && buf.length > 12 && buf.toString("ascii", 0, 4) === "RIFF") return "image/webp";
+  return "";
+}
+
+// Generated HK Cat III cards live in public/posters/hkcat3. Read them off
+// disk: fetching our own /posters URL from inside the request deadlocks.
+async function readOwnPoster(url) {
+  let parsed;
+  try {
+    parsed = new URL(String(url || ""));
+  } catch {
+    return null;
+  }
+  if (parsed.hostname !== "javstremio.ddns.net") return null;
+  const match = parsed.pathname.match(/^\/posters\/([a-z0-9-]+)\/([^/]+)$/i);
+  if (!match) return null;
+  try {
+    return await readFile(path.join(process.cwd(), "public", "posters", match[1], match[2]));
+  } catch {
+    return null;
+  }
+}
+
+// Sehuatang attachment, cached. A dead host or the 1024xp QR card is a miss
+// so the caller can serve the generated poster instead.
+async function cachedForumPoster(url) {
+  const key = createHash("sha1").update(String(url)).digest("hex").slice(0, 20);
+  const hit = path.join(HK_FORUM_CACHE, `${key}.img`);
+  const miss = path.join(HK_FORUM_CACHE, `${key}.miss`);
+  try {
+    return await readFile(hit);
+  } catch {
+    /* fetch below */
+  }
+  try {
+    await readFile(miss);
+    return null;
+  } catch {
+    /* not a known miss */
+  }
+  const rememberMiss = async () => {
+    await mkdir(HK_FORUM_CACHE, { recursive: true });
+    await writeFile(miss, "").catch(() => {});
+  };
+  let buf;
+  try {
+    const img = await fetchRemotePoster(url, true);
+    const type = img.headers.get("content-type") || "";
+    if (!type.startsWith("image/")) {
+      await rememberMiss();
+      return null;
+    }
+    buf = Buffer.from(await img.arrayBuffer());
+  } catch {
+    await rememberMiss();
+    return null;
+  }
+  const kind = sniffImageType(buf);
+  if (!kind) {
+    await rememberMiss();
+    return null;
+  }
+  const dim = kind === "image/jpeg" ? jpegSize(buf) : null;
+  if (dim && isForumPlaceholder(buf.length, dim.width, dim.height)) {
+    await rememberMiss();
+    return null;
+  }
+  await mkdir(HK_FORUM_CACHE, { recursive: true });
+  await writeFile(hit, buf).catch(() => {});
+  return buf;
+}
 
 async function jacketPosterResponse(id, item, fanart) {
   const safe = String(id).replace(/[^A-Za-z0-9._-]+/g, "_");
@@ -343,6 +431,14 @@ export async function GET(req, { params }) {
       if (needsJacketCrop(item || { id })) {
         const jacket = await jacketPosterResponse(id, item, fanart);
         if (jacket) return jacket;
+      }
+      // HK Cat III: sehuatang attachment first. A dead host or the 1024xp
+      // QR card falls back to the generated poster on disk.
+      if (item && item.category === "hongkong" && /^https:\/\//i.test(String(item.forumPoster || ""))) {
+        const forum = await cachedForumPoster(item.forumPoster);
+        if (forum) return imageResponse(forum, sniffImageType(forum) || "image/jpeg");
+        const own = await readOwnPoster(item.poster);
+        if (own) return imageResponse(own, sniffImageType(own) || "image/jpeg");
       }
       // JAV rows whose stored forum poster / DMM URL is dead or missing fall
       // back to the fourhoi cover, fetched server-side with no Referer

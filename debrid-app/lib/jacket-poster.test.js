@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import jpeg from "jpeg-js";
-import { cropJpegRightHalf, isPrintingStub, isScreenshotGrid, resolveJacketImage } from "./jacket-poster.js";
+import { cropJpegRightHalf, isForumPlaceholder, isPrintingStub, isScreenshotGrid, resolveJacketImage } from "./jacket-poster.js";
 
 function solidJpeg(width, height, rgba) {
   const data = Buffer.alloc(width * height * 4);
@@ -49,6 +49,12 @@ test("cropJpegRightHalf leaves a portrait poster untouched", () => {
 test("isScreenshotGrid rejects forum preview sheets and keeps DVD jackets", () => {
   assert.equal(isScreenshotGrid(1914, 1188), true);
   assert.equal(isScreenshotGrid(800, 538), false);
+});
+
+test("isForumPlaceholder matches the sehuatang QR card", () => {
+  assert.equal(isForumPlaceholder(47630, 291, 324), true);
+  assert.equal(isForumPlaceholder(105033, 608, 812), false);
+  assert.equal(isForumPlaceholder(496053, 800, 1200), false);
 });
 
 test("isPrintingStub matches the small gray NOW PRINTING jpeg", () => {
