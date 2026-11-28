@@ -184,7 +184,13 @@ export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "", 
             THEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) ELSE -1 END DESC,
        posted_at DESC, id DESC`
     : category === "hongkong"
-    ? `CASE WHEN cast_json IS NOT NULL AND cast_json NOT IN ('', '[]', 'null') THEN 0 ELSE 1 END,
+    ? `CASE
+         WHEN cast_json IS NOT NULL AND cast_json NOT IN ('', '[]', 'null')
+          AND poster IS NOT NULL AND poster != ''
+          AND poster NOT LIKE '%javstremio.ddns.net%' THEN 0
+         WHEN poster LIKE '%javstremio.ddns.net%' OR poster IS NULL OR poster = '' THEN 2
+         ELSE 1
+       END,
        CASE WHEN substr(released, 1, 4) >= '1960' AND substr(released, 1, 4) <= '2018'
             THEN substr(released, 1, 4) ELSE '' END DESC,
        posted_at DESC, id DESC`

@@ -107,20 +107,22 @@ test("queryCatalog puts metadata titles first, bare titles last", () => {
   assert.deepEqual(western.map((row) => row.id), ["jav:thread-1"]);
 });
 
-test("hongkong lists titles with a cast first, newest year first", () => {
+test("hongkong lists real posters with a cast first, newest year first", () => {
   const db = memoryDb();
   db.exec(`
-    INSERT INTO titles (id, category, name, cast_json, released, posted_at, search_text)
+    INSERT INTO titles (id, category, name, cast_json, released, posted_at, poster, search_text)
     VALUES
-      ('hk:cat3-old', 'hongkong', '爱奴', '["何莉莉"]', '1972-01-01T00:00:00.000Z', '2026-11-01', ''),
-      ('hk:cat3-new', 'hongkong', '肉蒲团', '["叶山豪"]', '2011-01-01T00:00:00.000Z', '2020-01-01', ''),
-      ('hk:cat3-mid', 'hongkong', '花街狂奔', '["方中信"]', '1992-01-01T00:00:00.000Z', '2026-11-16', ''),
-      ('hk:cat3-cast', 'hongkong', '无年份', '["翁虹"]', '', '2026-11-20', ''),
-      ('hk:cat3-bare', 'hongkong', '未找到', '[]', '', '2026-11-18', '')
+      ('hk:cat3-old', 'hongkong', '爱奴', '["何莉莉"]', '1972-01-01T00:00:00.000Z', '2026-11-01', 'https://bkimg.cdn.bcebos.com/old.jpg', ''),
+      ('hk:cat3-new', 'hongkong', '肉蒲团', '["叶山豪"]', '2011-01-01T00:00:00.000Z', '2020-01-01', 'https://bkimg.cdn.bcebos.com/new.jpg', ''),
+      ('hk:cat3-mid', 'hongkong', '花街狂奔', '["方中信"]', '1992-01-01T00:00:00.000Z', '2026-11-16', 'https://bkimg.cdn.bcebos.com/mid.jpg', ''),
+      ('hk:cat3-cast', 'hongkong', '无年份', '["翁虹"]', '', '2026-11-20', 'https://bkimg.cdn.bcebos.com/cast.jpg', ''),
+      ('hk:cat3-cover', 'hongkong', '只有封面', '[]', '2010-01-01T00:00:00.000Z', '2026-11-19', 'https://bkimg.cdn.bcebos.com/cover.jpg', ''),
+      ('hk:cat3-gen-new', 'hongkong', '生成新', '["童宁"]', '2016-01-01T00:00:00.000Z', '2026-11-21', 'https://javstremio.ddns.net/posters/hkcat3/hk:cat3-gen-new.jpg', ''),
+      ('hk:cat3-bare', 'hongkong', '未找到', '[]', '', '2026-11-18', 'https://javstremio.ddns.net/posters/hkcat3/hk:cat3-bare.jpg', '')
   `);
   assert.deepEqual(
     queryCatalog(db, { catalogId: "hongkong", page: 10 }).map((row) => row.id),
-    ["hk:cat3-new", "hk:cat3-mid", "hk:cat3-old", "hk:cat3-cast", "hk:cat3-bare"],
+    ["hk:cat3-new", "hk:cat3-mid", "hk:cat3-old", "hk:cat3-cast", "hk:cat3-cover", "hk:cat3-gen-new", "hk:cat3-bare"],
   );
 });
 
