@@ -107,22 +107,30 @@ test("queryCatalog puts metadata titles first, bare titles last", () => {
   assert.deepEqual(western.map((row) => row.id), ["jav:thread-1"]);
 });
 
-test("hongkong lists real posters with a cast first, newest year first", () => {
+test("hongkong keeps the biggest copy and lists real posters first", () => {
   const db = memoryDb();
   db.exec(`
     INSERT INTO titles (id, category, name, cast_json, released, posted_at, poster, search_text)
     VALUES
       ('hk:cat3-old', 'hongkong', '爱奴', '["何莉莉"]', '1972-01-01T00:00:00.000Z', '2026-11-01', 'https://bkimg.cdn.bcebos.com/old.jpg', ''),
       ('hk:cat3-new', 'hongkong', '肉蒲团', '["叶山豪"]', '2011-01-01T00:00:00.000Z', '2020-01-01', 'https://bkimg.cdn.bcebos.com/new.jpg', ''),
-      ('hk:cat3-mid', 'hongkong', '花街狂奔', '["方中信"]', '1992-01-01T00:00:00.000Z', '2026-11-16', 'https://bkimg.cdn.bcebos.com/mid.jpg', ''),
-      ('hk:cat3-cast', 'hongkong', '无年份', '["翁虹"]', '', '2026-11-20', 'https://bkimg.cdn.bcebos.com/cast.jpg', ''),
-      ('hk:cat3-cover', 'hongkong', '只有封面', '[]', '2010-01-01T00:00:00.000Z', '2026-11-19', 'https://bkimg.cdn.bcebos.com/cover.jpg', ''),
-      ('hk:cat3-gen-new', 'hongkong', '生成新', '["童宁"]', '2016-01-01T00:00:00.000Z', '2026-11-21', 'https://javstremio.ddns.net/posters/hkcat3/hk:cat3-gen-new.jpg', ''),
-      ('hk:cat3-bare', 'hongkong', '未找到', '[]', '', '2026-11-18', 'https://javstremio.ddns.net/posters/hkcat3/hk:cat3-bare.jpg', '')
+      ('hk:cat3-gigolo-small', 'hongkong', '鸭王(袁嘉敏)[rmvb/1.02GB/BT]', '["袁嘉敏"]', '2015-01-01T00:00:00.000Z', '2026-11-02', 'https://bkimg.cdn.bcebos.com/gigolo.jpg', ''),
+      ('hk:cat3-gigolo-ai', 'hongkong', '鴨王.The Gigolo [MKV/3GB]', '["袁嘉敏"]', '2015-01-01T00:00:00.000Z', '2026-11-03', 'https://javstremio.ddns.net/posters/hkcat3/hk:cat3-gigolo-ai.jpg', ''),
+      ('hk:cat3-gigolo-big', 'hongkong', '鸭王(2015) [MKV/1.85G]', '["袁嘉敏"]', '2015-01-01T00:00:00.000Z', '2026-11-04', 'https://bkimg.cdn.bcebos.com/gigolo-big.jpg', ''),
+      ('hk:cat3-gen', 'hongkong', '生成新', '["童宁"]', '2016-01-01T00:00:00.000Z', '2026-11-21', 'https://javstremio.ddns.net/posters/hkcat3/hk:cat3-gen.jpg', ''),
+      ('hk:cat3-sequel', 'hongkong', '金瓶梅2爱的奴隶 [MKV/1.2G]', '[]', '2009-01-01T00:00:00.000Z', '2026-11-05', 'https://bkimg.cdn.bcebos.com/sequel.jpg', ''),
+      ('hk:cat3-original', 'hongkong', '金瓶梅 [MKV/900M]', '[]', '2008-01-01T00:00:00.000Z', '2026-11-06', 'https://bkimg.cdn.bcebos.com/original.jpg', '')
   `);
   assert.deepEqual(
     queryCatalog(db, { catalogId: "hongkong", page: 10 }).map((row) => row.id),
-    ["hk:cat3-new", "hk:cat3-mid", "hk:cat3-old", "hk:cat3-cast", "hk:cat3-cover", "hk:cat3-gen-new", "hk:cat3-bare"],
+    [
+      "hk:cat3-gigolo-big",
+      "hk:cat3-new",
+      "hk:cat3-sequel",
+      "hk:cat3-original",
+      "hk:cat3-old",
+      "hk:cat3-gen",
+    ],
   );
 });
 

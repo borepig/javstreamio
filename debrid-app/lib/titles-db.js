@@ -103,6 +103,89 @@ export function hongkongRelease(row) {
   return "";
 }
 
+// Traditional characters that actually show up in the HK titles, plus a few
+// common ones, folded to simplified so 鴨王 and 鸭王 are the same film.
+const HK_TRAD = "財媽獸門時宮個殺驚艷屬裝祕慾綺麗邊緣釵紅牆維亞號惡夢滿遲齋譚續鑑當愛姦隸潔鵰樓會檔紐遊戲極樂導櫻裏灣萊廣記鱷婦應貨偉瘋嬌設粵語難廠換癮連瑣傾國龍無碼軍課場週觀黨風燒來電視頻鴛鴦雙採強壓鍾緹掛簡級虜銀蓮鬥頭塵俠陣職與實錄屍團寶權攝訪談靈雲賭盜機誘響書經潤發擊帥傳鐵貼戀騙鴨滅慘種學攪東現陳錦楊貴陽獄謝華曉吳纏馴戰刪減奪絕殘複懷總詩燈籠鑒產圓隱黃變雛兒後臺裡隻並麼乾餘衝髮麵佈於";
+const HK_SIMP = "财妈兽门时宫个杀惊艳属装秘欲绮丽边缘钗红墙维亚号恶梦满迟斋谭续鉴当爱奸隶洁雕楼会档纽游戏极乐导樱里湾莱广记鳄妇应货伟疯娇设粤语难厂换瘾连琐倾国龙无码军课场周观党风烧来电视频鸳鸯双采强压钟缇挂简级虏银莲斗头尘侠阵职与实录尸团宝权摄访谈灵云赌盗机诱响书经润发击帅传铁贴恋骗鸭灭惨种学搅东现陈锦杨贵阳狱谢华晓吴缠驯战删减夺绝残复怀总诗灯笼鉴产圆隐黄变雏儿后台里只并么干余冲发面布于";
+
+function simplifyTitle(text) {
+  let out = "";
+  for (const ch of String(text || "")) {
+    const i = HK_TRAD.indexOf(ch);
+    out += i >= 0 ? HK_SIMP[i] : ch;
+  }
+  return out;
+}
+
+// Forum thread title with the year, subtitles, and quality tags removed.
+export function hongkongFilmKey(name) {
+  let q = simplifyTitle(name);
+  q = q.replace(/\(.*?\)|（.*?）|\[.*?\]|【.*?】/g, " ");
+  q = q.replace(/中文字幕|国语版|粤语版|完整版|未删减|修复版|蓝光|高清|字幕|国语|粤语|中字|无码|无遮|最新/g, " ");
+  q = q.replace(/\d{4}年\d{1,2}月\d{1,2}日/g, " ");
+  q = q.replace(/(?:19|20)\d{2}/g, " ");
+  q = q.replace(/[234][DdKk]|720[Pp]|1080[Pp]/g, " ");
+  // Drop leftover date digits (12月5日) but keep a title number such as 金瓶梅2.
+  // A trailing 1 is the first cut of the same film (金瓶梅1), not a sequel.
+  let key = q.replace(/[^\u4e00-\u9fff0-9]/g, "").replace(/\d{2,}/g, "").replace(/版/g, "").replace(/1$/, "");
+  if (key.length >= 1) return key;
+  key = q.toLowerCase().replace(/[^a-z0-9]/g, "").replace(/\d{2,}/g, "");
+  return key.length >= 3 ? key : "";
+}
+
+// Largest size written on the thread title, in bytes. 1.85G beats 936M.
+export function fileBytes(name) {
+  let best = 0;
+  for (const match of String(name || "").matchAll(/(\d+(?:\.\d+)?)\s*(GB|MB|KB|G|M|K)(?![A-Za-z])/gi)) {
+    const n = Number(match[1]);
+    if (!Number.isFinite(n)) continue;
+    const unit = match[2].toUpperCase();
+    // [MP4/2012MB] is a release year glued to the unit, not a 2GB file.
+    if (unit.startsWith("M") && Number.isInteger(n) && n >= 1960 && n <= 2030) continue;
+    const mult = unit.startsWith("G") ? 1073741824 : unit.startsWith("M") ? 1048576 : 1024;
+    best = Math.max(best, Math.round(n * mult));
+  }
+  return best;
+}
+
+function realHongkongPoster(row) {
+  const poster = String(row.poster || "");
+  return poster.startsWith("http") && !/javstremio\.ddns\.net/i.test(poster);
+}
+
+// One row per film. A real poster wins over a generated card; the biggest
+// file wins inside that group.
+function betterHongkongCopy(a, b) {
+  const ar = realHongkongPoster(a);
+  const br = realHongkongPoster(b);
+  if (ar !== br) return ar ? a : b;
+  const as = fileBytes(a.name);
+  const bs = fileBytes(b.name);
+  if (as !== bs) return as > bs ? a : b;
+  if ((a.posted_at || "") !== (b.posted_at || "")) return (a.posted_at || "") > (b.posted_at || "") ? a : b;
+  return String(a.id) > String(b.id) ? a : b;
+}
+
+function dedupeHongkong(rows) {
+  const best = new Map();
+  for (const row of rows) {
+    const key = hongkongFilmKey(row.name) || row.id;
+    const prev = best.get(key);
+    if (!prev || betterHongkongCopy(row, prev) === row) best.set(key, row);
+  }
+  return [...best.values()];
+}
+
+function compareHongkong(a, b) {
+  const group = (realHongkongPoster(a) ? 0 : 1) - (realHongkongPoster(b) ? 0 : 1);
+  if (group) return group;
+  const ay = hongkongRelease(a);
+  const by = hongkongRelease(b);
+  if (ay !== by) return ay < by ? 1 : -1;
+  if ((a.posted_at || "") !== (b.posted_at || "")) return (a.posted_at || "") < (b.posted_at || "") ? 1 : -1;
+  return String(a.id) < String(b.id) ? 1 : -1;
+}
+
 export function mapTitleRow(row) {
   if (!row) return null;
   const hkYear = row.category === "hongkong" ? hongkongRelease(row) : "";
@@ -177,22 +260,21 @@ export function queryCatalog(db, { catalogId, skip = 0, page = 80, search = "", 
   // REBD-472). Forum posted_at does not follow that. 1–999 covers the
   // REbecca / OAE sequence; 4–5 digit shop codes (TSBS-81022) follow it,
   // and titles with no code stay last.
+  // HK Cat III is small enough to fold in memory: one row per film, real
+  // posters before the generated cards, newest film year first.
+  if (category === "hongkong") {
+    const start = Number(skip) || 0;
+    const limit = Number(page) || 80;
+    return dedupeHongkong(db.prepare(sql).all(...params))
+      .sort(compareHongkong)
+      .slice(start, start + limit)
+      .map(mapTitleRow);
+  }
   const order = category === "japan-photo"
     ? `CASE WHEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) BETWEEN 1 AND 999
             THEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) ELSE -1 END DESC,
        CASE WHEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) > 999
             THEN CAST(substr(name, instr(name, '-') + 1) AS INTEGER) ELSE -1 END DESC,
-       posted_at DESC, id DESC`
-    : category === "hongkong"
-    ? `CASE
-         WHEN cast_json IS NOT NULL AND cast_json NOT IN ('', '[]', 'null')
-          AND poster IS NOT NULL AND poster != ''
-          AND poster NOT LIKE '%javstremio.ddns.net%' THEN 0
-         WHEN poster LIKE '%javstremio.ddns.net%' OR poster IS NULL OR poster = '' THEN 2
-         ELSE 1
-       END,
-       CASE WHEN substr(released, 1, 4) >= '1960' AND substr(released, 1, 4) <= '2018'
-            THEN substr(released, 1, 4) ELSE '' END DESC,
        posted_at DESC, id DESC`
     : `${META_RANK}, posted_at DESC, id DESC`;
   sql += ` ORDER BY ${order} LIMIT ? OFFSET ?`;
