@@ -107,6 +107,26 @@ test("queryCatalog puts metadata titles first, bare titles last", () => {
   assert.deepEqual(western.map((row) => row.id), ["jav:thread-1"]);
 });
 
+test("hongkong shows the film year instead of the 2026 forum year", () => {
+  const db = memoryDb();
+  db.exec(`
+    INSERT INTO titles (id, category, name, description, release_info, released, posted_at, search_text)
+    VALUES
+      ('hk:cat3-1', 'hongkong', '兼差女郎', '于1994年在中国香港上映', '2026', '1994-01-01T00:00:00.000Z', '2026-11-16', ''),
+      ('hk:cat3-2', 'hongkong', '越轨之狼1994', '', '2026', '', '2026-11-08', ''),
+      ('hk:cat3-3', 'hongkong', '孽欲邪杀', '', '2026', '2026-11-08T00:00:00.000Z', '2026-11-08', '')
+  `);
+  const dated = queryTitle(db, "hk:cat3-1");
+  assert.equal(dated.releaseInfo, "1994");
+  assert.equal(dated.released, "1994-01-01T00:00:00.000Z");
+  const named = queryTitle(db, "hk:cat3-2");
+  assert.equal(named.releaseInfo, "1994");
+  assert.equal(named.released, "1994-01-01T00:00:00.000Z");
+  const unknown = queryTitle(db, "hk:cat3-3");
+  assert.equal(unknown.releaseInfo, "");
+  assert.equal(unknown.released, undefined);
+});
+
 test("queryTitle returns one mapped row", () => {
   const db = memoryDb();
   const item = queryTitle(db, "jav:JUR-093");

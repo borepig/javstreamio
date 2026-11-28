@@ -100,6 +100,12 @@ const POSTER_HOSTS = [
   // (TMDB rawHtml og:image, IMDB media CDN).
   "media.themoviedb.org",
   "m.media-amazon.com",
+  // Image-search covers for HK Cat III (Baidu Baike, HK cinema stills, 1905).
+  "bcebos.com",
+  "hkcinema.cn",
+  "wikiwand.com",
+  "m1905.cn",
+  "jingdianmovie.com",
 ];
 const POSTER_REFERER = "https://sehuatang.org/";
 const POSTER_UA =
@@ -461,7 +467,7 @@ function applyPublicArt(item, kind, origin) {
   }
   // HK Cat III: sehuatang first, then a Douban/TMDB cover. The /poster
   // route serves the generated card only when both of those are missing.
-  const hkRemotePoster = /doubanio\.com|img\.douban\.com|themoviedb\.org|media-amazon\.com|wikimedia\.org/i
+  const hkRemotePoster = /doubanio\.com|img\.douban\.com|themoviedb\.org|media-amazon\.com|wikimedia\.org|bcebos\.com|hkcinema\.cn|wikiwand\.com|m1905\.cn|jingdianmovie\.com/i
     .test(String(item.poster || ""));
   if (
     origin &&
@@ -1095,6 +1101,9 @@ function posterRefererFor(src) {
     }
     if (host === "at-mania.com" || host.endsWith(".at-mania.com")) {
       return "https://www.at-mania.com/";
+    }
+    if (host === "bcebos.com" || host.endsWith(".bcebos.com")) {
+      return "https://baike.baidu.com/";
     }
   } catch {
     return POSTER_REFERER;

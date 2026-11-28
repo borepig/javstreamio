@@ -85,14 +85,35 @@ export function titleType(category) {
   return String(category || "").startsWith("hentai") ? "series" : "movie";
 }
 
+function plausibleFilmYear(value) {
+  const year = Number(String(value || "").slice(0, 4));
+  return year >= 1960 && year <= 2018 ? String(year) : "";
+}
+
+// HK Cat III rows stored the forum post year (2026) in release_info, which
+// Stremio shows under the title. Prefer the film year already on the row.
+export function hongkongRelease(row) {
+  const fromReleased = plausibleFilmYear(row.released);
+  if (fromReleased) return fromReleased;
+  const text = `${row.name || ""} ${row.description || ""}`;
+  for (const token of text.match(/(?:19|20)\d{2}/g) || []) {
+    const year = plausibleFilmYear(token);
+    if (year) return year;
+  }
+  return "";
+}
+
 export function mapTitleRow(row) {
   if (!row) return null;
+  const hkYear = row.category === "hongkong" ? hongkongRelease(row) : "";
+  const storedInfo = String(row.release_info || "");
+  const storedInfoIsForum = /^\d{4}$/.test(storedInfo) && Number(storedInfo) >= 2019;
   const item = {
     id: row.id,
     type: titleType(row.category),
     name: row.name,
     description: row.description || "",
-    releaseInfo: row.release_info || "",
+    releaseInfo: hkYear || (row.category === "hongkong" && storedInfoIsForum ? "" : storedInfo),
     runtime: row.runtime || "",
     infoHash: row.info_hash || "",
     magnet: row.magnet || "",
@@ -100,7 +121,13 @@ export function mapTitleRow(row) {
   };
   if (row.stream_url) item.streamUrl = row.stream_url;
   if (row.lulu_token) item.luluToken = row.lulu_token;
-  if (row.released) item.released = row.released;
+  if (hkYear) {
+    item.released = plausibleFilmYear(row.released)
+      ? row.released
+      : `${hkYear}-01-01T00:00:00.000Z`;
+  } else if (row.released && !(row.category === "hongkong" && !plausibleFilmYear(row.released))) {
+    item.released = row.released;
+  }
   if (row.poster) item.poster = row.poster;
   if (row.background) item.background = row.background;
   if (row.forum_poster) item.forumPoster = row.forum_poster;
